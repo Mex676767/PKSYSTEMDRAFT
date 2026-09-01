@@ -35,7 +35,10 @@ export default function Mentors() {
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
         {filtered.map(pairing => (
           <motion.div variants={slideUp} key={pairing.id}>
-            <Card className="h-full hover:-translate-y-1 transition-transform duration-300 shadow-sm hover:shadow-md">
+            <Card className={cn(
+              "h-full hover:-translate-y-1 transition-transform duration-300 shadow-sm hover:shadow-md border-t-4 bg-gradient-to-b to-card",
+              pairing.status === 'active' ? "border-t-primary from-primary/10" : "border-t-secondary from-secondary/10"
+            )}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <Badge variant={pairing.status === 'active' ? 'default' : 'secondary'} className={cn("text-[10px] uppercase", pairing.status === 'active' ? "bg-emerald-500 hover:bg-emerald-600" : "")}>

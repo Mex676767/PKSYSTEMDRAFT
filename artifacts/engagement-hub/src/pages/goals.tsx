@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useGoals, useUpdateGoal, useCreateGoal } from "@/hooks/use-mock-api";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { CheckCircle2, Circle, Plus, Target, Clock } from "lucide-react";
 import { format, isPast } from "date-fns";
@@ -145,15 +146,21 @@ export default function Goals() {
           ) : (
             <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
               {activeGoals.map(goal => (
-                <motion.div key={goal.id} variants={slideUp}>
-                  <Card className="hover:border-primary/30 transition-colors">
+                <motion.div key={goal.id} variants={slideUp} whileHover={{ y: -2 }}>
+                  <Card className={cn(
+                    "border-l-4 shadow-sm hover:shadow-md transition-all bg-gradient-to-r to-card",
+                    goal.type === 'Big Goals' ? "border-l-secondary from-secondary/10" : "border-l-primary from-primary/10"
+                  )}>
                     <CardContent className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:items-center">
-                      <button 
+                      <button
                         onClick={() => handleToggleGoal(goal.id, goal.progress, goal.completed)}
                         disabled={updateGoal.isPending}
-                        className="shrink-0 text-muted-foreground hover:text-primary transition-colors focus:outline-none disabled:opacity-50"
+                        className={cn(
+                          "shrink-0 transition-colors focus:outline-none disabled:opacity-50 hover:scale-110 transition-transform",
+                          goal.type === 'Big Goals' ? "text-secondary hover:text-secondary/80" : "text-primary hover:text-primary/80"
+                        )}
                       >
-                        <Circle className="w-8 h-8 stroke-1" />
+                        <Circle className="w-8 h-8 stroke-2" />
                       </button>
                       
                       <div className="flex-1 space-y-1 min-w-0">

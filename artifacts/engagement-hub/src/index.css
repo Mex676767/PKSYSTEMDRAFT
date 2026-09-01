@@ -61,7 +61,7 @@
   --elevate-2: rgba(0, 0, 0, 0.08);
 
   /* Arcade Corporate Light Mode */
-  --background: 240 20% 98%;
+  --background: 250 45% 97%;
   --foreground: 240 10% 15%;
   --border: 240 15% 90%;
   
@@ -169,7 +169,20 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 900px 600px at 8% -10%, hsl(262 90% 92% / 0.6), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 100% 0%, hsl(316 85% 92% / 0.55), transparent 55%),
+      radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 100% 90% / 0.45), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 900px 600px at 8% -10%, hsl(262 70% 30% / 0.35), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 100% 0%, hsl(316 70% 30% / 0.3), transparent 55%),
+      radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 80% 30% / 0.2), transparent 55%);
   }
   
   h1, h2, h3, h4, h5, h6 {
