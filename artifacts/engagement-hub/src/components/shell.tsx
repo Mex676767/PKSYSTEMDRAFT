@@ -19,7 +19,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { data: user } = useCurrentUser();
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
+    <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
       {/* Sidebar (Desktop) / Bottom Nav (Mobile) */}
       <nav className="fixed bottom-0 left-0 right-0 md:relative md:w-64 bg-card border-t md:border-t-0 md:border-r border-border z-40 flex md:flex-col justify-between md:min-h-screen">
         <div className="hidden md:flex p-6 items-center gap-3">
