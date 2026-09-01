@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Engagement Hub"
+description = "A playful internal employee engagement and gamification hub where teams set goals, compete in PvP challenges, celebrate wins, connect through mentoring, spotlight birthdays, and run lucky draws for overachievers."
+version = "1.0.0"
+id = "artifacts/engagement-hub"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23565
+
+[services.development]
+run = "pnpm --filter @workspace/engagement-hub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/engagement-hub", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/engagement-hub/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23565"
+BASE_PATH = "/"
