@@ -22,6 +22,7 @@ export function Confetti({ active }: { active: boolean }) {
       return () => clearTimeout(timer);
     } else {
       setPieces([]);
+      return;
     }
   }, [active]);
 
