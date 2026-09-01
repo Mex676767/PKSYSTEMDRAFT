@@ -36,8 +36,8 @@ export default function Dashboard() {
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {/* Goals Summary */}
-        <motion.div variants={slideUp}>
-          <Card className="h-full border-primary/20 shadow-sm relative overflow-hidden">
+        <motion.div variants={slideUp} whileHover={{ y: -4 }}>
+          <Card className="h-full border-primary/20 shadow-md relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <Target className="w-24 h-24 text-primary" />
             </div>
@@ -72,8 +72,8 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Challenges Summary */}
-        <motion.div variants={slideUp}>
-          <Card className="h-full border-secondary/20 shadow-sm relative overflow-hidden">
+        <motion.div variants={slideUp} whileHover={{ y: -4 }}>
+          <Card className="h-full border-secondary/20 shadow-md relative overflow-hidden bg-gradient-to-br from-secondary/10 via-card to-card">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <Flame className="w-24 h-24 text-secondary" />
             </div>
@@ -113,7 +113,7 @@ export default function Dashboard() {
 
         {/* Quick Highlights */}
         <motion.div variants={slideUp} className="flex flex-col gap-6">
-          <Card className="flex-1 bg-gradient-to-br from-accent/20 to-transparent border-accent/20 shadow-sm">
+          <Card className="flex-1 bg-gradient-to-br from-accent/25 to-transparent border-accent/20 shadow-md hover:-translate-y-1 transition-transform duration-200">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Trophy className="w-5 h-5 text-accent-foreground" /> Hall of Fame
@@ -130,7 +130,7 @@ export default function Dashboard() {
           </Card>
 
           {todayBirthdays.length > 0 && (
-            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-md overflow-hidden relative">
+            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-lg overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
               <CardContent className="p-6 flex items-center justify-between relative z-10">
                 <div>
