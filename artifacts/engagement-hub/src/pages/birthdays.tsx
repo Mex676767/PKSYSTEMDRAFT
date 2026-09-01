@@ -83,11 +83,11 @@ export default function Birthdays() {
         </h2>
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcomingBdays.map(b => (
-            <motion.div variants={slideUp} key={b.id}>
-              <Card className="hover:border-pink-200 transition-colors">
+            <motion.div variants={slideUp} whileHover={{ y: -2 }} key={b.id}>
+              <Card className="hover:border-pink-300 hover:shadow-md transition-all bg-gradient-to-br from-pink-50 to-card">
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className="flex flex-col items-center justify-center bg-muted rounded-xl w-14 h-14 shrink-0 text-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{format(new Date(b.date), 'MMM')}</span>
+                  <div className="flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-xl w-14 h-14 shrink-0 text-center shadow-sm">
+                    <span className="text-xs font-bold uppercase opacity-90">{format(new Date(b.date), 'MMM')}</span>
                     <span className="text-lg font-black leading-none">{format(new Date(b.date), 'd')}</span>
                   </div>
                   <div className="flex-1 min-w-0">
