@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build engagement-hub
+        run: pnpm --filter @workspace/engagement-hub run build
+        env:
+          # Only used to satisfy vite.config.ts's validation during build; not
+          # actually bound to anything since this is a static build, not `dev`.
+          PORT: "4173"
+          # Repo is served at https://<user>.github.io/<repo>/ on GitHub Pages,
+          # so all asset URLs need this prefix.
+          BASE_PATH: /PKSYSTEMDRAFT/
+
+      - name: Add SPA 404 fallback
+        # GitHub Pages has no server-side rewrites, so a direct visit/refresh
+        # on a route like /goals 404s. Serving index.html as the 404 page lets
+        # the client-side router (wouter) take over and render the right page.
+        run: cp artifacts/engagement-hub/dist/public/index.html artifacts/engagement-hub/dist/public/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/engagement-hub/dist/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
