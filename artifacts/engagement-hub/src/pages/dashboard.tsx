@@ -10,6 +10,7 @@ import { ArrowRight, Flame, Target, Trophy, Cake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { PointsCard } from "@/components/points-card";
 
 const TERM_BADGE_CLASS: Record<GoalTerm, string> = {
   long: "bg-accent/20 text-accent-foreground border-accent/30",
@@ -139,6 +140,11 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Points - balance, recent activity, gift to others */}
+        <motion.div variants={slideUp}>
+          <PointsCard />
         </motion.div>
 
         {/* Hall of Fame + Birthdays - condensed, lowest priority row */}

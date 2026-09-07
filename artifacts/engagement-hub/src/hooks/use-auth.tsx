@@ -35,6 +35,7 @@ type AuthState = {
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   claimUsername: (username: string) => Promise<{ error: string | null }>;
+  refetchProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -90,6 +91,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [session, fetchProfile]);
 
+  // Once per session, try to claim today's login bonus. The RPC itself is
+  // idempotent (safe to call repeatedly -- it just returns false if today's
+  // bonus is already claimed), but we still only bother calling it once
+  // per browser session rather than on every mount.
+  useEffect(() => {
+    if (!session || !profile?.username) return;
+
+    let cancelled = false;
+    supabase.rpc("claim_daily_login_bonus").then(({ data: claimed, error }) => {
+      if (cancelled || error) return;
+      if (claimed) {
+        fetchProfile(session.user.id).then((p) => {
+          if (!cancelled && p) setProfile(p);
+        });
+      }
+    });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, !!profile?.username]);
+
+  const refetchProfile = useCallback(async () => {
+    if (!session) return;
+    const p = await fetchProfile(session.user.id);
+    if (p) setProfile(p);
+  }, [session, fetchProfile]);
+
   const signInWithEmail = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -130,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signInWithEmail, signOut, claimUsername }}>
+    <AuthContext.Provider value={{ session, profile, loading, signInWithEmail, signOut, claimUsername, refetchProfile }}>
       {children}
     </AuthContext.Provider>
   );
