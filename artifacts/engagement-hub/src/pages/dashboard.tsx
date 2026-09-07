@@ -124,10 +124,10 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">Check out who's leading the pack this week.</p>
+              <p className="text-sm text-muted-foreground mb-4">Every category has a champion. See who's holding the record.</p>
               <Link href="/hall-of-fame" className="block">
                 <Button variant="secondary" className="w-full shadow-none bg-background hover:bg-background/80">
-                  View Leaderboard
+                  View Record Book
                 </Button>
               </Link>
             </CardContent>
