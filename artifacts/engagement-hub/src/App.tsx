@@ -6,8 +6,11 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Shell } from '@/components/shell';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
 
 // Pages
+import Login from '@/pages/login';
+import SetUsername from '@/pages/set-username';
 import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Challenges from '@/pages/challenges';
@@ -42,15 +45,39 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function AuthGate() {
+  const { session, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center app-gradient-bg">
+        <div className="animate-pulse w-10 h-10 rounded-full bg-primary/30" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Login />;
+  }
+
+  if (!profile?.username) {
+    return <SetUsername />;
+  }
+
+  return <Router />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <AuthGate />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
