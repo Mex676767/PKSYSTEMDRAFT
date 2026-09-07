@@ -1,6 +1,7 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useGoals, useChallenges, useBirthdays } from "@/hooks/use-mock-api";
+import { useChallenges, useBirthdays } from "@/hooks/use-mock-api";
+import { useMyGoals } from "@/hooks/use-goals";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
   const { profile } = useAuth();
-  const { data: goals = [] } = useGoals();
+  const { data: goals = [] } = useMyGoals();
   const { data: challenges = [] } = useChallenges();
   const { data: birthdays = [] } = useBirthdays();
 
