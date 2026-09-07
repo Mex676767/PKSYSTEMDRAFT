@@ -36,11 +36,16 @@ export function ReactionBar({
           onClick={() => toggle.mutate(emoji)}
           disabled={!session || toggle.isPending}
           className={cn(
-            "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors disabled:opacity-50",
+            // Reactions should stay clearly visible even for signed-out
+            // viewers who can't click them yet -- only actually fade while a
+            // toggle is in flight, not just because there's no session.
+            "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
+            !session && "cursor-not-allowed",
+            toggle.isPending && "opacity-50",
             onDark
               ? mine
                 ? "bg-white/25 border-white/50 text-white"
-                : "bg-white/10 border-white/25 text-white/90 hover:bg-white/20"
+                : "bg-white/15 border-white/35 text-white hover:bg-white/25"
               : mine
                 ? "bg-primary/15 border-primary/40 text-primary"
                 : "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted"
