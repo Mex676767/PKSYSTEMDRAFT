@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { titleLabel } from "@/lib/titles";
+import { getAccessoryEmoji } from "@/lib/accessories";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -13,6 +15,7 @@ const navItems = [
   { href: "/mentors", label: "Mentors", icon: Users },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
+  { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -55,14 +58,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
         {profile && (
           <div className="hidden md:flex p-4 border-t border-border mt-auto items-center gap-3">
-            <UserAvatar user={{
-              name: profile.username ?? profile.email,
-              initials: initialsForUsername(profile.username ?? profile.email),
-              color: colorForId(profile.id),
-            }} />
+            <UserAvatar
+              user={{
+                name: profile.username ?? profile.email,
+                initials: initialsForUsername(profile.username ?? profile.email),
+                color: colorForId(profile.id),
+              }}
+              accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
-              <p className="text-xs text-muted-foreground truncate">{profile.points} pts</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {profile.active_title ? `${titleLabel(profile.active_title)} · ` : ""}{profile.points} pts
+              </p>
             </div>
             <button
               onClick={() => signOut()}

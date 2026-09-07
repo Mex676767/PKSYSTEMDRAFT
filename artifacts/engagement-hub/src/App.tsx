@@ -21,6 +21,7 @@ import HallOfFame from '@/pages/hall-of-fame';
 import Mentors from '@/pages/mentors';
 import Birthdays from '@/pages/birthdays';
 import Lottery from '@/pages/lottery';
+import Profile from '@/pages/profile';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function Router() {
           <Route path="/mentors" component={Mentors} />
           <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={Lottery} />
+          <Route path="/profile" component={Profile} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

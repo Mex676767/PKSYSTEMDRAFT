@@ -9,6 +9,12 @@ export type Profile = {
   username: string | null;
   points: number;
   badges: string[];
+  current_streak: number;
+  longest_streak: number;
+  active_title: string | null;
+  unlocked_titles: string[];
+  active_accessory: string | null;
+  unlocked_accessories: string[];
 };
 
 const AVATAR_COLORS = [

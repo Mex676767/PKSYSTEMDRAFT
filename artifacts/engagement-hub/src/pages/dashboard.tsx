@@ -34,7 +34,7 @@ export default function Dashboard() {
   // (e.g. while login is temporarily disabled for testing).
   const displayName = profile?.username ?? "there";
   const displayPoints = profile?.points ?? 0;
-  const displayBadges = profile?.badges.length ?? 0;
+  const displayStreak = profile?.current_streak ?? 0;
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -43,7 +43,10 @@ export default function Dashboard() {
           Welcome back, <span className="text-primary">@{displayName}</span>!
         </h1>
         <p className="text-lg text-muted-foreground">
-          You're doing great. You have <strong className="text-foreground">{displayPoints} points</strong> and {displayBadges} badges.
+          You're doing great. You have <strong className="text-foreground">{displayPoints} points</strong>
+          {displayStreak > 0 && (
+            <> and a <strong className="text-foreground">🔥 {displayStreak}-day streak</strong></>
+          )}.
         </p>
       </motion.div>
 
