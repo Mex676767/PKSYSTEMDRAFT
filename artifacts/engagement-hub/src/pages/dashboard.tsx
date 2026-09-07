@@ -1,6 +1,7 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCurrentUser, useGoals, useChallenges, useBirthdays } from "@/hooks/use-mock-api";
+import { useGoals, useChallenges, useBirthdays } from "@/hooks/use-mock-api";
+import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Flame, Target, Trophy, Cake } from "lucide-react";
@@ -9,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
-  const { data: user, isLoading: loadingUser } = useCurrentUser();
+  const { profile } = useAuth();
   const { data: goals = [] } = useGoals();
   const { data: challenges = [] } = useChallenges();
   const { data: birthdays = [] } = useBirthdays();
@@ -18,7 +19,7 @@ export default function Dashboard() {
   const activeChallenges = challenges.filter(c => c.status === 'active');
   const todayBirthdays = birthdays.filter(b => b.isToday);
 
-  if (loadingUser) {
+  if (!profile) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
   }
 
@@ -26,10 +27,10 @@ export default function Dashboard() {
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <motion.div variants={slideUp} initial="hidden" animate="show" className="flex flex-col gap-2">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
-          Welcome back, <span className="text-primary">{user?.name.split(' ')[0]}</span>!
+          Welcome back, <span className="text-primary">@{profile.username}</span>!
         </h1>
         <p className="text-lg text-muted-foreground">
-          You're doing great. You have <strong className="text-foreground">{user?.points} points</strong> and {user?.badges.length} badges.
+          You're doing great. You have <strong className="text-foreground">{profile.points} points</strong> and {profile.badges.length} badges.
         </p>
       </motion.div>
 

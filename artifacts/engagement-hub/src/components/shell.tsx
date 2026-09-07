@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Swords, Trophy, Users, Cake, Gift } from "lucide-react";
+import { Home, Target, Swords, Trophy, Users, Cake, Gift, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUser } from "@/hooks/use-mock-api";
+import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -16,7 +16,7 @@ const navItems = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { data: user } = useCurrentUser();
+  const { profile, signOut } = useAuth();
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
@@ -52,13 +52,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        {user && (
+        {profile && (
           <div className="hidden md:flex p-4 border-t border-border mt-auto items-center gap-3">
-            <UserAvatar user={user} />
+            <UserAvatar user={{
+              name: profile.username ?? profile.email,
+              initials: initialsForUsername(profile.username ?? profile.email),
+              color: colorForId(profile.id),
+            }} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.points} pts</p>
+              <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{profile.points} pts</p>
             </div>
+            <button
+              onClick={() => signOut()}
+              className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         )}
       </nav>
