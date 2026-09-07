@@ -21,6 +21,11 @@ import Lottery from '@/pages/lottery';
 
 const queryClient = new QueryClient();
 
+// TEMPORARY: flip back to true to re-enable the login requirement.
+// Turned off while sorting out the Supabase email-sending setup so the rest
+// of the app can still be tested/demoed in the meantime.
+const REQUIRE_LOGIN = false;
+
 function Router() {
   return (
     <Shell>
@@ -47,6 +52,10 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 
 function AuthGate() {
   const { session, profile, loading } = useAuth();
+
+  if (!REQUIRE_LOGIN) {
+    return <Router />;
+  }
 
   if (loading) {
     return (
