@@ -152,7 +152,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">See who's holding the record.</p>
               </div>
               <Link href="/hall-of-fame" className="shrink-0">
-                <Button size="sm" variant="secondary" className="shadow-none bg-background hover:bg-background/80">
+                <Button size="sm" variant="outline">
                   View
                 </Button>
               </Link>

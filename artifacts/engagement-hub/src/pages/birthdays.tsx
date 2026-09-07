@@ -39,7 +39,7 @@ export default function Birthdays() {
       <Confetti active={showConfetti} />
       
       <div className="flex items-center gap-3 mb-8">
-        <div className="bg-pink-100 text-pink-600 p-3 rounded-2xl">
+        <div className="bg-secondary/15 text-secondary p-3 rounded-2xl">
           <CalendarHeart className="w-8 h-8" />
         </div>
         <div>
@@ -50,7 +50,7 @@ export default function Birthdays() {
 
       {todayBdays.length > 0 && (
         <div className="space-y-4 mb-12">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-pink-600">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-secondary">
             <Cake className="w-5 h-5" /> Today
           </h2>
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
@@ -70,7 +70,7 @@ export default function Birthdays() {
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcomingBdays.map(b => (
             <motion.div variants={slideUp} whileHover={{ y: -2 }} key={b.id}>
-              <Card className="hover:border-pink-300 hover:shadow-md transition-all bg-gradient-to-br from-pink-50 to-card">
+              <Card className="hover:border-secondary/40 hover:shadow-md transition-all bg-gradient-to-br from-secondary/10 to-card">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-xl w-14 h-14 shrink-0 text-center shadow-sm">
@@ -136,7 +136,7 @@ function TodayBirthdayCard({
 
         <div className="pt-4 border-t border-white/20 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <ReactionBar targetType="birthday" targetId={birthday.id} />
+            <ReactionBar targetType="birthday" targetId={birthday.id} onDark />
             <button
               onClick={() => setShowComments((s) => !s)}
               className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors"
@@ -148,7 +148,7 @@ function TodayBirthdayCard({
           </div>
           {showComments && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
-              <CommentSection targetType="birthday" targetId={birthday.id} />
+              <CommentSection targetType="birthday" targetId={birthday.id} onDark />
             </div>
           )}
         </div>
