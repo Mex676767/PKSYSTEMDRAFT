@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Trophy, Sparkles, CheckCircle2 } from "lucide-react";
+import { Mail, Trophy, Sparkles, CheckCircle2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Login() {
-  const { signInWithEmail } = useAuth();
+  const { signInWithEmail, signInWithPassword } = useAuth();
+  const [mode, setMode] = useState<"magic-link" | "password">("magic-link");
+
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("sending");
@@ -23,6 +26,20 @@ export default function Login() {
     } else {
       setStatus("sent");
     }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setStatus("sending");
+    setError(null);
+    const { error } = await signInWithPassword(email.trim(), password);
+    if (error) {
+      setError(error);
+      setStatus("error");
+    }
+    // On success the auth listener picks up the new session automatically;
+    // no local "sent" state needed here since it's an instant sign-in.
   };
 
   return (
@@ -64,8 +81,8 @@ export default function Login() {
                   Use a different email
                 </Button>
               </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            ) : mode === "magic-link" ? (
+              <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     <Mail className="w-4 h-4 text-primary" /> Email address
@@ -97,6 +114,59 @@ export default function Login() {
                     </>
                   )}
                 </Button>
+
+                <button
+                  type="button"
+                  onClick={() => { setMode("password"); setStatus("idle"); setError(null); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Have a test account? Sign in with a password instead
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" /> Email address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoFocus
+                    required
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-primary" /> Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+
+                {status === "error" && (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
+
+                <Button type="submit" className="w-full h-11" disabled={status === "sending"}>
+                  {status === "sending" ? "Signing in..." : "Sign in"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => { setMode("magic-link"); setStatus("idle"); setError(null); }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Back to email sign-in link
+                </button>
               </form>
             )}
           </CardContent>
