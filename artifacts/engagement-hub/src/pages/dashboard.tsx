@@ -19,18 +19,20 @@ export default function Dashboard() {
   const activeChallenges = challenges.filter(c => c.status === 'active');
   const todayBirthdays = birthdays.filter(b => b.isToday);
 
-  if (!profile) {
-    return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
-  }
+  // Falls back to a generic greeting when there's no real logged-in profile
+  // (e.g. while login is temporarily disabled for testing).
+  const displayName = profile?.username ?? "there";
+  const displayPoints = profile?.points ?? 0;
+  const displayBadges = profile?.badges.length ?? 0;
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <motion.div variants={slideUp} initial="hidden" animate="show" className="flex flex-col gap-2">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
-          Welcome back, <span className="text-primary">@{profile.username}</span>!
+          Welcome back, <span className="text-primary">@{displayName}</span>!
         </h1>
         <p className="text-lg text-muted-foreground">
-          You're doing great. You have <strong className="text-foreground">{profile.points} points</strong> and {profile.badges.length} badges.
+          You're doing great. You have <strong className="text-foreground">{displayPoints} points</strong> and {displayBadges} badges.
         </p>
       </motion.div>
 
