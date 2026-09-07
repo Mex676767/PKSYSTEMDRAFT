@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Swords, Trophy, Users, Cake, Gift, LogOut } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { UserAvatar } from "./user-avatar";
@@ -7,6 +7,7 @@ import { UserAvatar } from "./user-avatar";
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/mentors", label: "Mentors", icon: Users },

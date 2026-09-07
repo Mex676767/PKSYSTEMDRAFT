@@ -15,6 +15,7 @@ import Login from '@/pages/login';
 import SetUsername from '@/pages/set-username';
 import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
+import Social from '@/pages/social';
 import Challenges from '@/pages/challenges';
 import HallOfFame from '@/pages/hall-of-fame';
 import Mentors from '@/pages/mentors';
@@ -35,6 +36,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/goals" component={Goals} />
+          <Route path="/social" component={Social} />
           <Route path="/challenges" component={Challenges} />
           <Route path="/hall-of-fame" component={HallOfFame} />
           <Route path="/mentors" component={Mentors} />
