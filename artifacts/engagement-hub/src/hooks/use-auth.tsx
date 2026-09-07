@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export type Profile = {
@@ -33,6 +34,7 @@ type AuthState = {
   profile: Profile | null;
   loading: boolean;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   claimUsername: (username: string) => Promise<{ error: string | null }>;
   refetchProfile: () => Promise<void>;
@@ -41,6 +43,7 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile(session.user.id).then((p) => {
           if (!cancelled && p) setProfile(p);
         });
+        queryClient.invalidateQueries({ queryKey: ["point-history", session.user.id] });
       }
     });
 
@@ -125,6 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: window.location.origin + import.meta.env.BASE_URL,
       },
     });
+    return { error: error?.message ?? null };
+  };
+
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
 
@@ -158,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signInWithEmail, signOut, claimUsername, refetchProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, signInWithEmail, signInWithPassword, signOut, claimUsername, refetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

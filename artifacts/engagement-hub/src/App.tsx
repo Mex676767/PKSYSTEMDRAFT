@@ -24,10 +24,10 @@ import Lottery from '@/pages/lottery';
 
 const queryClient = new QueryClient();
 
-// TEMPORARY: flip back to true to re-enable the login requirement.
-// Turned off while sorting out the Supabase email-sending setup so the rest
-// of the app can still be tested/demoed in the meantime.
-const REQUIRE_LOGIN = false;
+// Re-enabled now that password-based test accounts exist as a workaround for
+// the still-unresolved Supabase magic-link email delivery (see Login page's
+// "sign in with a password instead" option).
+const REQUIRE_LOGIN = true;
 
 function Router() {
   return (
