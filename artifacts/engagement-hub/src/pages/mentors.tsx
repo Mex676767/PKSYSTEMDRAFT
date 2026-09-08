@@ -114,6 +114,19 @@ function OrganizationSection({
         roots.push({ id: m.mentor_id, username: m.mentor?.username });
       }
     }
+    // Two people can end up mentoring each other (or a longer cycle) --
+    // every mentor is then someone's mentee too, so the loop above finds no
+    // root at all even though real connections exist. Rather than silently
+    // showing "No connections yet", fall back to treating every distinct
+    // mentor as its own root so the cycle still renders (each side of it).
+    if (roots.length === 0) {
+      for (const m of list) {
+        if (!seen.has(m.mentor_id)) {
+          seen.add(m.mentor_id);
+          roots.push({ id: m.mentor_id, username: m.mentor?.username });
+        }
+      }
+    }
     return { roots, childrenOf };
   }, [list]);
 
@@ -194,27 +207,37 @@ function OrganizationSection({
       ) : hasSearch && forceExpandIds.size === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <div className="overflow-x-auto pb-2">
-          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6 min-w-max">
-            {roots.map((root) => (
-              <motion.div key={root.id} variants={slideUp}>
-                <TreeNode
-                  personId={root.id}
-                  username={root.username}
-                  childrenOf={childrenOf}
-                  canManage={canManage}
-                  visited={new Set()}
-                  collapsed={collapsed}
-                  onToggleCollapse={toggleCollapse}
-                  matchIds={matchIds}
-                  forceExpandIds={forceExpandIds}
-                  hasSearch={hasSearch}
-                  directory={directory ?? []}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+        // Each root is its own separate, self-contained tree -- boxed
+        // individually and centered as a group, rather than one continuous
+        // left-aligned stack, so unrelated mentor chains never read as
+        // connected to each other. The scroll-if-needed behavior lives on
+        // each box (not this row): flex-wrap only kicks in when the row
+        // itself is allowed to shrink, so a horizontal-scroll row would
+        // just keep everything on one line and can even clip content on
+        // both sides of the centered point instead of wrapping.
+        <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-wrap justify-center gap-6">
+          {roots.map((root) => (
+            <motion.div
+              key={root.id}
+              variants={slideUp}
+              className="max-w-full overflow-x-auto rounded-2xl border border-border bg-muted/20 p-4 shadow-sm"
+            >
+              <TreeNode
+                personId={root.id}
+                username={root.username}
+                childrenOf={childrenOf}
+                canManage={canManage}
+                visited={new Set()}
+                collapsed={collapsed}
+                onToggleCollapse={toggleCollapse}
+                matchIds={matchIds}
+                forceExpandIds={forceExpandIds}
+                hasSearch={hasSearch}
+                directory={directory ?? []}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
     </div>
   );
