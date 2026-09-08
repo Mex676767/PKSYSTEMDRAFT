@@ -42,7 +42,7 @@ export default function Lottery() {
       <Confetti active={!!winner && !spinning} />
       
       <div className="text-center max-w-2xl mx-auto space-y-4">
-        <div className="w-20 h-20 bg-accent/20 text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 relative">
+        <div className="w-20 h-20 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4 relative">
           <Gift className="w-10 h-10" />
           <Sparkles className="w-6 h-6 absolute -top-2 -right-2 text-yellow-500 animate-pulse" />
         </div>

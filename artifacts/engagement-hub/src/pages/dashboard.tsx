@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { PointsCard } from "@/components/points-card";
 
 const TERM_BADGE_CLASS: Record<GoalTerm, string> = {
-  long: "bg-accent/20 text-accent-foreground border-accent/30",
+  long: "bg-accent/20 text-accent border-accent/30",
   mid: "bg-secondary/15 text-secondary border-secondary/30",
   short: "bg-primary/15 text-primary border-primary/30",
 };
@@ -157,7 +157,7 @@ export default function Dashboard() {
             <CardContent className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="font-semibold flex items-center gap-2 text-sm">
-                  <Trophy className="w-4 h-4 text-accent-foreground shrink-0" /> Hall of Fame
+                  <Trophy className="w-4 h-4 text-accent shrink-0" /> Hall of Fame
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">See who's holding the record.</p>
               </div>

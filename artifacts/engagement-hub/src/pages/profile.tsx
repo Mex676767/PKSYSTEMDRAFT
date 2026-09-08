@@ -131,7 +131,7 @@ export default function Profile() {
         <Card className="border-accent/20 shadow-sm bg-gradient-to-br from-accent/10 via-card to-card">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <ShoppingBag className="w-5 h-5 text-accent-foreground" /> Accessory Shop
+              <ShoppingBag className="w-5 h-5 text-accent" /> Accessory Shop
             </CardTitle>
             <CardDescription>Spend points on a little flair for your avatar</CardDescription>
           </CardHeader>
