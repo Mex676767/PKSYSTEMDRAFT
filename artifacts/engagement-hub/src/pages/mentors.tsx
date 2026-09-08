@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, GraduationCap, Network, Users, Building2, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowRight, BookOpen, GraduationCap, Network, Users, Building2, Plus, Trash2, X,
+  Search, ChevronDown, ChevronRight, Maximize2, Minimize2,
+} from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useMentorships,
@@ -15,6 +18,7 @@ import {
   useCreateMentorship,
   useDeleteMentorship,
   useSetDepartment,
+  type DirectoryProfile,
 } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +70,7 @@ export default function Mentors() {
             <OrganizationSection mentorships={mentorships} canManage={canManage} directory={directory} />
           </TabsContent>
           <TabsContent value="pairs" className="pt-6">
-            <MentorMenteeSection mentorships={mentorships} canManage={canManage} />
+            <MentorMenteeSection mentorships={mentorships} canManage={canManage} directory={directory} />
           </TabsContent>
           <TabsContent value="departments" className="pt-6">
             <DepartmentSection directory={directory} canManage={canManage} />
@@ -89,6 +93,8 @@ function OrganizationSection({
   directory: ReturnType<typeof useDirectory>["data"];
 }) {
   const list = mentorships ?? [];
+  const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const { roots, childrenOf } = useMemo(() => {
     const childrenOf = new Map<string, MentorshipList>();
@@ -111,11 +117,82 @@ function OrganizationSection({
     return { roots, childrenOf };
   }, [list]);
 
+  // Search filters the tree down to matching people plus their ancestor
+  // chain (so you can still see who they report up to), auto-expanding
+  // every branch along the way -- this is the main "easier to navigate"
+  // fix for a tree that can otherwise get deep fast.
+  const { matchIds, forceExpandIds } = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const matchIds = new Set<string>();
+    const forceExpandIds = new Set<string>();
+    if (!q) return { matchIds, forceExpandIds };
+
+    const usernameById = new Map<string, string | null | undefined>();
+    for (const m of list) {
+      usernameById.set(m.mentor_id, m.mentor?.username);
+      usernameById.set(m.mentee_id, m.mentee?.username);
+    }
+    for (const [id, uname] of usernameById) {
+      if ((uname ?? "").toLowerCase().includes(q)) matchIds.add(id);
+    }
+
+    function walk(personId: string, ancestors: string[], seen: Set<string>): boolean {
+      if (seen.has(personId)) return false;
+      seen.add(personId);
+      let selfOrDescendantMatches = matchIds.has(personId);
+      for (const m of childrenOf.get(personId) ?? []) {
+        if (walk(m.mentee_id, [...ancestors, personId], seen)) selfOrDescendantMatches = true;
+      }
+      if (selfOrDescendantMatches) {
+        forceExpandIds.add(personId);
+        for (const a of ancestors) forceExpandIds.add(a);
+      }
+      return selfOrDescendantMatches;
+    }
+    for (const r of roots) walk(r.id, [], new Set());
+    return { matchIds, forceExpandIds };
+  }, [search, list, childrenOf, roots]);
+
+  const hasSearch = search.trim().length > 0;
+  const collapsibleIds = useMemo(() => Array.from(childrenOf.keys()), [childrenOf]);
+
+  const toggleCollapse = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   return (
     <div className="space-y-4">
-      {canManage && <NewPairingButton directory={directory ?? []} />}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Find someone in the tree..."
+            className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
+          />
+        </div>
+        {collapsibleIds.length > 0 && (
+          <div className="flex gap-1.5">
+            <Button type="button" size="sm" variant="outline" className="h-9" onClick={() => setCollapsed(new Set())}>
+              <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> Expand all
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-9" onClick={() => setCollapsed(new Set(collapsibleIds))}>
+              <Minimize2 className="w-3.5 h-3.5 mr-1.5" /> Collapse all
+            </Button>
+          </div>
+        )}
+      </div>
+
       {roots.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No connections yet.</div>
+        <div className="text-center py-12 text-muted-foreground">
+          No connections yet.{canManage && " Start one from the Mentor-Mentee tab."}
+        </div>
+      ) : hasSearch && forceExpandIds.size === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
         <div className="overflow-x-auto pb-2">
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6 min-w-max">
@@ -127,6 +204,12 @@ function OrganizationSection({
                   childrenOf={childrenOf}
                   canManage={canManage}
                   visited={new Set()}
+                  collapsed={collapsed}
+                  onToggleCollapse={toggleCollapse}
+                  matchIds={matchIds}
+                  forceExpandIds={forceExpandIds}
+                  hasSearch={hasSearch}
+                  directory={directory ?? []}
                 />
               </motion.div>
             ))}
@@ -145,6 +228,12 @@ function TreeNode({
   visited,
   mentorshipId,
   status,
+  collapsed,
+  onToggleCollapse,
+  matchIds,
+  forceExpandIds,
+  hasSearch,
+  directory,
 }: {
   personId: string;
   username: string | null | undefined;
@@ -153,23 +242,51 @@ function TreeNode({
   visited: Set<string>;
   mentorshipId?: string;
   status?: string;
+  collapsed: Set<string>;
+  onToggleCollapse: (id: string) => void;
+  matchIds: Set<string>;
+  forceExpandIds: Set<string>;
+  hasSearch: boolean;
+  directory: DirectoryProfile[];
 }) {
   if (visited.has(personId)) return null; // guard against a bad cyclical pairing
+  const isMatch = matchIds.has(personId);
+  // While searching, hide branches that contain no match at all.
+  if (hasSearch && !forceExpandIds.has(personId) && !isMatch) return null;
+
   const nextVisited = new Set(visited).add(personId);
   const children = childrenOf.get(personId) ?? [];
+  const hasChildren = children.length > 0;
+  const isExpanded = hasSearch ? true : !collapsed.has(personId);
 
   return (
     <div className="flex flex-col items-start">
-      <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+      <div
+        className={cn(
+          "flex items-center gap-1.5 bg-card border rounded-lg px-3 py-2 shadow-sm",
+          isMatch && hasSearch ? "border-primary ring-1 ring-primary/50" : "border-border"
+        )}
+      >
+        {hasChildren && (
+          <button
+            type="button"
+            onClick={() => onToggleCollapse(personId)}
+            title={isExpanded ? "Collapse" : "Expand"}
+            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
+        )}
         <PersonChip id={personId} username={username} />
         {status && (
           <Badge variant={status === "active" ? "default" : "secondary"} className="text-[9px] uppercase shrink-0">
             {status}
           </Badge>
         )}
+        {canManage && <AddMenteeButton mentorId={personId} directory={directory} />}
         {mentorshipId && canManage && <DeletePairingButton id={mentorshipId} />}
       </div>
-      {children.length > 0 && (
+      {hasChildren && isExpanded && (
         <div className="ml-6 pl-6 border-l-2 border-dashed border-border mt-3 space-y-3">
           {children.map((m) => (
             <TreeNode
@@ -181,6 +298,12 @@ function TreeNode({
               visited={nextVisited}
               mentorshipId={m.id}
               status={m.status}
+              collapsed={collapsed}
+              onToggleCollapse={onToggleCollapse}
+              matchIds={matchIds}
+              forceExpandIds={forceExpandIds}
+              hasSearch={hasSearch}
+              directory={directory}
             />
           ))}
         </div>
@@ -189,12 +312,68 @@ function TreeNode({
   );
 }
 
+// One-click "add a mentee under this specific person" -- the mentor is
+// already implied by which node you clicked, so this only needs to ask for
+// the mentee, unlike the full New Pairing dialog (which picks both).
+function AddMenteeButton({ mentorId, directory }: { mentorId: string; directory: DirectoryProfile[] }) {
+  const createMentorship = useCreateMentorship();
+  const [isOpen, setIsOpen] = useState(false);
+  const [menteeId, setMenteeId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const options = directory.filter((p) => p.id !== mentorId);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!menteeId) return;
+    setError(null);
+    createMentorship.mutate(
+      { mentorId, menteeId },
+      {
+        onSuccess: () => {
+          setIsOpen(false);
+          setMenteeId("");
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : "Something went wrong"),
+      }
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <button type="button" title="Add a mentee under this person" className="shrink-0 text-muted-foreground hover:text-primary transition-colors">
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Add a Mentee</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mentee</label>
+            <select value={menteeId} onChange={(e) => setMenteeId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Select...</option>
+              {options.map((p) => <option key={p.id} value={p.id}>@{p.username}</option>)}
+            </select>
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={createMentorship.isPending}>
+            {createMentorship.isPending ? "Adding..." : "Add Mentee"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MentorMenteeSection({
   mentorships,
   canManage,
+  directory,
 }: {
   mentorships: ReturnType<typeof useMentorships>["data"];
   canManage: boolean;
+  directory: ReturnType<typeof useDirectory>["data"];
 }) {
   const list = mentorships ?? [];
 
@@ -209,41 +388,44 @@ function MentorMenteeSection({
     return Array.from(map.entries());
   }, [list]);
 
-  if (byMentor.length === 0) {
-    return <div className="text-center py-12 text-muted-foreground">No mentors assigned yet.</div>;
-  }
-
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
-      {byMentor.map(([mentorId, { username, mentees }]) => (
-        <motion.div key={mentorId} variants={slideUp}>
-          <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-primary" />
-                <PersonChip id={mentorId} username={username} />
-                <Badge variant="outline" className="text-[9px] ml-auto shrink-0">
-                  {mentees.length} mentee{mentees.length === 1 ? "" : "s"}
-                </Badge>
-              </div>
-              <div className="pl-6 space-y-2">
-                {mentees.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-2">
-                    <PersonChip id={m.mentee_id} username={m.mentee?.username} />
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={m.status === "active" ? "default" : "secondary"} className="text-[9px] uppercase">
-                        {m.status}
-                      </Badge>
-                      {canManage && <DeletePairingButton id={m.id} />}
-                    </div>
+    <div className="space-y-4">
+      {canManage && <NewPairingButton directory={directory ?? []} />}
+      {byMentor.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">No mentors assigned yet.</div>
+      ) : (
+        <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
+          {byMentor.map(([mentorId, { username, mentees }]) => (
+            <motion.div key={mentorId} variants={slideUp}>
+              <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    <PersonChip id={mentorId} username={username} />
+                    <Badge variant="outline" className="text-[9px] ml-auto shrink-0">
+                      {mentees.length} mentee{mentees.length === 1 ? "" : "s"}
+                    </Badge>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="pl-6 space-y-2">
+                    {mentees.map((m) => (
+                      <div key={m.id} className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-2">
+                        <PersonChip id={m.mentee_id} username={m.mentee?.username} />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={m.status === "active" ? "default" : "secondary"} className="text-[9px] uppercase">
+                            {m.status}
+                          </Badge>
+                          {canManage && <DeletePairingButton id={m.id} />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </motion.div>
-      ))}
-    </motion.div>
+      )}
+    </div>
   );
 }
 
