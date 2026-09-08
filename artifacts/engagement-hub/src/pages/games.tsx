@@ -25,12 +25,12 @@ const GAMES = [
     live: true,
   },
   {
-    href: null,
+    href: "/games/desk-setup",
     icon: Monitor,
     name: "Best WFH Desk Setup",
     description: "Show off your home office. Team votes on the best.",
     color: "secondary",
-    live: false,
+    live: true,
   },
   {
     href: null,
