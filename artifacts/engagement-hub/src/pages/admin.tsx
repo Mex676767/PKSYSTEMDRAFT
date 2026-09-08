@@ -15,6 +15,7 @@ import {
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
+import { DatePicker } from "@/components/date-picker";
 import { format } from "date-fns";
 import { PERMISSIONS, PERMISSION_KEYS, type Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -171,12 +172,11 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
           <Cake className="w-3.5 h-3.5 shrink-0" />
           {editingBirthday ? (
             <>
-              <input
-                type="date"
-                value={birthdayInput}
-                onChange={(e) => setBirthdayInput(e.target.value)}
-                max={format(new Date(), "yyyy-MM-dd")}
-                className="h-7 rounded border border-input bg-background px-2 text-xs"
+              <DatePicker
+                value={birthdayInput || null}
+                onChange={setBirthdayInput}
+                maxDate={format(new Date(), "yyyy-MM-dd")}
+                className="w-32"
               />
               <button
                 disabled={!birthdayInput || adminSetBirthday.isPending}
