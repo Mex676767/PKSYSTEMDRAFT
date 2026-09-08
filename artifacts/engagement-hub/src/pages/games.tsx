@@ -41,12 +41,12 @@ const GAMES = [
     live: false,
   },
   {
-    href: null,
+    href: "/games/quiz",
     icon: Brain,
     name: "Brand Knowledge Quiz",
     description: "How well do you really know our brands?",
     color: "primary",
-    live: false,
+    live: true,
   },
 ] satisfies { href: string | null; icon: typeof Type; name: string; description: string; color: keyof typeof COLOR_STYLES; live: boolean }[];
 

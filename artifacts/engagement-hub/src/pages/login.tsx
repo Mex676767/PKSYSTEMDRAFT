@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Trophy, Sparkles, CheckCircle2, KeyRound } from "lucide-react";
+import { Mail, Trophy, Sparkles, CheckCircle2, KeyRound, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Login() {
-  const { signInWithEmail, signInWithPassword } = useAuth();
+  const { signInWithEmail, signInWithPassword, deactivatedNotice, dismissDeactivatedNotice } = useAuth();
   const [mode, setMode] = useState<"magic-link" | "password">("magic-link");
 
   const [email, setEmail] = useState("");
@@ -49,6 +49,16 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
+        {deactivatedNotice && (
+          <div className="mb-4 flex items-start gap-2 bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl p-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="flex-1">This account has been deactivated.</p>
+            <button onClick={dismissDeactivatedNotice} className="shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="bg-primary text-primary-foreground w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-4">
             <Trophy className="w-7 h-7" />

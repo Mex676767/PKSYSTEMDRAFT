@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
@@ -14,6 +16,7 @@ import {
   useSetActiveAccessory,
   useSetActiveTitle,
 } from "@/hooks/use-profile-customization";
+import { useDeleteOwnAccount } from "@/hooks/use-admin";
 import { cn } from "@/lib/utils";
 
 export default function Profile() {
@@ -179,6 +182,60 @@ export default function Profile() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <motion.div variants={slideUp} initial="hidden" animate="show">
+        <Card className="border-destructive/30 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Danger Zone
+            </CardTitle>
+            <CardDescription>
+              Deletes your account: signs you out and hides your profile everywhere. Your past goals/posts stay attributed to your username.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeleteAccountButton username={profile.username ?? ""} />
+          </CardContent>
+        </Card>
+      </motion.div>
     </PageTransition>
+  );
+}
+
+function DeleteAccountButton({ username }: { username: string }) {
+  const deleteAccount = useDeleteOwnAccount();
+  const [isOpen, setIsOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="destructive">Delete My Account</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete your account?</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">
+            Type <strong className="text-foreground">@{username}</strong> to confirm. This can be undone by an admin, but you'll be signed out immediately.
+          </p>
+          <input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={`@${username}`}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+          />
+          <Button
+            variant="destructive"
+            className="w-full"
+            disabled={confirmText !== `@${username}` || deleteAccount.isPending}
+            onClick={() => deleteAccount.mutate()}
+          >
+            {deleteAccount.isPending ? "Deleting..." : "Permanently Delete Account"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

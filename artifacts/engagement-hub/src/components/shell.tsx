@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2 } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -21,7 +21,8 @@ const navItems = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isAdmin } = useAuth();
+  const items = isAdmin ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldAlert }] : navItems;
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
@@ -35,7 +36,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex md:flex-col overflow-x-auto md:overflow-visible w-full p-2 md:p-4 gap-1 md:gap-2">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
             

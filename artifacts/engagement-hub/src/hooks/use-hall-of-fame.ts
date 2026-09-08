@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/use-auth";
 
 export type HofCategory = {
   id: string;
@@ -67,6 +66,21 @@ export function useHofRecordHistory(categoryId: string) {
   });
 }
 
+export function useAllUsernames() {
+  return useQuery({
+    queryKey: ["all-usernames"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .not("username", "is", null)
+        .order("username");
+      if (error) throw error;
+      return data as { id: string; username: string }[];
+    },
+  });
+}
+
 export function useCreateHofCategory() {
   const qc = useQueryClient();
   return useMutation({
@@ -80,12 +94,9 @@ export function useCreateHofCategory() {
 }
 
 export function useSubmitHofRecord(categoryId: string) {
-  const { session } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (achievement: string) => {
-      if (!session) throw new Error("Not signed in");
-
+    mutationFn: async ({ achievement, holderId }: { achievement: string; holderId: string }) => {
       // Retire whatever's currently the record for this category before
       // inserting the new one as the current champion.
       const { error: retireError } = await supabase
@@ -97,7 +108,7 @@ export function useSubmitHofRecord(categoryId: string) {
 
       const { data, error } = await supabase
         .from("hof_records")
-        .insert({ category_id: categoryId, holder_id: session.user.id, achievement, is_current: true })
+        .insert({ category_id: categoryId, holder_id: holderId, achievement, is_current: true })
         .select(RECORD_SELECT)
         .single();
       if (error) throw error;
