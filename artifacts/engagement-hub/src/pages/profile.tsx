@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-profile-customization";
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
+import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -246,15 +247,13 @@ function BirthdayField({ birthday }: { birthday: string | null }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        required
-        max={format(new Date(), "yyyy-MM-dd")}
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+      <DatePicker
+        value={value || null}
+        onChange={setValue}
+        maxDate={format(new Date(), "yyyy-MM-dd")}
+        className="w-40"
       />
-      <Button type="submit" size="sm" disabled={setBirthday.isPending}>
+      <Button type="submit" size="sm" disabled={!value || setBirthday.isPending}>
         {setBirthday.isPending ? "Saving..." : "Set Birthday"}
       </Button>
       {error && <p className="text-xs text-destructive w-full">{error}</p>}
