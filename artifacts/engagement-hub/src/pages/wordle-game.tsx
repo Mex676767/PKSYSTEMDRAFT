@@ -14,7 +14,7 @@ import {
   useWordleLeaderboard,
   type LetterStatus,
 } from "@/hooks/use-wordle";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 const MAX_GUESSES = 6;
 const WORD_LENGTH = 5;
@@ -63,7 +63,7 @@ export default function WordleGame() {
         setCurrent("");
         if (res.target) setRevealedTarget(res.target);
       },
-      onError: (err) => setError(err instanceof Error ? err.message : "Something went wrong"),
+      onError: (err) => setError(getErrorMessage(err)),
     });
   };
 

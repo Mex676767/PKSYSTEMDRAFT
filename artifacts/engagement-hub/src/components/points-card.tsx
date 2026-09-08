@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { usePointHistory, useGiftableProfiles, useGiftPoints } from "@/hooks/use-points";
+import { getErrorMessage } from "@/lib/utils";
 
 export function PointsCard() {
   const { session, profile } = useAuth();
@@ -32,7 +33,7 @@ export function PointsCard() {
           setNote("");
           setRecipientId("");
         },
-        onError: (err) => setError(err instanceof Error ? err.message : "Something went wrong"),
+        onError: (err) => setError(getErrorMessage(err)),
       }
     );
   };
