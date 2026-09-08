@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -14,6 +14,8 @@ import {
   useReactivateUser,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
+import { useAdminSetBirthday } from "@/hooks/use-birthdays";
+import { format } from "date-fns";
 import { PERMISSIONS, PERMISSION_KEYS, type Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
@@ -77,6 +79,9 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const setPermissions = useSetUserPermissions();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
+  const adminSetBirthday = useAdminSetBirthday();
+  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [birthdayInput, setBirthdayInput] = useState(row.birthday ?? "");
 
   const togglePermission = (perm: Permission) => {
     const next = row.permissions.includes(perm)
@@ -161,6 +166,36 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             })}
           </div>
         )}
+
+        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+          <Cake className="w-3.5 h-3.5 shrink-0" />
+          {editingBirthday ? (
+            <>
+              <input
+                type="date"
+                value={birthdayInput}
+                onChange={(e) => setBirthdayInput(e.target.value)}
+                max={format(new Date(), "yyyy-MM-dd")}
+                className="h-7 rounded border border-input bg-background px-2 text-xs"
+              />
+              <button
+                disabled={!birthdayInput || adminSetBirthday.isPending}
+                onClick={() => adminSetBirthday.mutate({ userId: row.id, birthday: birthdayInput }, { onSuccess: () => setEditingBirthday(false) })}
+                className="text-primary hover:underline disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button onClick={() => setEditingBirthday(false)} className="hover:text-foreground">Cancel</button>
+            </>
+          ) : (
+            <>
+              <span>{row.birthday ? format(new Date(2000, Number(row.birthday.split("-")[1]) - 1, Number(row.birthday.split("-")[2])), "MMMM d") : "No birthday set"}</span>
+              <button onClick={() => setEditingBirthday(true)} className="text-primary hover:underline">
+                {row.birthday ? "Change" : "Set"}
+              </button>
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

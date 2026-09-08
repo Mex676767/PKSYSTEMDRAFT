@@ -6,6 +6,7 @@ export const PERMISSIONS = {
   manage_quiz: "Manage Quiz Questions",
   manage_mentors: "Manage Mentors & Departments",
   manage_users: "Manage Users (deactivate accounts)",
+  manage_bets: "Resolve Bets",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

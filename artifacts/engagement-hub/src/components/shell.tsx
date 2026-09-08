@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
   { href: "/games", label: "Games", icon: Gamepad2 },
+  { href: "/betting", label: "Betting", icon: Dices },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 

@@ -11,6 +11,7 @@ export type AdminProfileRow = {
   is_admin: boolean;
   permissions: string[];
   is_deleted: boolean;
+  birthday: string | null;
 };
 
 export function useAllProfiles() {
@@ -19,7 +20,7 @@ export function useAllProfiles() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, username, points, department, is_admin, permissions, is_deleted")
+        .select("id, email, username, points, department, is_admin, permissions, is_deleted, birthday")
         .order("username");
       if (error) throw error;
       return data as AdminProfileRow[];
