@@ -9,6 +9,7 @@ export const TITLE_CATALOG: Record<string, { label: string; description: string 
   streak_master: { label: "Streak Master", description: "7-day login streak" },
   record_holder: { label: "Record Holder", description: "Claimed a Hall of Fame record" },
   philanthropist: { label: "Philanthropist", description: "Gifted points to a teammate" },
+  word_wizard: { label: "Word Wizard", description: "Solved the daily Wordle" },
 };
 
 export function titleLabel(key: string) {

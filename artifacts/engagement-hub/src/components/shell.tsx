@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/mentors", label: "Mentors", icon: Users },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
+  { href: "/games", label: "Games", icon: Gamepad2 },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
@@ -36,7 +37,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex md:flex-col overflow-x-auto md:overflow-visible w-full p-2 md:p-4 gap-1 md:gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.href;
+            const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
             
             return (
               <Link
