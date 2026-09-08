@@ -64,7 +64,7 @@ export default function QuizGame() {
       <Card className="border-accent/20 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Trophy className="w-5 h-5 text-accent-foreground" /> Leaderboard
+            <Trophy className="w-5 h-5 text-accent" /> Leaderboard
           </CardTitle>
         </CardHeader>
         <CardContent>

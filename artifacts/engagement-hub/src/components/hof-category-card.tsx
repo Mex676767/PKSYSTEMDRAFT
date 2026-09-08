@@ -53,7 +53,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
       <CardContent className="p-5 space-y-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="bg-accent/20 text-accent-foreground p-2 rounded-xl shrink-0">
+            <div className="bg-accent/20 text-accent p-2 rounded-xl shrink-0">
               <Icon className="w-5 h-5" />
             </div>
             <div>

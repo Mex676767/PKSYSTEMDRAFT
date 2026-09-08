@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const COLOR_STYLES = {
   primary: { card: "from-primary/10", icon: "bg-primary/15 text-primary" },
   secondary: { card: "from-secondary/10", icon: "bg-secondary/15 text-secondary" },
-  accent: { card: "from-accent/10", icon: "bg-accent/15 text-accent-foreground" },
+  accent: { card: "from-accent/10", icon: "bg-accent/15 text-accent" },
 } as const;
 
 const GAMES = [

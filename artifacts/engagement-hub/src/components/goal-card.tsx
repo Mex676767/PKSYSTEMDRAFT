@@ -13,7 +13,7 @@ import { type Goal } from "@/hooks/use-goals";
 import { cn } from "@/lib/utils";
 
 const TERM_STYLES: Record<Goal["term"], { border: string; from: string; text: string }> = {
-  long: { border: "border-l-accent", from: "from-accent/15", text: "text-accent-foreground" },
+  long: { border: "border-l-accent", from: "from-accent/15", text: "text-accent" },
   mid: { border: "border-l-secondary", from: "from-secondary/10", text: "text-secondary" },
   short: { border: "border-l-primary", from: "from-primary/10", text: "text-primary" },
 };

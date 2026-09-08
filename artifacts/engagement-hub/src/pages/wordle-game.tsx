@@ -178,7 +178,7 @@ export default function WordleGame() {
           <Card className="border-accent/20 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Trophy className="w-5 h-5 text-accent-foreground" /> Today's Fastest Guessers
+                <Trophy className="w-5 h-5 text-accent" /> Today's Fastest Guessers
               </CardTitle>
             </CardHeader>
             <CardContent>
