@@ -161,7 +161,11 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">See who's holding the record.</p>
               </div>
               <Link href="/hall-of-fame" className="shrink-0">
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-accent/40 bg-accent/10 text-accent hover:bg-accent/25 hover:text-accent"
+                >
                   View
                 </Button>
               </Link>
