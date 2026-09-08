@@ -10,6 +10,7 @@ export const TITLE_CATALOG: Record<string, { label: string; description: string 
   record_holder: { label: "Record Holder", description: "Claimed a Hall of Fame record" },
   philanthropist: { label: "Philanthropist", description: "Gifted points to a teammate" },
   word_wizard: { label: "Word Wizard", description: "Solved the daily Wordle" },
+  quiz_whiz: { label: "Quiz Whiz", description: "Answered 5 quiz questions correctly" },
 };
 
 export function titleLabel(key: string) {

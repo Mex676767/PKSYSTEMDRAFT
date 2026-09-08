@@ -11,7 +11,8 @@ import { useHofCategories, useCurrentHofRecords, useCreateHofCategory } from "@/
 import { HOF_ICON_OPTIONS, getHofIcon } from "@/lib/icon-map";
 
 export default function HallOfFame() {
-  const { session } = useAuth();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("manage_hall_of_fame");
   const { data: categories = [], isLoading: loadingCategories } = useHofCategories();
   const { data: currentRecords = [] } = useCurrentHofRecords();
   const createCategory = useCreateHofCategory();
@@ -50,9 +51,10 @@ export default function HallOfFame() {
           <p className="text-muted-foreground mt-1">Every category has a champion. Come take their spot.</p>
         </div>
 
+        {canManage && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="secondary" className="shrink-0 hover-elevate" disabled={!session}>
+            <Button variant="secondary" className="shrink-0 hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> New Category
             </Button>
           </DialogTrigger>
@@ -109,11 +111,12 @@ export default function HallOfFame() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {categories.length === 0 ? (
         <div className="p-12 text-center bg-muted/30 border border-dashed rounded-2xl text-muted-foreground">
-          No categories yet. {session ? "Add the first one!" : "Sign in to add one."}
+          No categories yet. {canManage ? "Add the first one!" : "Check back soon."}
         </div>
       ) : (
         <motion.div

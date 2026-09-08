@@ -15,6 +15,10 @@ export type Profile = {
   unlocked_titles: string[];
   active_accessory: string | null;
   unlocked_accessories: string[];
+  is_admin: boolean;
+  permissions: string[];
+  department: string | null;
+  is_deleted: boolean;
 };
 
 const AVATAR_COLORS = [
@@ -44,6 +48,10 @@ type AuthState = {
   signOut: () => Promise<void>;
   claimUsername: (username: string) => Promise<{ error: string | null }>;
   refetchProfile: () => Promise<void>;
+  isAdmin: boolean;
+  hasPermission: (perm: string) => boolean;
+  deactivatedNotice: boolean;
+  dismissDeactivatedNotice: () => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -53,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deactivatedNotice, setDeactivatedNotice] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -93,6 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     fetchProfile(session.user.id).then((p) => {
       if (cancelled) return;
+      if (p?.is_deleted) {
+        // Deactivated accounts can't meaningfully be blocked at the RLS
+        // level without touching every table's policies, so this is the
+        // primary enforcement: sign them straight back out client-side.
+        setDeactivatedNotice(true);
+        setProfile(null);
+        setLoading(false);
+        supabase.auth.signOut();
+        return;
+      }
       setProfile(p);
       setLoading(false);
     });
@@ -172,8 +191,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const isAdmin = profile?.is_admin ?? false;
+  const hasPermission = useCallback(
+    (perm: string) => isAdmin || (profile?.permissions?.includes(perm) ?? false),
+    [isAdmin, profile]
+  );
+  const dismissDeactivatedNotice = useCallback(() => setDeactivatedNotice(false), []);
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signInWithEmail, signInWithPassword, signOut, claimUsername, refetchProfile }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        profile,
+        loading,
+        signInWithEmail,
+        signInWithPassword,
+        signOut,
+        claimUsername,
+        refetchProfile,
+        isAdmin,
+        hasPermission,
+        deactivatedNotice,
+        dismissDeactivatedNotice,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

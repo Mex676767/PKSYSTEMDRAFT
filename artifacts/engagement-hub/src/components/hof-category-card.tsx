@@ -12,18 +12,22 @@ import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useHofRecordHistory,
   useSubmitHofRecord,
+  useAllUsernames,
   type HofCategory,
   type HofRecord,
 } from "@/hooks/use-hall-of-fame";
 import { getHofIcon } from "@/lib/icon-map";
 
 export function HofCategoryCard({ category, current }: { category: HofCategory; current: HofRecord | null }) {
-  const { session } = useAuth();
+  const { session, hasPermission } = useAuth();
+  const canManage = hasPermission("manage_hall_of_fame");
   const Icon = getHofIcon(category.icon);
   const submitRecord = useSubmitHofRecord(category.id);
+  const { data: users = [] } = useAllUsernames();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [achievement, setAchievement] = useState("");
+  const [holderId, setHolderId] = useState(session?.user.id ?? "");
   const [showHistory, setShowHistory] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
@@ -32,13 +36,16 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!achievement.trim()) return;
-    submitRecord.mutate(achievement.trim(), {
-      onSuccess: () => {
-        setIsDialogOpen(false);
-        setAchievement("");
-      },
-    });
+    if (!achievement.trim() || !holderId) return;
+    submitRecord.mutate(
+      { achievement: achievement.trim(), holderId },
+      {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          setAchievement("");
+        },
+      }
+    );
   };
 
   return (
@@ -78,39 +85,55 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
           </div>
         ) : (
           <div className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-xl border border-dashed">
-            No record yet — be the first!
+            No record yet.
           </div>
         )}
 
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" disabled={!session} className="shrink-0">
-                <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Submit record
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Claim the "{category.name}" record</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">What did you do?</label>
-                  <textarea
-                    value={achievement}
-                    onChange={(e) => setAchievement(e.target.value)}
-                    placeholder="e.g. 127 bugs squashed in one sprint"
-                    required
-                    maxLength={300}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={submitRecord.isPending}>
-                  {submitRecord.isPending ? "Submitting..." : "Claim record"}
+          {canManage && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Set record
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Set the "{category.name}" record</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Record holder</label>
+                    <select
+                      value={holderId}
+                      onChange={(e) => setHolderId(e.target.value)}
+                      required
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Select someone...</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>@{u.username}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Achievement</label>
+                    <textarea
+                      value={achievement}
+                      onChange={(e) => setAchievement(e.target.value)}
+                      placeholder="e.g. 127 bugs squashed in one sprint"
+                      required
+                      maxLength={300}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={submitRecord.isPending}>
+                    {submitRecord.isPending ? "Saving..." : "Set record"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {pastRecords.length > 0 && (
             <button
