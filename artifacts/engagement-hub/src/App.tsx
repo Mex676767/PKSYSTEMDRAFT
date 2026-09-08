@@ -22,6 +22,8 @@ import Mentors from '@/pages/mentors';
 import Birthdays from '@/pages/birthdays';
 import Lottery from '@/pages/lottery';
 import Profile from '@/pages/profile';
+import Games from '@/pages/games';
+import WordleGame from '@/pages/wordle-game';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ function Router() {
           <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={Lottery} />
           <Route path="/profile" component={Profile} />
+          <Route path="/games" component={Games} />
+          <Route path="/games/wordle" component={WordleGame} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>
