@@ -24,6 +24,7 @@ import Lottery from '@/pages/lottery';
 import Profile from '@/pages/profile';
 import Games from '@/pages/games';
 import WordleGame from '@/pages/wordle-game';
+import DeskSetup from '@/pages/desk-setup';
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/games" component={Games} />
           <Route path="/games/wordle" component={WordleGame} />
+          <Route path="/games/desk-setup" component={DeskSetup} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>
