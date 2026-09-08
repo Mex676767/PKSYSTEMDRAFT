@@ -77,6 +77,8 @@ export default function Mentors() {
   );
 }
 
+type MentorshipList = NonNullable<ReturnType<typeof useMentorships>["data"]>;
+
 function OrganizationSection({
   mentorships,
   canManage,
@@ -88,29 +90,100 @@ function OrganizationSection({
 }) {
   const list = mentorships ?? [];
 
+  const { roots, childrenOf } = useMemo(() => {
+    const childrenOf = new Map<string, MentorshipList>();
+    const menteeIds = new Set<string>();
+    for (const m of list) {
+      menteeIds.add(m.mentee_id);
+      if (!childrenOf.has(m.mentor_id)) childrenOf.set(m.mentor_id, []);
+      childrenOf.get(m.mentor_id)!.push(m);
+    }
+    // A "root" is a mentor who isn't themselves anyone's mentee -- the top
+    // of a chain. Dedupe since one mentor can appear across several rows.
+    const seen = new Set<string>();
+    const roots: { id: string; username: string | null | undefined }[] = [];
+    for (const m of list) {
+      if (!menteeIds.has(m.mentor_id) && !seen.has(m.mentor_id)) {
+        seen.add(m.mentor_id);
+        roots.push({ id: m.mentor_id, username: m.mentor?.username });
+      }
+    }
+    return { roots, childrenOf };
+  }, [list]);
+
   return (
     <div className="space-y-4">
       {canManage && <NewPairingButton directory={directory ?? []} />}
-      {list.length === 0 ? (
+      {roots.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No connections yet.</div>
       ) : (
-        <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {list.map((m) => (
-            <motion.div key={m.id} variants={slideUp}>
-              <Card className="shadow-sm">
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <PersonChip id={m.mentor_id} username={m.mentor?.username} />
-                  <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <PersonChip id={m.mentee_id} username={m.mentee?.username} />
-                  <Badge variant={m.status === "active" ? "default" : "secondary"} className="text-[9px] uppercase shrink-0">
-                    {m.status}
-                  </Badge>
-                  {canManage && <DeletePairingButton id={m.id} />}
-                </CardContent>
-              </Card>
-            </motion.div>
+        <div className="overflow-x-auto pb-2">
+          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6 min-w-max">
+            {roots.map((root) => (
+              <motion.div key={root.id} variants={slideUp}>
+                <TreeNode
+                  personId={root.id}
+                  username={root.username}
+                  childrenOf={childrenOf}
+                  canManage={canManage}
+                  visited={new Set()}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TreeNode({
+  personId,
+  username,
+  childrenOf,
+  canManage,
+  visited,
+  mentorshipId,
+  status,
+}: {
+  personId: string;
+  username: string | null | undefined;
+  childrenOf: Map<string, MentorshipList>;
+  canManage: boolean;
+  visited: Set<string>;
+  mentorshipId?: string;
+  status?: string;
+}) {
+  if (visited.has(personId)) return null; // guard against a bad cyclical pairing
+  const nextVisited = new Set(visited).add(personId);
+  const children = childrenOf.get(personId) ?? [];
+
+  return (
+    <div className="flex flex-col items-start">
+      <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+        <PersonChip id={personId} username={username} />
+        {status && (
+          <Badge variant={status === "active" ? "default" : "secondary"} className="text-[9px] uppercase shrink-0">
+            {status}
+          </Badge>
+        )}
+        {mentorshipId && canManage && <DeletePairingButton id={mentorshipId} />}
+      </div>
+      {children.length > 0 && (
+        <div className="ml-6 pl-6 border-l-2 border-dashed border-border mt-3 space-y-3">
+          {children.map((m) => (
+            <TreeNode
+              key={m.id}
+              personId={m.mentee_id}
+              username={m.mentee?.username}
+              childrenOf={childrenOf}
+              canManage={canManage}
+              visited={nextVisited}
+              mentorshipId={m.id}
+              status={m.status}
+            />
           ))}
-        </motion.div>
+        </div>
       )}
     </div>
   );

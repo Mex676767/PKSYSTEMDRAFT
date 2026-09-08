@@ -1,9 +1,8 @@
-import { type Employee } from "@/hooks/use-mock-api";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
-  user: Pick<Employee, "initials" | "color" | "name">;
+  user: { initials: string; color: string; name: string };
   className?: string;
   /** Emoji shown as a small badge overlay, e.g. a purchased profile accessory. */
   accessory?: string | null;

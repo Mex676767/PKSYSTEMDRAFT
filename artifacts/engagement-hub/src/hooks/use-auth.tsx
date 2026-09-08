@@ -19,6 +19,7 @@ export type Profile = {
   permissions: string[];
   department: string | null;
   is_deleted: boolean;
+  birthday: string | null;
 };
 
 const AVATAR_COLORS = [

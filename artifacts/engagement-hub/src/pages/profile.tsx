@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
@@ -17,7 +17,9 @@ import {
   useSetActiveTitle,
 } from "@/hooks/use-profile-customization";
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
-import { cn } from "@/lib/utils";
+import { useSetMyBirthday } from "@/hooks/use-birthdays";
+import { getErrorMessage, cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 export default function Profile() {
   const { profile } = useAuth();
@@ -183,6 +185,25 @@ export default function Profile() {
         </Card>
       </motion.div>
 
+      {/* Birthday */}
+      <motion.div variants={slideUp} initial="hidden" animate="show">
+        <Card className="border-secondary/20 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Cake className="w-5 h-5 text-secondary" /> Birthday
+            </CardTitle>
+            <CardDescription>
+              {profile.birthday
+                ? "Set once — ask an admin if you need to change it."
+                : "Set it once so the team can celebrate with you. You can't change it yourself afterward."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BirthdayField birthday={profile.birthday} />
+          </CardContent>
+        </Card>
+      </motion.div>
+
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-destructive/30 shadow-sm">
           <CardHeader className="pb-3">
@@ -199,6 +220,45 @@ export default function Profile() {
         </Card>
       </motion.div>
     </PageTransition>
+  );
+}
+
+function BirthdayField({ birthday }: { birthday: string | null }) {
+  const setBirthday = useSetMyBirthday();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  if (birthday) {
+    const [, month, day] = birthday.split("-").map(Number);
+    return (
+      <p className="text-sm font-medium">
+        🎂 {format(new Date(2000, month - 1, day), "MMMM d")}
+      </p>
+    );
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!value) return;
+    setError(null);
+    setBirthday.mutate(value, { onError: (err) => setError(getErrorMessage(err)) });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        required
+        max={format(new Date(), "yyyy-MM-dd")}
+        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+      />
+      <Button type="submit" size="sm" disabled={setBirthday.isPending}>
+        {setBirthday.isPending ? "Saving..." : "Set Birthday"}
+      </Button>
+      {error && <p className="text-xs text-destructive w-full">{error}</p>}
+    </form>
   );
 }
 

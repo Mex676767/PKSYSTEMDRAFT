@@ -1,7 +1,8 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useChallenges, useBirthdays } from "@/hooks/use-mock-api";
+import { useChallenges } from "@/hooks/use-mock-api";
+import { useBirthdays } from "@/hooks/use-birthdays";
 import { useGoalsFeed, GOAL_TERM_META, type GoalTerm } from "@/hooks/use-goals";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
@@ -178,7 +179,7 @@ export default function Dashboard() {
               <CardContent className="p-4 flex items-center justify-between gap-3 relative z-10">
                 <div className="min-w-0">
                   <h3 className="font-bold flex items-center gap-2 text-sm">
-                    <Cake className="w-4 h-4 shrink-0" /> It's {todayBirthdays[0].employee.name.split(" ")[0]}'s Birthday!
+                    <Cake className="w-4 h-4 shrink-0" /> It's @{todayBirthdays[0].username ?? "someone"}'s Birthday!
                   </h3>
                   <p className="text-white/80 text-xs mt-0.5">Send them a message</p>
                 </div>
