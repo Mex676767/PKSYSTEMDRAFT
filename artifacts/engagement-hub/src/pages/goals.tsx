@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { Plus, Search, X, MessageCircle, Heart } from "lucide-react";
+import { Plus, Search, X, MessageCircle, Heart, ListChecks } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -20,7 +20,7 @@ import {
 import { useCommentsForTargets, useReactionsForTargets, type Comment } from "@/hooks/use-social";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
-import { getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
@@ -187,7 +187,7 @@ export default function Goals() {
   }
 
   return (
-    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <Confetti active={showConfetti} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -317,7 +317,7 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {sortedPeople.map((p) => (
             <PersonGoalCard
               key={p.id}
@@ -400,19 +400,19 @@ function PersonGoalCard({
   return (
     <button
       onClick={onClick}
-      className="text-left flex flex-col bg-card border-2 border-border rounded-xl p-4 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
+      className="text-left flex flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
           <UserAvatar
             user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
             photoUrl={person.avatar_url}
             border={person.active_border}
-            className="w-9 h-9 shrink-0"
+            className="w-11 h-11 shrink-0"
           />
           <div className="min-w-0">
-            <div className="font-bold truncate">@{person.username}</div>
-            <div className="text-[10px] text-muted-foreground truncate">{person.role ?? "No role"}</div>
+            <div className="font-bold text-base truncate">@{person.username}</div>
+            <div className="text-xs text-muted-foreground truncate">{person.role ?? "No role"}</div>
           </div>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
@@ -421,20 +421,36 @@ function PersonGoalCard({
         </div>
       </div>
 
-      <div className="flex-1 space-y-2 mb-3">
+      <div className="flex-1 space-y-3 mb-3">
         {TERM_ORDER.slice().reverse().map((term) => {
           const goal = latestByTerm.get(term);
+          const category = goal?.category ?? "personal";
           return (
             <div key={term}>
-              <div className="text-xs font-medium">
-                {GOAL_TERM_META[term].label}
-                {goal ? <span className="text-muted-foreground">: {goal.title}</span> : null}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-medium">{GOAL_TERM_META[term].label}</span>
+                {goal && (
+                  <span
+                    className={cn(
+                      "text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
+                      category === "career" ? "bg-secondary/20 text-secondary" : "bg-primary/15 text-primary"
+                    )}
+                  >
+                    {GOAL_CATEGORY_META[category].label}
+                  </span>
+                )}
+                {goal && <span className="text-xs text-muted-foreground">: {goal.title}</span>}
               </div>
-              {goal?.description ? (
-                <p className="text-[11px] text-muted-foreground line-clamp-1">{goal.description}</p>
-              ) : !goal ? (
-                <p className="text-[11px] text-muted-foreground italic opacity-70">No goal set</p>
-              ) : null}
+              {goal?.description && (
+                <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{goal.description}</p>
+              )}
+              {goal?.accountability && (
+                <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1 mt-1">
+                  <ListChecks className="w-3 h-3 shrink-0 mt-0.5" />
+                  <span className="line-clamp-1">{goal.accountability}</span>
+                </div>
+              )}
+              {!goal && <p className="text-[11px] text-muted-foreground italic opacity-70">No goal set</p>}
             </div>
           );
         })}
