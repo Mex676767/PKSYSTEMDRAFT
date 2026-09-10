@@ -51,6 +51,13 @@ export function useAdminSetUsername() {
   });
 }
 
+export function useAdminAdjustPoints() {
+  return useAdminMutation(async ({ userId, amount, reason }: { userId: string; amount: number; reason?: string }) => {
+    const { error } = await supabase.rpc("admin_adjust_points", { target_user: userId, amount, reason: reason ?? null });
+    if (error) throw error;
+  });
+}
+
 export function useSetUserAdmin() {
   return useAdminMutation(async ({ userId, value }: { userId: string; value: boolean }) => {
     const { error } = await supabase.rpc("set_user_admin", { target_user: userId, value });
