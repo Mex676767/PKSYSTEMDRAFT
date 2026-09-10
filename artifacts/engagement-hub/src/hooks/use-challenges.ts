@@ -22,8 +22,10 @@ export type Challenge = {
   opponent: { username: string | null; role: string | null } | null;
 };
 
+// !inner means a challenge disappears entirely if either side is hidden by
+// RLS (e.g. deactivated), instead of showing up with a blank participant.
 const CHALLENGE_SELECT =
-  "*, creator:profiles!challenges_creator_id_fkey(username, role), opponent:profiles!challenges_opponent_id_fkey(username, role)";
+  "*, creator:profiles!challenges_creator_id_fkey!inner(username, role), opponent:profiles!challenges_opponent_id_fkey!inner(username, role)";
 
 export function useChallengesList() {
   return useQuery({

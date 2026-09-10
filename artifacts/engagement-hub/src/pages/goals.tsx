@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
+import { UserAvatar } from "@/components/user-avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { Plus, Search, X } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
   useCreateGoal,
@@ -14,11 +16,22 @@ import {
   GOAL_CATEGORY_META,
   type GoalTerm,
   type GoalCategory,
+  type Goal,
 } from "@/hooks/use-goals";
+import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
+import { ROLES } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
+
+// A spread of distinct, vivid hues -- deliberately NOT the app's
+// purple/pink/gold theme gradient -- cycled per role band so this reads as
+// colorful/playful rather than monochrome.
+const ROLE_COLORS = [
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b",
+];
 
 type DraftGoal = {
   key: string;
@@ -35,13 +48,15 @@ function emptyDraft(): DraftGoal {
 
 export default function Goals() {
   const { session } = useAuth();
-  const { data: goals = [], isLoading } = useGoalsFeed();
+  const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
+  const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
   const updateGoal = useUpdateGoal();
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<DirectoryProfile | null>(null);
 
   const [drafts, setDrafts] = useState<DraftGoal[]>([emptyDraft()]);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -103,10 +118,32 @@ export default function Goals() {
     setDrafts([emptyDraft()]);
   };
 
-  const q = search.trim().toLowerCase();
-  const filteredGoals = goals.filter((g) => !q || (g.owner?.username ?? "").toLowerCase().includes(q));
+  const goalsByOwner = useMemo(() => {
+    const map = new Map<string, Goal[]>();
+    for (const g of goals) {
+      if (!map.has(g.owner_id)) map.set(g.owner_id, []);
+      map.get(g.owner_id)!.push(g);
+    }
+    return map;
+  }, [goals]);
 
-  if (isLoading) {
+  const q = search.trim().toLowerCase();
+  const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
+
+  const byRole = useMemo(() => {
+    const map = new Map<string, DirectoryProfile[]>();
+    for (const p of filtered) {
+      const key = p.role ?? "Unranked";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    }
+    return [...ROLES, "Unranked"]
+      .filter((r) => map.has(r))
+      .map((r) => [r, map.get(r)!] as const);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered]);
+
+  if (goalsLoading || directoryLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
   }
 
@@ -238,23 +275,89 @@ export default function Goals() {
         />
       </div>
 
-      <div className="space-y-4">
-        {filteredGoals.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {q ? `No one matches "${search}".` : "No goals posted yet -- be the first."}
-          </div>
-        ) : (
-          filteredGoals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              isOwner={goal.owner_id === session?.user.id}
-              onAdvance={() => handleAdvance(goal.id, goal.progress)}
-              updating={updateGoal.isPending}
-            />
-          ))
-        )}
-      </div>
+      {byRole.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
+      ) : (
+        <div className="space-y-6">
+          {byRole.map(([role, people], i) => {
+            const color = ROLE_COLORS[i % ROLE_COLORS.length];
+            return (
+              <div key={role}>
+                <div className="flex justify-center mb-3">
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wide text-white px-3 py-1 rounded-full shadow-sm"
+                    style={{ backgroundColor: color }}
+                  >
+                    {role}
+                  </span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {people.map((p) => {
+                    const count = (goalsByOwner.get(p.id) ?? []).length;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelected(p)}
+                        className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
+                      >
+                        <UserAvatar
+                          user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
+                          photoUrl={p.avatar_url}
+                          border={p.active_border}
+                          className="w-8 h-8"
+                        />
+                        <div className="text-left min-w-0">
+                          <div className="text-sm font-medium truncate">@{p.username}</div>
+                          <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
+                        </div>
+                        {count > 0 && <Badge variant="outline" className="text-[9px] shrink-0 ml-0.5">{count}</Badge>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-lg">
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle>@{selected.username}'s Goals</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-2 max-h-[65vh] overflow-y-auto pr-1">
+                {(goalsByOwner.get(selected.id) ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
+                ) : (
+                  TERM_ORDER.map((term) => {
+                    const termGoals = (goalsByOwner.get(selected.id) ?? []).filter((g) => g.term === term);
+                    if (termGoals.length === 0) return null;
+                    return (
+                      <div key={term} className="space-y-2">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {GOAL_TERM_META[term].label}
+                        </h4>
+                        {termGoals.map((goal) => (
+                          <GoalCard
+                            key={goal.id}
+                            goal={goal}
+                            isOwner={goal.owner_id === session?.user.id}
+                            onAdvance={() => handleAdvance(goal.id, goal.progress)}
+                            updating={updateGoal.isPending}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }

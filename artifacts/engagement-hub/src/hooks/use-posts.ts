@@ -14,7 +14,9 @@ export type Post = {
   author: { username: string | null } | null;
 };
 
-const POST_SELECT = "*, author:profiles(username)";
+// !inner means a post from a hidden (e.g. deactivated) author drops out of
+// the feed entirely, instead of showing up with a blank author.
+const POST_SELECT = "*, author:profiles!inner(username)";
 
 export function usePostsFeed() {
   return useQuery({
