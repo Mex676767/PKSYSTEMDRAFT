@@ -103,6 +103,22 @@ export function useCreateGoal() {
   });
 }
 
+// RLS allows this for the goal's own owner, or any admin -- see
+// admin-delete-goals-posts-setup.sql.
+export function useDeleteGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["goals-feed"] });
+      qc.invalidateQueries({ queryKey: ["my-goals"] });
+    },
+  });
+}
+
 export function useUpdateGoal() {
   const qc = useQueryClient();
   return useMutation({
