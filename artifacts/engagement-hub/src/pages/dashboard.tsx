@@ -1,7 +1,7 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useChallenges } from "@/hooks/use-mock-api";
+import { useChallengesList } from "@/hooks/use-challenges";
 import { useBirthdays } from "@/hooks/use-birthdays";
 import { useGoalsFeed, GOAL_TERM_META, type GoalTerm } from "@/hooks/use-goals";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -24,7 +24,7 @@ const DASHBOARD_GOAL_PREVIEW_COUNT = 10;
 export default function Dashboard() {
   const { profile } = useAuth();
   const { data: goalsFeed = [] } = useGoalsFeed();
-  const { data: challenges = [] } = useChallenges();
+  const { data: challenges = [] } = useChallengesList();
   const { data: birthdays = [] } = useBirthdays();
 
   const recentGoals = goalsFeed.slice(0, DASHBOARD_GOAL_PREVIEW_COUNT);
@@ -129,14 +129,14 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {activeChallenges.slice(0, 4).map((challenge) => (
                     <div key={challenge.id} className="p-3 bg-muted/50 rounded-xl space-y-2 border border-border/50">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-sm truncate">{challenge.name}</span>
-                        <Badge variant="secondary" className="text-[10px]">{challenge.reward} pts</Badge>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="font-semibold text-sm truncate">{challenge.topic}</span>
+                        {challenge.reward && <Badge variant="secondary" className="text-[10px] shrink-0">{challenge.reward}</Badge>}
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-primary">{challenge.scoreA}</span>
-                        <span className="text-muted-foreground text-xs uppercase tracking-wider">vs</span>
-                        <span className="font-medium text-destructive">{challenge.scoreB}</span>
+                      <div className="flex items-center justify-between text-sm gap-2">
+                        <span className="text-xs text-muted-foreground truncate">@{challenge.creator?.username}</span>
+                        <span className="font-medium text-primary shrink-0">{challenge.score_creator} vs {challenge.score_opponent}</span>
+                        <span className="text-xs text-muted-foreground truncate">@{challenge.opponent?.username}</span>
                       </div>
                     </div>
                   ))}

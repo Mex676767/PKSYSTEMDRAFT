@@ -50,6 +50,7 @@ export function DatePicker({
   onChange,
   onClear,
   maxDate,
+  minDate,
   placeholder = "dd/mm/yyyy",
   className,
 }: {
@@ -58,6 +59,8 @@ export function DatePicker({
   onClear?: () => void;
   /** YYYY-MM-DD -- days after this are shown but not selectable. */
   maxDate?: string;
+  /** YYYY-MM-DD -- days before this are shown but not selectable. */
+  minDate?: string;
   placeholder?: string;
   className?: string;
 }) {
@@ -91,6 +94,7 @@ export function DatePicker({
   const cells = buildDays(view.year, view.month);
   const rows = [0, 1, 2, 3, 4, 5].map((r) => cells.slice(r * 7, r * 7 + 7));
   const maxDateObj = maxDate ? new Date(maxDate + "T23:59:59") : null;
+  const minDateObj = minDate ? new Date(minDate + "T00:00:00") : null;
 
   const navMonth = (dir: number) => {
     let { year, month } = view;
@@ -137,7 +141,8 @@ export function DatePicker({
                 const key = keyFor(cell.y, cell.m, cell.day);
                 const isToday = cell.y === todayY && cell.m === todayM && cell.day === todayD;
                 const isSelected = value === key;
-                const disabled = maxDateObj ? new Date(cell.y, cell.m, cell.day) > maxDateObj : false;
+                const cellDate = new Date(cell.y, cell.m, cell.day);
+                const disabled = (maxDateObj ? cellDate > maxDateObj : false) || (minDateObj ? cellDate < minDateObj : false);
                 return (
                   <button
                     key={`${ri}-${ci}`}

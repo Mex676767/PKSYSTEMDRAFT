@@ -20,3 +20,24 @@ export function compareRoles(a: string | null | undefined, b: string | null | un
 
 export const DEPARTMENTS = ["RTN VIP", "RTN EXC", "MANAGEMENT", "DESIGN", "DATA ANALYST", "MARKETING"] as const;
 export type Department = (typeof DEPARTMENTS)[number];
+
+// Challenge "level": derived from both people's role at display time
+// (rather than stored) so it can't go stale if someone's role changes
+// after the challenge is created.
+export function challengeDirection(
+  creatorRole: string | null | undefined,
+  opponentRole: string | null | undefined
+): "upline" | "downline" | "same" | "unranked" {
+  const cmp = compareRoles(creatorRole, opponentRole);
+  if (cmp === null) return "unranked";
+  if (cmp > 0) return "upline";
+  if (cmp < 0) return "downline";
+  return "same";
+}
+
+export const CHALLENGE_DIRECTION_LABEL: Record<ReturnType<typeof challengeDirection>, string> = {
+  upline: "Upline vs Downline",
+  downline: "Downline vs Upline",
+  same: "Same Role",
+  unranked: "Unranked",
+};
