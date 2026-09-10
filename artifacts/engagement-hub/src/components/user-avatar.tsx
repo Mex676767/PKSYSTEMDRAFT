@@ -1,4 +1,5 @@
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { getBorderStyle } from "@/lib/borders";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
@@ -6,12 +7,19 @@ interface UserAvatarProps {
   className?: string;
   /** Emoji shown as a small badge overlay, e.g. a purchased profile accessory. */
   accessory?: string | null;
+  /** Uploaded profile photo -- falls back to the initials avatar when absent. */
+  photoUrl?: string | null;
+  /** Key into BORDER_STYLES, e.g. a purchased Discord-style profile border. */
+  border?: string | null;
 }
 
-export function UserAvatar({ user, className, accessory }: UserAvatarProps) {
+export function UserAvatar({ user, className, accessory, photoUrl, border }: UserAvatarProps) {
+  const borderStyle = getBorderStyle(border);
+
   return (
-    <div className="relative inline-block shrink-0">
+    <div className={cn("relative inline-block shrink-0", borderStyle && "rounded-full p-[3px]", borderStyle)}>
       <Avatar className={cn("border-2 border-background", className)}>
+        {photoUrl && <AvatarImage src={photoUrl} alt={user.name} />}
         <AvatarFallback className={cn("text-white font-bold", user.color)}>
           {user.initials}
         </AvatarFallback>

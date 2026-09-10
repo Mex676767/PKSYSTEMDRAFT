@@ -6,15 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
+import { BORDER_STYLES } from "@/lib/borders";
 import {
   useAccessoryCatalog,
   usePurchaseAccessory,
   useSetActiveAccessory,
   useSetActiveTitle,
+  useBorderCatalog,
+  usePurchaseBorder,
+  useSetActiveBorder,
+  useUploadAvatar,
 } from "@/hooks/use-profile-customization";
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
@@ -30,6 +35,11 @@ export default function Profile() {
   const purchase = usePurchaseAccessory();
   const setAccessory = useSetActiveAccessory();
   const setTitle = useSetActiveTitle();
+  const { data: borderCatalog = [] } = useBorderCatalog();
+  const purchaseBorder = usePurchaseBorder();
+  const setBorder = useSetActiveBorder();
+  const uploadAvatar = useUploadAvatar();
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   if (!profile) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
@@ -41,21 +51,46 @@ export default function Profile() {
   return (
     <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <UserAvatar
-          user={{
-            name: profile.username ?? profile.email,
-            initials: initialsForUsername(profile.username ?? profile.email),
-            color: colorForId(profile.id),
-          }}
-          accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
-          className="w-16 h-16 text-xl"
-        />
+        <label className="relative cursor-pointer group shrink-0">
+          <UserAvatar
+            user={{
+              name: profile.username ?? profile.email,
+              initials: initialsForUsername(profile.username ?? profile.email),
+              color: colorForId(profile.id),
+            }}
+            accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+            photoUrl={profile.avatar_url}
+            border={profile.active_border}
+            className="w-16 h-16 text-xl"
+          />
+          <span className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Camera className="w-5 h-5 text-white" />
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={uploadAvatar.isPending}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                setAvatarError("Image must be under 5MB.");
+                return;
+              }
+              setAvatarError(null);
+              uploadAvatar.mutate(file, { onError: (err) => setAvatarError(getErrorMessage(err)) });
+            }}
+          />
+        </label>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
             {profile.active_title ? TITLE_CATALOG[profile.active_title]?.label ?? profile.active_title : "No title set"}
             {" · "}{profile.points} pts
           </p>
+          {avatarError && <p className="text-xs text-destructive mt-1">{avatarError}</p>}
         </div>
       </div>
 
@@ -175,6 +210,62 @@ export default function Profile() {
                         className="w-full text-xs h-7"
                         disabled={!canAfford || purchase.isPending}
                         onClick={() => purchase.mutate(item.key)}
+                      >
+                        {!canAfford && <Lock className="w-3 h-3 mr-1" />}
+                        {item.price} pts
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Border shop */}
+      <motion.div variants={slideUp} initial="hidden" animate="show">
+        <Card className="border-secondary/20 shadow-sm bg-gradient-to-br from-secondary/10 via-card to-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CircleDashed className="w-5 h-5 text-secondary" /> Profile Borders
+            </CardTitle>
+            <CardDescription>Redeem points for a border around your avatar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {borderCatalog.map((item) => {
+                const owned = profile.unlocked_borders?.includes(item.key) ?? false;
+                const equipped = profile.active_border === item.key;
+                const canAfford = profile.points >= item.price;
+
+                return (
+                  <div
+                    key={item.key}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
+                      equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
+                    )}
+                  >
+                    <div className={cn("w-10 h-10 rounded-full", BORDER_STYLES[item.key])} />
+                    <div className="text-xs font-semibold">{item.name}</div>
+                    {owned ? (
+                      <Button
+                        size="sm"
+                        variant={equipped ? "outline" : "default"}
+                        className="w-full text-xs h-7"
+                        disabled={setBorder.isPending}
+                        onClick={() => setBorder.mutate(equipped ? null : item.key)}
+                      >
+                        {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Equip"}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs h-7"
+                        disabled={!canAfford || purchaseBorder.isPending}
+                        onClick={() => purchaseBorder.mutate(item.key)}
                       >
                         {!canAfford && <Lock className="w-3 h-3 mr-1" />}
                         {item.price} pts

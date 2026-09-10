@@ -21,6 +21,9 @@ export type Profile = {
   role: string | null;
   is_deleted: boolean;
   birthday: string | null;
+  avatar_url: string | null;
+  unlocked_borders: string[];
+  active_border: string | null;
 };
 
 const AVATAR_COLORS = [
