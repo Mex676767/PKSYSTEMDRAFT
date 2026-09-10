@@ -18,6 +18,7 @@ export type Profile = {
   is_admin: boolean;
   permissions: string[];
   department: string | null;
+  role: string | null;
   is_deleted: boolean;
   birthday: string | null;
 };
