@@ -188,7 +188,7 @@ export default function Goals() {
   }
 
   return (
-    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-[100rem] mx-auto space-y-8">
       <Confetti active={showConfetti} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -318,7 +318,7 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {sortedPeople.map((p) => (
             <PersonGoalCard
               key={p.id}
