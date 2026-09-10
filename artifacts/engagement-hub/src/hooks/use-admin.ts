@@ -15,14 +15,15 @@ export type AdminProfileRow = {
   birthday: string | null;
 };
 
+// Goes through a security-definer RPC rather than a plain table select --
+// the regular RLS policy hides deactivated accounts from everyone
+// (including admins) on every other page, so this is the one place that
+// still needs to see them, for the reactivate flow.
 export function useAllProfiles() {
   return useQuery({
     queryKey: ["all-profiles-admin"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, username, points, department, role, is_admin, permissions, is_deleted, birthday")
-        .order("username");
+      const { data, error } = await supabase.rpc("admin_list_profiles");
       if (error) throw error;
       return data as AdminProfileRow[];
     },
