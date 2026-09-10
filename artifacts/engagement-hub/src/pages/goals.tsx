@@ -350,15 +350,13 @@ function GoalTree({
                       <button
                         key={p.id}
                         onClick={() => setSelected(p)}
-                        className="flex items-center gap-2 bg-card border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-                        style={{ borderColor: color }}
+                        className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
                       >
                         <UserAvatar
                           user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
                           photoUrl={p.avatar_url}
                           border={p.active_border}
                           className="w-8 h-8"
-                          style={{ boxShadow: `0 0 0 2px ${color}` }}
                         />
                         <div className="text-left min-w-0">
                           <div className="text-sm font-medium truncate">@{p.username}</div>
