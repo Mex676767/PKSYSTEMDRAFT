@@ -437,10 +437,42 @@ function GoalPersonTree({
   const trunkTopY = CANOPY_CY + CANOPY_RY - 45;
   const trunkBottomY = TREE_H - 8;
 
+  // A handful of fixed sparkle positions relative to the canopy center --
+  // just enough to feel magical without being random/unstable across renders.
+  const sparkles = [
+    { dx: -190, dy: -100, r: 5 },
+    { dx: 150, dy: -130, r: 4 },
+    { dx: 210, dy: 30, r: 3.5 },
+    { dx: -230, dy: 40, r: 3.5 },
+    { dx: 20, dy: -165, r: 4.5 },
+  ];
+
   return (
     <div className="relative mx-auto" style={{ maxWidth: 720, aspectRatio: `${TREE_W} / ${TREE_H}` }}>
       <svg viewBox={`0 0 ${TREE_W} ${TREE_H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMax meet">
-        <path d={CANOPY_PATH} transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`} fill="#3f7a3d" />
+        <defs>
+          <linearGradient id="tree-canopy-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--color-primary)" />
+            <stop offset="55%" stopColor="var(--color-secondary)" />
+            <stop offset="100%" stopColor="var(--color-accent)" />
+          </linearGradient>
+          <linearGradient id="tree-trunk-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="var(--color-accent)" />
+            <stop offset="100%" stopColor="var(--color-primary)" />
+          </linearGradient>
+          <filter id="tree-canopy-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="20" />
+          </filter>
+        </defs>
+
+        {/* Soft glow behind the canopy, matching the app's gradient-card look */}
+        <path
+          d={CANOPY_PATH}
+          transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}
+          fill="url(#tree-canopy-grad)"
+          opacity={0.5}
+          filter="url(#tree-canopy-glow)"
+        />
 
         <path
           d={`M ${CANOPY_CX - 32} ${trunkBottomY}
@@ -448,26 +480,44 @@ function GoalPersonTree({
               L ${CANOPY_CX + 14} ${trunkTopY}
               C ${CANOPY_CX + 22} ${trunkTopY + 70} ${CANOPY_CX + 42} ${trunkBottomY - 70} ${CANOPY_CX + 32} ${trunkBottomY}
               Z`}
-          fill="#8b5e34"
+          fill="url(#tree-trunk-grad)"
         />
         <path
           d={`M ${CANOPY_CX - 30} ${trunkBottomY - 4} L ${CANOPY_CX - 58} ${trunkBottomY + 16}`}
-          stroke="#8b5e34"
+          stroke="url(#tree-trunk-grad)"
           strokeWidth={9}
           strokeLinecap="round"
         />
         <path
           d={`M ${CANOPY_CX + 30} ${trunkBottomY - 4} L ${CANOPY_CX + 58} ${trunkBottomY + 16}`}
-          stroke="#8b5e34"
+          stroke="url(#tree-trunk-grad)"
           strokeWidth={9}
           strokeLinecap="round"
         />
 
-        <g stroke="#5a3a20" strokeWidth={1.5} opacity={0.55} fill="none">
+        <g stroke="var(--color-accent)" strokeWidth={1.5} opacity={0.5} fill="none">
           {layout.map(({ p, x, y }) => (
             <path key={p.id} d={`M ${CANOPY_CX} ${trunkTopY} Q ${(CANOPY_CX + x) / 2} ${(trunkTopY + y) / 2 + 12} ${x} ${y}`} />
           ))}
         </g>
+
+        {/* Crisp canopy on top of the glow/trunk/branches */}
+        <path
+          d={CANOPY_PATH}
+          transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}
+          fill="url(#tree-canopy-grad)"
+        />
+
+        {sparkles.map((s, i) => (
+          <circle
+            key={i}
+            cx={CANOPY_CX + s.dx}
+            cy={CANOPY_CY + s.dy}
+            r={s.r}
+            fill="var(--color-accent)"
+            opacity={0.85}
+          />
+        ))}
       </svg>
 
       {layout.map(({ p, x, y }) => {
