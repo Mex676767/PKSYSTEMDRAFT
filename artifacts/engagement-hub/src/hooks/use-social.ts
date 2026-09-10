@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 // "target_type" identifies which feature a comment/reaction is attached to.
 // Add new values here as more features (birthdays, posts, ...) plug into
 // this same shared comment/reaction system.
-export type TargetType = "goal" | "birthday" | "post" | "hof_record";
+export type TargetType = "goal" | "birthday" | "post" | "hof_record" | "challenge";
 
 export type Comment = {
   id: string;

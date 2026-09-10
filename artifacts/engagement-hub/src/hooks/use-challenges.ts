@@ -11,7 +11,6 @@ export type Challenge = {
   description: string | null;
   reward: string | null;
   punishment: string | null;
-  metric: string;
   status: ChallengeStatus;
   score_creator: number;
   score_opponent: number;
@@ -54,7 +53,6 @@ export function useCreateChallenge() {
       description: string;
       reward: string;
       punishment: string;
-      metric: string;
       endsAt: string;
     }) => {
       const { error } = await supabase.rpc("create_challenge", {
@@ -63,7 +61,6 @@ export function useCreateChallenge() {
         description_param: input.description,
         reward_param: input.reward,
         punishment_param: input.punishment,
-        metric_param: input.metric,
         ends_at_param: input.endsAt,
       });
       if (error) throw error;
