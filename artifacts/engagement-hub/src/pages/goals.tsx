@@ -375,18 +375,35 @@ function GoalTree({
 }
 
 const TREE_W = 800;
-const TREE_H = 460;
-// A closed, slightly lopsided blob outline centered on (0,0), roughly
-// +/-100 wide and +/-65 tall before scaling -- reused per canopy cluster so
-// each one doesn't need its own hand-tuned path.
-const CANOPY_BLOB =
-  "M -88 -8 C -98 -48 -52 -68 -2 -63 C 48 -69 98 -44 94 2 C 99 40 58 64 2 59 C -54 67 -93 34 -88 -8 Z";
+const TREE_H = 580;
+const CANOPY_CX = 400;
+const CANOPY_CY = 215;
+const CANOPY_RX = 270;
+const CANOPY_RY = 190;
 
-// The "By Person" view as an actual illustrated tree (per the user's own
-// sketch) instead of plain grouped rows: a trunk, and one leafy canopy
-// cluster per role group, with each person as an organic leaf-shaped node
-// inside their cluster. Clusters arc across the top like a real canopy;
-// with only one group they sit centered above the trunk.
+// One big rounded, slightly cloud-like canopy silhouette (not a plain
+// ellipse, so it reads as foliage) centered on (0,0) before translating.
+const CANOPY_PATH =
+  "M -260 10 C -280 -110 -160 -190 -40 -175 C 40 -205 180 -190 230 -90 C 280 -10 260 90 170 150 C 90 210 -90 210 -170 150 C -260 90 -250 60 -260 10 Z";
+
+// Row sizes grow 2,3,4,5 then hold at 5 -- a rough pyramid that fills a
+// round canopy without a fixed shape depending on headcount.
+function buildRows(total: number) {
+  const rows: number[] = [];
+  let remaining = total;
+  let size = 2;
+  while (remaining > 0) {
+    const take = Math.min(size, remaining);
+    rows.push(take);
+    remaining -= take;
+    size = Math.min(size + 1, 5);
+  }
+  return rows;
+}
+
+// The "By Person" view as an actual tree illustration: a solid trunk
+// growing into one big green canopy, with everyone arranged in branching
+// rows inside it (not per-role clusters -- a real tree has one canopy).
 function GoalPersonTree({
   groups,
   goalsByOwner,
@@ -396,79 +413,85 @@ function GoalPersonTree({
   goalsByOwner: Map<string, Goal[]>;
   onSelect: (p: DirectoryProfile) => void;
 }) {
-  const clusters = useMemo(() => {
-    const n = groups.length;
-    return groups.map(([role, people], i) => {
-      const t = n <= 1 ? 0.5 : i / (n - 1);
-      const cx = 130 + t * (TREE_W - 260);
-      const cy = 175 - Math.sin(t * Math.PI) * 65;
-      const scale = 0.55 + Math.min(people.length, 5) * 0.12;
-      return { role, people, cx, cy, scale };
-    });
-  }, [groups]);
+  const people = useMemo(() => groups.flatMap(([, ppl]) => ppl), [groups]);
 
-  const trunkX = TREE_W / 2;
+  const layout = useMemo(() => {
+    const rows = buildRows(people.length);
+    const topY = CANOPY_CY - CANOPY_RY + 55;
+    const bottomY = CANOPY_CY + CANOPY_RY - 35;
+    let idx = 0;
+    const nodes: { p: DirectoryProfile; x: number; y: number }[] = [];
+    rows.forEach((count, r) => {
+      const rowY = rows.length <= 1 ? (topY + bottomY) / 2 : topY + (r / (rows.length - 1)) * (bottomY - topY);
+      const dy = (rowY - CANOPY_CY) / CANOPY_RY;
+      const halfW = CANOPY_RX * Math.sqrt(Math.max(0, 1 - dy * dy)) * 0.78;
+      for (let i = 0; i < count; i++) {
+        const x = count === 1 ? CANOPY_CX : CANOPY_CX - halfW + (i / (count - 1)) * (halfW * 2);
+        nodes.push({ p: people[idx], x, y: rowY });
+        idx++;
+      }
+    });
+    return nodes;
+  }, [people]);
+
+  const trunkTopY = CANOPY_CY + CANOPY_RY - 45;
+  const trunkBottomY = TREE_H - 8;
 
   return (
     <div className="relative mx-auto" style={{ maxWidth: 720, aspectRatio: `${TREE_W} / ${TREE_H}` }}>
       <svg viewBox={`0 0 ${TREE_W} ${TREE_H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMax meet">
+        <path d={CANOPY_PATH} transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`} fill="#3f7a3d" />
+
         <path
-          d={`M ${trunkX - 16} ${TREE_H} C ${trunkX - 34} ${TREE_H - 110}, ${trunkX - 8} ${TREE_H - 190}, ${trunkX} ${TREE_H - 255}`}
+          d={`M ${CANOPY_CX - 32} ${trunkBottomY}
+              C ${CANOPY_CX - 42} ${trunkBottomY - 70} ${CANOPY_CX - 22} ${trunkTopY + 70} ${CANOPY_CX - 14} ${trunkTopY}
+              L ${CANOPY_CX + 14} ${trunkTopY}
+              C ${CANOPY_CX + 22} ${trunkTopY + 70} ${CANOPY_CX + 42} ${trunkBottomY - 70} ${CANOPY_CX + 32} ${trunkBottomY}
+              Z`}
+          fill="#8b5e34"
+        />
+        <path
+          d={`M ${CANOPY_CX - 30} ${trunkBottomY - 4} L ${CANOPY_CX - 58} ${trunkBottomY + 16}`}
           stroke="#8b5e34"
-          strokeWidth={16}
-          fill="none"
+          strokeWidth={9}
           strokeLinecap="round"
         />
         <path
-          d={`M ${trunkX + 16} ${TREE_H} C ${trunkX + 30} ${TREE_H - 110}, ${trunkX + 6} ${TREE_H - 190}, ${trunkX} ${TREE_H - 255}`}
-          stroke="#6f4a29"
-          strokeWidth={11}
-          fill="none"
+          d={`M ${CANOPY_CX + 30} ${trunkBottomY - 4} L ${CANOPY_CX + 58} ${trunkBottomY + 16}`}
+          stroke="#8b5e34"
+          strokeWidth={9}
           strokeLinecap="round"
-          opacity={0.7}
         />
-        {clusters.map((c) => (
-          <path
-            key={c.role}
-            d={CANOPY_BLOB}
-            transform={`translate(${c.cx}, ${c.cy}) scale(${c.scale})`}
-            className="fill-primary/15"
-          />
-        ))}
+
+        <g stroke="#5a3a20" strokeWidth={1.5} opacity={0.55} fill="none">
+          {layout.map(({ p, x, y }) => (
+            <path key={p.id} d={`M ${CANOPY_CX} ${trunkTopY} Q ${(CANOPY_CX + x) / 2} ${(trunkTopY + y) / 2 + 12} ${x} ${y}`} />
+          ))}
+        </g>
       </svg>
 
-      {clusters.map((c) => (
-        <div
-          key={c.role}
-          className="absolute flex flex-col items-center gap-1.5"
-          style={{ left: `${(c.cx / TREE_W) * 100}%`, top: `${(c.cy / TREE_H) * 100}%`, transform: "translate(-50%, -50%)", width: 190 }}
-        >
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-background/80 backdrop-blur-sm px-1.5 rounded-full">
-            {c.role}
-          </span>
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {c.people.map((p) => {
-              const count = (goalsByOwner.get(p.id) ?? []).length;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => onSelect(p)}
-                  className="flex items-center gap-1.5 bg-card border border-primary/25 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all px-2.5 py-1.5"
-                  style={{ borderRadius: "63% 37% 54% 46% / 43% 47% 53% 57%" }}
-                >
-                  <Avatar className="w-6 h-6 shrink-0">
-                    <AvatarFallback className={cn("text-white text-[9px] font-bold", colorForId(p.id))}>
-                      {initialsForUsername(p.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-[11px] font-medium">@{p.username}</span>
-                  {count > 0 && <Badge variant="outline" className="text-[9px] shrink-0">{count}</Badge>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      {layout.map(({ p, x, y }) => {
+        const count = (goalsByOwner.get(p.id) ?? []).length;
+        return (
+          <button
+            key={p.id}
+            onClick={() => onSelect(p)}
+            className="absolute flex items-center gap-1.5 bg-card border border-border rounded-lg shadow-sm px-2 py-1.5 hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
+            style={{ left: `${(x / TREE_W) * 100}%`, top: `${(y / TREE_H) * 100}%`, transform: "translate(-50%, -50%)", maxWidth: 118 }}
+          >
+            <Avatar className="w-6 h-6 shrink-0">
+              <AvatarFallback className={cn("text-white text-[9px] font-bold", colorForId(p.id))}>
+                {initialsForUsername(p.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-left min-w-0">
+              <div className="text-[10px] font-medium truncate">@{p.username}</div>
+              {p.role && <div className="text-[8px] text-muted-foreground truncate">{p.role}</div>}
+            </div>
+            {count > 0 && <Badge variant="outline" className="text-[8px] shrink-0 ml-0.5">{count}</Badge>}
+          </button>
+        );
+      })}
     </div>
   );
 }
