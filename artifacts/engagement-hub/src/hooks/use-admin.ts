@@ -43,6 +43,13 @@ function useAdminMutation<TVars>(
   });
 }
 
+export function useAdminSetUsername() {
+  return useAdminMutation(async ({ userId, username }: { userId: string; username: string }) => {
+    const { error } = await supabase.rpc("admin_set_username", { target_user: userId, new_username: username });
+    if (error) throw error;
+  });
+}
+
 export function useSetUserAdmin() {
   return useAdminMutation(async ({ userId, value }: { userId: string; value: boolean }) => {
     const { error } = await supabase.rpc("set_user_admin", { target_user: userId, value });

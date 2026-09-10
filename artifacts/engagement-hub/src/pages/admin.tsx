@@ -4,14 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase } from "lucide-react";
-import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign } from "lucide-react";
+import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
   useSetUserAdmin,
   useSetUserPermissions,
   useDeactivateUser,
   useReactivateUser,
+  useAdminSetUsername,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
@@ -89,6 +90,10 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const [editingRoleDept, setEditingRoleDept] = useState(false);
   const [roleInput, setRoleInput] = useState<Role | "">((row.role as Role) ?? "");
   const [deptInput, setDeptInput] = useState<Department | "">((row.department as Department) ?? "");
+  const adminSetUsername = useAdminSetUsername();
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState(row.username ?? "");
+  const usernameValid = USERNAME_PATTERN.test(usernameInput);
 
   const togglePermission = (perm: Permission) => {
     const next = row.permissions.includes(perm)
@@ -148,6 +153,53 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
                 </button>
               )}
             </div>
+          )}
+        </div>
+
+        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+          <AtSign className="w-3.5 h-3.5 shrink-0" />
+          {editingUsername ? (
+            <>
+              <input
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                maxLength={20}
+                placeholder="username"
+                className="h-7 rounded border border-input bg-background px-2 text-xs w-36"
+              />
+              <button
+                disabled={!usernameValid || adminSetUsername.isPending}
+                onClick={() =>
+                  adminSetUsername.mutate(
+                    { userId: row.id, username: usernameInput },
+                    { onSuccess: () => setEditingUsername(false) }
+                  )
+                }
+                className="text-primary hover:underline disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button onClick={() => { setEditingUsername(false); setUsernameInput(row.username ?? ""); }} className="hover:text-foreground">
+                Cancel
+              </button>
+              {!usernameValid && usernameInput.length > 0 && (
+                <span className="text-destructive">3-20 chars, letters/numbers/underscore only</span>
+              )}
+              {adminSetUsername.isError && (
+                <span className="text-destructive">
+                  {(adminSetUsername.error as { code?: string })?.code === "23505"
+                    ? "Already taken"
+                    : "Failed to save"}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span>@{row.username ?? "(no username)"}</span>
+              <button onClick={() => setEditingUsername(true)} className="text-primary hover:underline">
+                Change
+              </button>
+            </>
           )}
         </div>
 
