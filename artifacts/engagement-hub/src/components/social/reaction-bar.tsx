@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   useReactions,
   useToggleReaction,
-  QUICK_REACTION_EMOJIS,
   EMOJI_PICKER_OPTIONS,
   type TargetType,
 } from "@/hooks/use-social";
@@ -46,8 +45,6 @@ export function ReactionBar({
     }
     return order.map((emoji) => ({ emoji, users: map.get(emoji)! }));
   }, [reactions]);
-
-  const usedEmojis = new Set(groups.map((g) => g.emoji));
 
   const pillClass = (mine: boolean) =>
     cn(
@@ -89,18 +86,6 @@ export function ReactionBar({
           </HoverCard>
         );
       })}
-
-      {/* One-tap quick reacts for the common emoji, only shown while unused */}
-      {QUICK_REACTION_EMOJIS.filter((e) => !usedEmojis.has(e)).map((emoji) => (
-        <button
-          key={emoji}
-          onClick={() => toggle.mutate(emoji)}
-          disabled={!session || toggle.isPending}
-          className={cn(pillClass(false), "opacity-60 hover:opacity-100")}
-        >
-          <span>{emoji}</span>
-        </button>
-      ))}
 
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>

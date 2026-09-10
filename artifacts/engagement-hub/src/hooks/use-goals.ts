@@ -43,7 +43,9 @@ export type Goal = {
   owner: { username: string | null; role: string | null } | null;
 };
 
-const GOAL_SELECT = "*, owner:profiles(username, role)";
+// !inner means a goal whose owner is hidden by RLS (e.g. deactivated) drops
+// out of the result entirely, instead of just showing up with a null owner.
+const GOAL_SELECT = "*, owner:profiles!inner(username, role)";
 
 export function useGoalsFeed() {
   return useQuery({
