@@ -118,3 +118,16 @@ export function useCompleteChallenge() {
     onSuccess: invalidate,
   });
 }
+
+// Only a finished (declined/completed) challenge can be deleted -- an
+// active/pending one should go through cancel/complete instead.
+export function useDeleteChallenge() {
+  const invalidate = useInvalidateChallenges();
+  return useMutation({
+    mutationFn: async (challengeId: string) => {
+      const { error } = await supabase.rpc("delete_challenge", { challenge_id_param: challengeId });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
