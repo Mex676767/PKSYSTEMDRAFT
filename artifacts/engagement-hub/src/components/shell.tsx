@@ -34,7 +34,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="bg-primary text-primary-foreground p-2 rounded-xl shadow-sm">
             <Trophy className="w-6 h-6" />
           </div>
-          <span className="font-display font-bold text-xl tracking-tight">Hub</span>
+          <span className="font-display font-bold text-xl tracking-tight">C9MYR</span>
         </div>
 
         <div className="flex md:flex-col overflow-x-auto md:overflow-visible w-full p-2 md:p-4 gap-1 md:gap-2">
