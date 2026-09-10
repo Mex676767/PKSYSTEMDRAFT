@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/date-picker";
 import { motion } from "framer-motion";
-import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2 } from "lucide-react";
+import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useChallengesList,
@@ -21,6 +21,9 @@ import {
   type Challenge,
 } from "@/hooks/use-challenges";
 import { useDirectory } from "@/hooks/use-mentors";
+import { useComments } from "@/hooks/use-social";
+import { ReactionBar } from "@/components/social/reaction-bar";
+import { CommentSection } from "@/components/social/comment-section";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 
@@ -129,6 +132,8 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
   const deleteChallenge = useDeleteChallenge();
   const [error, setError] = useState<string | null>(null);
   const [scoreInput, setScoreInput] = useState<string>("");
+  const [showComments, setShowComments] = useState(false);
+  const { data: comments = [] } = useComments("challenge", c.id);
 
   const isCreator = c.creator_id === viewerId;
   const isOpponent = c.opponent_id === viewerId;
@@ -157,10 +162,7 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
     )}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-semibold text-sm">{c.topic}</h3>
-            {c.description && <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>}
-          </div>
+          <h3 className="font-semibold text-sm">{c.topic}</h3>
           <div className="flex items-center gap-1.5 shrink-0">
             <Badge variant="outline" className="text-[9px]">{CHALLENGE_DIRECTION_LABEL[direction]}</Badge>
             {c.status === "pending" && <Badge className="text-[10px] bg-amber-500 hover:bg-amber-500">Pending</Badge>}
@@ -190,9 +192,13 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
           <PersonBadge id={c.opponent_id} username={c.opponent?.username} role={c.opponent?.role} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span><strong className="text-foreground">Metric:</strong> {c.metric}</span>
-          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(c.ends_at), "MMM d, yyyy")}</span>
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          {c.description ? (
+            <span className="line-clamp-1">{c.description}</span>
+          ) : (
+            <span className="italic opacity-60">No description</span>
+          )}
+          <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" /> {format(new Date(c.ends_at), "MMM d, yyyy")}</span>
         </div>
 
         {(c.reward || c.punishment) && (
@@ -271,6 +277,24 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         )}
 
         {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-border/50 -mx-4 px-4 pt-3">
+          <ReactionBar targetType="challenge" targetId={c.id} />
+          <button
+            onClick={() => setShowComments((s) => !s)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
+            {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
+
+        {showComments && (
+          <div className="pt-1">
+            <CommentSection targetType="challenge" targetId={c.id} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -283,7 +307,6 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   const [opponentId, setOpponentId] = useState("");
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
-  const [metric, setMetric] = useState("");
   const [reward, setReward] = useState("");
   const [punishment, setPunishment] = useState("");
   const [endsAt, setEndsAt] = useState<string | null>(null);
@@ -296,20 +319,19 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   }, []);
 
   const reset = () => {
-    setOpponentId(""); setTopic(""); setDescription(""); setMetric("");
+    setOpponentId(""); setTopic(""); setDescription("");
     setReward(""); setPunishment(""); setEndsAt(null); setError(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!opponentId || !topic.trim() || !metric.trim() || !endsAt) return;
+    if (!opponentId || !topic.trim() || !endsAt) return;
     setError(null);
     createChallenge.mutate(
       {
         opponentId,
         topic: topic.trim(),
         description: description.trim(),
-        metric: metric.trim(),
         reward: reward.trim(),
         punishment: punishment.trim(),
         endsAt: new Date(endsAt + "T23:59:59").toISOString(),
@@ -360,17 +382,6 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Rules, context, anything they should know"
               className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Metric</label>
-            <input
-              type="text"
-              value={metric}
-              onChange={(e) => setMetric(e.target.value)}
-              placeholder="What's being scored? e.g. Tickets resolved"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

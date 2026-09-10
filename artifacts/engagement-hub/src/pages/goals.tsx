@@ -1,14 +1,11 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PageTransition } from "@/components/animations";
-import { UserAvatar } from "@/components/user-avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { Plus, Search, X } from "lucide-react";
-import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
   useCreateGoal,
@@ -17,10 +14,7 @@ import {
   GOAL_CATEGORY_META,
   type GoalTerm,
   type GoalCategory,
-  type Goal,
 } from "@/hooks/use-goals";
-import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
-import { ROLES } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
@@ -31,11 +25,12 @@ type DraftGoal = {
   title: string;
   description: string;
   term: GoalTerm;
+  category: GoalCategory;
   accountability: string;
 };
 
 function emptyDraft(): DraftGoal {
-  return { key: crypto.randomUUID(), title: "", description: "", term: "short", accountability: "" };
+  return { key: crypto.randomUUID(), title: "", description: "", term: "short", category: "personal", accountability: "" };
 }
 
 export default function Goals() {
@@ -46,9 +41,8 @@ export default function Goals() {
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [category, setCategory] = useState<GoalCategory>("personal");
+  const [search, setSearch] = useState("");
 
-  const [newCategory, setNewCategory] = useState<GoalCategory>("personal");
   const [drafts, setDrafts] = useState<DraftGoal[]>([emptyDraft()]);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,7 +83,7 @@ export default function Goals() {
           title: d.title.trim(),
           description: d.description.trim(),
           term: d.term,
-          category: newCategory,
+          category: d.category,
           accountability: d.term === "short" ? d.accountability.trim() : null,
         })
       )
@@ -109,17 +103,8 @@ export default function Goals() {
     setDrafts([emptyDraft()]);
   };
 
-  const goalsByCategory = useMemo(() => {
-    const map: Record<GoalCategory, Goal[]> = { personal: [], career: [] };
-    for (const g of goals) {
-      // Goals created before the category column existed have no value here
-      // -- fall back to personal (matching the column's own DB default)
-      // instead of crashing on an unrecognized key.
-      const cat: GoalCategory = g.category === "career" ? "career" : "personal";
-      map[cat].push(g);
-    }
-    return map;
-  }, [goals]);
+  const q = search.trim().toLowerCase();
+  const filteredGoals = goals.filter((g) => !q || (g.owner?.username ?? "").toLowerCase().includes(q));
 
   if (isLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
@@ -143,7 +128,6 @@ export default function Goals() {
             setIsDialogOpen(o);
             if (o) {
               setCreateError(null);
-              setNewCategory(category);
               setDrafts([emptyDraft()]);
             }
           }}
@@ -158,23 +142,9 @@ export default function Goals() {
               <DialogTitle>Add Goals</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <div className="flex gap-2">
-                  {CATEGORY_ORDER.map((c) => (
-                    <Button
-                      key={c}
-                      type="button"
-                      size="sm"
-                      variant={newCategory === c ? "default" : "outline"}
-                      onClick={() => setNewCategory(c)}
-                      className="flex-1"
-                    >
-                      {GOAL_CATEGORY_META[c].label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Mix Personal and Career goals in one go -- each one below picks its own category.
+              </p>
 
               <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
                 {drafts.map((d, i) => (
@@ -191,9 +161,18 @@ export default function Goals() {
                     <div className="flex items-center gap-2 pr-6">
                       <span className="text-xs font-semibold text-muted-foreground shrink-0">Goal {i + 1}</span>
                       <select
+                        value={d.category}
+                        onChange={(e) => updateDraft(d.key, { category: e.target.value as GoalCategory })}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs ml-auto"
+                      >
+                        {CATEGORY_ORDER.map((c) => (
+                          <option key={c} value={c}>{GOAL_CATEGORY_META[c].label}</option>
+                        ))}
+                      </select>
+                      <select
                         value={d.term}
                         onChange={(e) => updateDraft(d.key, { term: e.target.value as GoalTerm })}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs ml-auto"
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                       >
                         {TERM_ORDER.map((term) => (
                           <option key={term} value={term}>{GOAL_TERM_META[term].label}</option>
@@ -249,74 +228,6 @@ export default function Goals() {
         </div>
       )}
 
-      <Tabs value={category} onValueChange={(v) => setCategory(v as GoalCategory)}>
-        <div className="flex justify-center">
-          <TabsList>
-            {CATEGORY_ORDER.map((c) => (
-              <TabsTrigger key={c} value={c}>{GOAL_CATEGORY_META[c].label}s</TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        {CATEGORY_ORDER.map((c) => (
-          <TabsContent key={c} value={c} className="pt-6">
-            <GoalTree
-              category={c}
-              goals={goalsByCategory[c]}
-              ownerId={session?.user.id}
-              onAdvance={handleAdvance}
-              updating={updateGoal.isPending}
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
-    </PageTransition>
-  );
-}
-
-function GoalTree({
-  category,
-  goals,
-  ownerId,
-  onAdvance,
-  updating,
-}: {
-  category: GoalCategory;
-  goals: Goal[];
-  ownerId: string | undefined;
-  onAdvance: (id: string, currentProgress: number) => void;
-  updating: boolean;
-}) {
-  const { data: directory = [] } = useDirectory();
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<DirectoryProfile | null>(null);
-
-  const goalsByOwner = useMemo(() => {
-    const map = new Map<string, Goal[]>();
-    for (const g of goals) {
-      if (!map.has(g.owner_id)) map.set(g.owner_id, []);
-      map.get(g.owner_id)!.push(g);
-    }
-    return map;
-  }, [goals]);
-
-  const q = search.trim().toLowerCase();
-  const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
-
-  const byRole = useMemo(() => {
-    const map = new Map<string, DirectoryProfile[]>();
-    for (const p of filtered) {
-      const key = p.role ?? "Unranked";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
-    }
-    return [...ROLES, "Unranked"]
-      .filter((r) => map.has(r))
-      .map((r) => [r, map.get(r)!] as const);
-  }, [filtered]);
-
-  return (
-    <div className="space-y-6">
       <div className="relative w-full sm:w-64 mx-auto">
         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
@@ -327,109 +238,23 @@ function GoalTree({
         />
       </div>
 
-      {byRole.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
-      ) : (
-        <div className="space-y-6">
-          {byRole.map(([role, people], i) => {
-            const color = ROLE_COLORS[i % ROLE_COLORS.length];
-            return (
-              <div key={role}>
-                <div className="flex justify-center mb-3">
-                  <span
-                    className="text-xs font-semibold uppercase tracking-wide text-white px-3 py-1 rounded-full shadow-sm"
-                    style={{ backgroundColor: color }}
-                  >
-                    {role}
-                  </span>
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {people.map((p) => {
-                    const count = (goalsByOwner.get(p.id) ?? []).length;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelected(p)}
-                        className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
-                      >
-                        <UserAvatar
-                          user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
-                          photoUrl={p.avatar_url}
-                          border={p.active_border}
-                          className="w-8 h-8"
-                        />
-                        <div className="text-left min-w-0">
-                          <div className="text-sm font-medium truncate">@{p.username}</div>
-                          <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
-                        </div>
-                        {count > 0 && (
-                          <Badge className="text-[9px] ml-1 shrink-0 text-white" style={{ backgroundColor: color }}>
-                            {count}
-                          </Badge>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-lg">
-          {selected && (
-            <>
-              <DialogHeader>
-                <DialogTitle>@{selected.username}'s {GOAL_CATEGORY_META[category].label}s</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2 max-h-[65vh] overflow-y-auto pr-1">
-                {(goalsByOwner.get(selected.id) ?? []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
-                ) : (
-                  TERM_ORDER.map((term) => {
-                    const termGoals = (goalsByOwner.get(selected.id) ?? []).filter((g) => g.term === term);
-                    if (termGoals.length === 0) return null;
-                    return (
-                      <div key={term} className="space-y-2">
-                        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {GOAL_TERM_META[term].label}
-                        </h4>
-                        {termGoals.map((goal) => (
-                          <GoalCard
-                            key={goal.id}
-                            goal={goal}
-                            isOwner={goal.owner_id === ownerId}
-                            onAdvance={() => onAdvance(goal.id, goal.progress)}
-                            updating={updating}
-                          />
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+      <div className="space-y-4">
+        {filteredGoals.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            {q ? `No one matches "${search}".` : "No goals posted yet -- be the first."}
+          </div>
+        ) : (
+          filteredGoals.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              isOwner={goal.owner_id === session?.user.id}
+              onAdvance={() => handleAdvance(goal.id, goal.progress)}
+              updating={updateGoal.isPending}
+            />
+          ))
+        )}
+      </div>
+    </PageTransition>
   );
 }
-
-// A spread of distinct, vivid hues -- deliberately NOT the app's
-// purple/pink/gold theme gradient -- cycled per role band so the "By
-// Person" chart reads as colorful/playful rather than monochrome.
-const ROLE_COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#14b8a6", // teal
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#64748b", // slate (Unranked)
-];
