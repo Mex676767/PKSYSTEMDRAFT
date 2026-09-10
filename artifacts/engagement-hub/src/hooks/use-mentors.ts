@@ -27,7 +27,14 @@ export function useMentorships() {
   });
 }
 
-export type DirectoryProfile = { id: string; username: string; department: string | null; role: string | null };
+export type DirectoryProfile = {
+  id: string;
+  username: string;
+  department: string | null;
+  role: string | null;
+  avatar_url: string | null;
+  active_border: string | null;
+};
 
 export function useDirectory() {
   return useQuery({
@@ -35,7 +42,7 @@ export function useDirectory() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, department, role")
+        .select("id, username, department, role, avatar_url, active_border")
         .not("username", "is", null)
         .order("username");
       if (error) throw error;
