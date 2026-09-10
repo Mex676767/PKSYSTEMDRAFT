@@ -74,6 +74,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 color: colorForId(profile.id),
               }}
               accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+              photoUrl={profile.avatar_url}
+              border={profile.active_border}
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
