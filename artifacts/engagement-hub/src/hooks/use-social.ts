@@ -87,6 +87,45 @@ export function useReactions(targetType: TargetType, targetId: string) {
   });
 }
 
+// Bulk count variants for summary cards that need totals across many targets
+// at once (e.g. one card per person, summing counts across all their
+// goals) without firing one query per target.
+export function useCommentCounts(targetType: TargetType, targetIds: string[]) {
+  return useQuery({
+    queryKey: ["comment-counts", targetType, targetIds],
+    enabled: targetIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("target_id")
+        .eq("target_type", targetType)
+        .in("target_id", targetIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) counts[row.target_id] = (counts[row.target_id] ?? 0) + 1;
+      return counts;
+    },
+  });
+}
+
+export function useReactionCounts(targetType: TargetType, targetIds: string[]) {
+  return useQuery({
+    queryKey: ["reaction-counts", targetType, targetIds],
+    enabled: targetIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reactions")
+        .select("target_id")
+        .eq("target_type", targetType)
+        .in("target_id", targetIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) counts[row.target_id] = (counts[row.target_id] ?? 0) + 1;
+      return counts;
+    },
+  });
+}
+
 export function useToggleReaction(targetType: TargetType, targetId: string) {
   const { session } = useAuth();
   const qc = useQueryClient();

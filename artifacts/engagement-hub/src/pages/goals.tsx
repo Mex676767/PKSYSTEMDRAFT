@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, MessageCircle, Heart } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -18,6 +17,7 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
+import { useCommentCounts, useReactionCounts } from "@/hooks/use-social";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
@@ -127,6 +127,25 @@ export default function Goals() {
     return map;
   }, [goals]);
 
+  // Aggregate comment/reaction totals per person -- summed across all of
+  // their goals -- for the summary card preview. Full per-goal reactions
+  // and comments still happen inside the "all their goals" dialog.
+  const goalIds = useMemo(() => goals.map((g) => g.id), [goals]);
+  const { data: commentCounts = {} } = useCommentCounts("goal", goalIds);
+  const { data: reactionCounts = {} } = useReactionCounts("goal", goalIds);
+
+  const socialTotalsByOwner = useMemo(() => {
+    const map = new Map<string, { comments: number; reactions: number }>();
+    for (const g of goals) {
+      const prev = map.get(g.owner_id) ?? { comments: 0, reactions: 0 };
+      map.set(g.owner_id, {
+        comments: prev.comments + (commentCounts[g.id] ?? 0),
+        reactions: prev.reactions + (reactionCounts[g.id] ?? 0),
+      });
+    }
+    return map;
+  }, [goals, commentCounts, reactionCounts]);
+
   const q = search.trim().toLowerCase();
   const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
 
@@ -148,7 +167,7 @@ export default function Goals() {
   }
 
   return (
-    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <Confetti active={showConfetti} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -291,29 +310,16 @@ export default function Goals() {
                     {role}
                   </span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {people.map((p) => {
-                    const count = (goalsByOwner.get(p.id) ?? []).length;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelected(p)}
-                        className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
-                      >
-                        <UserAvatar
-                          user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
-                          photoUrl={p.avatar_url}
-                          border={p.active_border}
-                          className="w-8 h-8"
-                        />
-                        <div className="text-left min-w-0">
-                          <div className="text-sm font-medium truncate">@{p.username}</div>
-                          <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
-                        </div>
-                        {count > 0 && <Badge variant="outline" className="text-[9px] shrink-0 ml-0.5">{count}</Badge>}
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {people.map((p) => (
+                    <PersonGoalCard
+                      key={p.id}
+                      person={p}
+                      goals={goalsByOwner.get(p.id) ?? []}
+                      social={socialTotalsByOwner.get(p.id) ?? { comments: 0, reactions: 0 }}
+                      onClick={() => setSelected(p)}
+                    />
+                  ))}
                 </div>
               </div>
             );
@@ -359,5 +365,82 @@ export default function Goals() {
         </DialogContent>
       </Dialog>
     </PageTransition>
+  );
+}
+
+// One card per person: name + a preview of their short/mid/long-term goal,
+// aggregate comment/reaction totals across all their goals -- click the
+// card to open the full dialog where each goal has its own real reaction
+// bar and comments.
+function PersonGoalCard({
+  person,
+  goals,
+  social,
+  onClick,
+}: {
+  person: DirectoryProfile;
+  goals: Goal[];
+  social: { comments: number; reactions: number };
+  onClick: () => void;
+}) {
+  const latestByTerm = useMemo(() => {
+    const map = new Map<GoalTerm, Goal>();
+    for (const g of goals) {
+      const existing = map.get(g.term);
+      if (!existing || new Date(g.created_at) > new Date(existing.created_at)) {
+        map.set(g.term, g);
+      }
+    }
+    return map;
+  }, [goals]);
+
+  return (
+    <button
+      onClick={onClick}
+      className="text-left flex flex-col bg-card border-2 border-border rounded-xl p-4 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
+    >
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <UserAvatar
+            user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
+            photoUrl={person.avatar_url}
+            border={person.active_border}
+            className="w-9 h-9 shrink-0"
+          />
+          <div className="min-w-0">
+            <div className="font-bold truncate">@{person.username}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{person.role ?? "No role"}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <MessageCircle className="w-3.5 h-3.5" />
+          {social.comments}
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-2 mb-3">
+        {TERM_ORDER.slice().reverse().map((term) => {
+          const goal = latestByTerm.get(term);
+          return (
+            <div key={term}>
+              <div className="text-xs font-medium">
+                {GOAL_TERM_META[term].label}
+                {goal ? <span className="text-muted-foreground">: {goal.title}</span> : null}
+              </div>
+              {goal?.description ? (
+                <p className="text-[11px] text-muted-foreground line-clamp-1">{goal.description}</p>
+              ) : !goal ? (
+                <p className="text-[11px] text-muted-foreground italic opacity-70">No goal set</p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t border-border/50">
+        <Heart className="w-3.5 h-3.5" />
+        {social.reactions}
+      </div>
+    </button>
   );
 }
