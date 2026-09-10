@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices } from "lucide-react";
+import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
+import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -40,20 +41,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
-            
+            const isLocked = LOCKED_ROUTES.has(item.href);
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col md:flex-row items-center gap-1 md:gap-3 py-2 px-3 md:px-4 md:py-3 rounded-xl transition-all min-w-[70px] md:min-w-0 flex-shrink-0 font-medium text-xs md:text-sm",
-                  isActive 
-                    ? "bg-primary/10 text-primary md:bg-primary md:text-primary-foreground shadow-sm" 
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  "relative flex flex-col md:flex-row items-center gap-1 md:gap-3 py-2 px-3 md:px-4 md:py-3 rounded-xl transition-all min-w-[70px] md:min-w-0 flex-shrink-0 font-medium text-xs md:text-sm",
+                  isActive
+                    ? "bg-primary/10 text-primary md:bg-primary md:text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  isLocked && !isActive && "opacity-60"
                 )}
               >
                 <Icon className={cn("w-5 h-5", isActive && "md:text-primary-foreground")} />
-                <span>{item.label}</span>
+                <span className="flex items-center gap-1">
+                  {item.label}
+                  {isLocked && <Clock className="w-3 h-3 shrink-0" />}
+                </span>
               </Link>
             );
           })}

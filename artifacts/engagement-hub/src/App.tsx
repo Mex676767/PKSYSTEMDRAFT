@@ -7,8 +7,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme-toggle';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { Trophy, Users, Cake, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { ComingSoon } from '@/pages/coming-soon';
 
 // Pages
 import Login from '@/pages/login';
@@ -17,17 +19,13 @@ import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Social from '@/pages/social';
 import Challenges from '@/pages/challenges';
-import HallOfFame from '@/pages/hall-of-fame';
-import Mentors from '@/pages/mentors';
-import Birthdays from '@/pages/birthdays';
-import Lottery from '@/pages/lottery';
 import Profile from '@/pages/profile';
-import Games from '@/pages/games';
-import WordleGame from '@/pages/wordle-game';
-import DeskSetup from '@/pages/desk-setup';
 import Admin from '@/pages/admin';
-import QuizGame from '@/pages/quiz-game';
-import Betting from '@/pages/betting';
+
+// Launch scope is Social/Goals/Challenges only (see src/lib/feature-flags.ts)
+// -- everything below stays visible in the nav but renders ComingSoon
+// instead. Not imported as real page components at all right now, so
+// re-enabling one later is just: import it back and swap it in below.
 
 const queryClient = new QueryClient();
 
@@ -45,16 +43,16 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/social" component={Social} />
           <Route path="/challenges" component={Challenges} />
-          <Route path="/hall-of-fame" component={HallOfFame} />
-          <Route path="/mentors" component={Mentors} />
-          <Route path="/birthdays" component={Birthdays} />
-          <Route path="/lottery" component={Lottery} />
+          <Route path="/hall-of-fame" component={() => <ComingSoon label="Hall of Fame" icon={Trophy} />} />
+          <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
+          <Route path="/birthdays" component={() => <ComingSoon label="Birthdays" icon={Cake} />} />
+          <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />
           <Route path="/profile" component={Profile} />
-          <Route path="/games" component={Games} />
-          <Route path="/games/wordle" component={WordleGame} />
-          <Route path="/games/desk-setup" component={DeskSetup} />
-          <Route path="/games/quiz" component={QuizGame} />
-          <Route path="/betting" component={Betting} />
+          <Route path="/games" component={() => <ComingSoon label="Games" icon={Gamepad2} />} />
+          <Route path="/games/wordle" component={() => <ComingSoon label="Fastest Wordle Guesser" icon={Gamepad2} />} />
+          <Route path="/games/desk-setup" component={() => <ComingSoon label="Best WFH Desk Setup" icon={Gamepad2} />} />
+          <Route path="/games/quiz" component={() => <ComingSoon label="Brand Knowledge Quiz" icon={Gamepad2} />} />
+          <Route path="/betting" component={() => <ComingSoon label="Betting" icon={Dices} />} />
           <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>
