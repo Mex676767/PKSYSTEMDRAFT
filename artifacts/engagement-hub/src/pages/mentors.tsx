@@ -20,6 +20,7 @@ import {
   useSetDepartment,
   type DirectoryProfile,
 } from "@/hooks/use-mentors";
+import { DEPARTMENTS, type Department } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 function PersonChip({ id, username }: { id: string; username: string | null | undefined }) {
@@ -462,7 +463,7 @@ function DepartmentSection({
   const list = directory ?? [];
   const setDepartment = useSetDepartment();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deptInput, setDeptInput] = useState("");
+  const [deptInput, setDeptInput] = useState<Department | "">("");
 
   const byDept = useMemo(() => {
     const map = new Map<string, typeof list>();
@@ -476,11 +477,11 @@ function DepartmentSection({
 
   const startEdit = (p: DirectoryProfileLike) => {
     setEditingId(p.id);
-    setDeptInput(p.department ?? "");
+    setDeptInput((p.department as Department) ?? "");
   };
 
   const saveEdit = (id: string) => {
-    setDepartment.mutate({ userId: id, department: deptInput.trim() || null });
+    setDepartment.mutate({ userId: id, department: deptInput || null });
     setEditingId(null);
   };
 
@@ -499,14 +500,15 @@ function DepartmentSection({
                   {canManage && (
                     editingId === p.id ? (
                       <div className="flex items-center gap-1 shrink-0">
-                        <input
+                        <select
                           autoFocus
                           value={deptInput}
-                          onChange={(e) => setDeptInput(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && saveEdit(p.id)}
-                          placeholder="Department"
-                          className="w-24 h-7 text-xs rounded border border-input bg-background px-2"
-                        />
+                          onChange={(e) => setDeptInput(e.target.value as Department)}
+                          className="w-28 h-7 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">Unassigned</option>
+                          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
                         <button onClick={() => saveEdit(p.id)} className="text-emerald-600"><ArrowRight className="w-3.5 h-3.5" /></button>
                         <button onClick={() => setEditingId(null)} className="text-muted-foreground"><X className="w-3.5 h-3.5" /></button>
                       </div>

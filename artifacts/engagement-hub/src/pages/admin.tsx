@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -15,6 +15,8 @@ import {
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
+import { useAdminSetRoleDepartment } from "@/hooks/use-role-department";
+import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { format } from "date-fns";
 import { PERMISSIONS, PERMISSION_KEYS, type Permission } from "@/lib/permissions";
@@ -83,6 +85,10 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const adminSetBirthday = useAdminSetBirthday();
   const [editingBirthday, setEditingBirthday] = useState(false);
   const [birthdayInput, setBirthdayInput] = useState(row.birthday ?? "");
+  const adminSetRoleDept = useAdminSetRoleDepartment();
+  const [editingRoleDept, setEditingRoleDept] = useState(false);
+  const [roleInput, setRoleInput] = useState<Role | "">((row.role as Role) ?? "");
+  const [deptInput, setDeptInput] = useState<Department | "">((row.department as Department) ?? "");
 
   const togglePermission = (perm: Permission) => {
     const next = row.permissions.includes(perm)
@@ -192,6 +198,50 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               <span>{row.birthday ? format(new Date(2000, Number(row.birthday.split("-")[1]) - 1, Number(row.birthday.split("-")[2])), "MMMM d") : "No birthday set"}</span>
               <button onClick={() => setEditingBirthday(true)} className="text-primary hover:underline">
                 {row.birthday ? "Change" : "Set"}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+          <Briefcase className="w-3.5 h-3.5 shrink-0" />
+          {editingRoleDept ? (
+            <>
+              <select
+                value={roleInput}
+                onChange={(e) => setRoleInput(e.target.value as Role)}
+                className="h-7 rounded border border-input bg-background px-2 text-xs"
+              >
+                <option value="">Role...</option>
+                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <select
+                value={deptInput}
+                onChange={(e) => setDeptInput(e.target.value as Department)}
+                className="h-7 rounded border border-input bg-background px-2 text-xs"
+              >
+                <option value="">Department...</option>
+                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <button
+                disabled={(!roleInput && !deptInput) || adminSetRoleDept.isPending}
+                onClick={() =>
+                  adminSetRoleDept.mutate(
+                    { userId: row.id, role: roleInput || null, department: deptInput || null },
+                    { onSuccess: () => setEditingRoleDept(false) }
+                  )
+                }
+                className="text-primary hover:underline disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button onClick={() => setEditingRoleDept(false)} className="hover:text-foreground">Cancel</button>
+            </>
+          ) : (
+            <>
+              <span>{row.role || row.department ? `${row.role ?? "No role"} · ${row.department ?? "No department"}` : "No role/department set"}</span>
+              <button onClick={() => setEditingRoleDept(true)} className="text-primary hover:underline">
+                {row.role || row.department ? "Change" : "Set"}
               </button>
             </>
           )}
