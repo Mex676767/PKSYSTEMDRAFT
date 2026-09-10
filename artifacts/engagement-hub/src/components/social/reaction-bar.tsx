@@ -131,7 +131,12 @@ export function ReactionBar({
       </button>
 
       {pickerOpen && (
-        <div className="absolute top-full left-0 mt-1.5 z-30 w-64 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg p-2 grid grid-cols-8 gap-0.5">
+        // Opens upward, right-aligned to the + button -- the reaction bar
+        // almost always sits near the bottom (right above the comment
+        // toggle) and near the right edge of a card, so a picker that opens
+        // downward/left-aligned routinely rendered off-screen or past the
+        // card's edge with nothing visibly happening on click.
+        <div className="absolute bottom-full right-0 mb-1.5 z-30 w-64 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg p-2 grid grid-cols-8 gap-0.5">
           {EMOJI_PICKER_OPTIONS.map((emoji) => (
             <button
               key={emoji}
