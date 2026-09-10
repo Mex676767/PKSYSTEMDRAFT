@@ -87,41 +87,38 @@ export function useReactions(targetType: TargetType, targetId: string) {
   });
 }
 
-// Bulk count variants for summary cards that need totals across many targets
-// at once (e.g. one card per person, summing counts across all their
+// Bulk variants for summary cards that need previews/totals across many
+// targets at once (e.g. one card per person, aggregating across all their
 // goals) without firing one query per target.
-export function useCommentCounts(targetType: TargetType, targetIds: string[]) {
+export function useCommentsForTargets(targetType: TargetType, targetIds: string[]) {
   return useQuery({
-    queryKey: ["comment-counts", targetType, targetIds],
+    queryKey: ["comments-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("target_id")
+        .select("*, author:profiles(username)")
         .eq("target_type", targetType)
-        .in("target_id", targetIds);
+        .in("target_id", targetIds)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const counts: Record<string, number> = {};
-      for (const row of data ?? []) counts[row.target_id] = (counts[row.target_id] ?? 0) + 1;
-      return counts;
+      return data as unknown as Comment[];
     },
   });
 }
 
-export function useReactionCounts(targetType: TargetType, targetIds: string[]) {
+export function useReactionsForTargets(targetType: TargetType, targetIds: string[]) {
   return useQuery({
-    queryKey: ["reaction-counts", targetType, targetIds],
+    queryKey: ["reactions-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
-        .select("target_id")
+        .select("target_id, emoji")
         .eq("target_type", targetType)
         .in("target_id", targetIds);
       if (error) throw error;
-      const counts: Record<string, number> = {};
-      for (const row of data ?? []) counts[row.target_id] = (counts[row.target_id] ?? 0) + 1;
-      return counts;
+      return data as { target_id: string; emoji: string }[];
     },
   });
 }

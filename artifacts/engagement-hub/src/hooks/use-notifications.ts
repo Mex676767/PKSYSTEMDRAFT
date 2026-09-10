@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,8 +19,11 @@ export type AppNotification = {
 
 export function useNotifications() {
   const { session } = useAuth();
-  return useQuery({
-    queryKey: ["notifications", session?.user.id],
+  const qc = useQueryClient();
+  const queryKey = ["notifications", session?.user.id];
+
+  const query = useQuery({
+    queryKey,
     enabled: !!session,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -30,10 +34,31 @@ export function useNotifications() {
       if (error) throw error;
       return data as AppNotification[];
     },
-    // Light polling instead of a realtime subscription -- simple and good
-    // enough for an internal tool at this scale.
-    refetchInterval: 30000,
+    // Realtime below delivers new ones instantly -- this is just a safety
+    // net in case the socket ever drops without reconnecting.
+    refetchInterval: 60000,
   });
+
+  // Live updates: a Postgres change on this user's own notification rows
+  // (new one inserted, or marked read from elsewhere) just refetches rather
+  // than trying to hand-merge the row, since the list is small (50 max).
+  useEffect(() => {
+    if (!session) return;
+    const channel = supabase
+      .channel(`notifications-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` },
+        () => qc.invalidateQueries({ queryKey })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id]);
+
+  return query;
 }
 
 export function useMarkNotificationRead() {
