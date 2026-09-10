@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { NotificationBell } from '@/components/notification-bell';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Trophy, Users, Cake, Gift, Gamepad2, Dices } from 'lucide-react';
@@ -99,6 +100,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <ThemeToggle />
+            <NotificationBell />
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
               <AuthGate />
             </WouterRouter>
