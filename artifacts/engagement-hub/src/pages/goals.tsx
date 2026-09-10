@@ -330,7 +330,51 @@ function GoalTree({
       {byRole.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <GoalPersonTree groups={byRole} goalsByOwner={goalsByOwner} onSelect={setSelected} />
+        <div className="space-y-6">
+          {byRole.map(([role, people], i) => {
+            const color = ROLE_COLORS[i % ROLE_COLORS.length];
+            return (
+              <div key={role}>
+                <div className="flex justify-center mb-3">
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wide text-white px-3 py-1 rounded-full shadow-sm"
+                    style={{ backgroundColor: color }}
+                  >
+                    {role}
+                  </span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {people.map((p) => {
+                    const count = (goalsByOwner.get(p.id) ?? []).length;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelected(p)}
+                        className="flex items-center gap-2 bg-card border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                        style={{ borderColor: color }}
+                      >
+                        <Avatar className="w-8 h-8 shrink-0" style={{ boxShadow: `0 0 0 2px ${color}` }}>
+                          <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(p.id))}>
+                            {initialsForUsername(p.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-left min-w-0">
+                          <div className="text-sm font-medium truncate">@{p.username}</div>
+                          <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
+                        </div>
+                        {count > 0 && (
+                          <Badge className="text-[9px] ml-1 shrink-0 text-white" style={{ backgroundColor: color }}>
+                            {count}
+                          </Badge>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -374,195 +418,18 @@ function GoalTree({
   );
 }
 
-const TREE_W = 800;
-const TREE_H = 580;
-const CANOPY_CX = 400;
-const CANOPY_CY = 215;
-const CANOPY_RX = 270;
-const CANOPY_RY = 190;
-
-// A cluster of overlapping circles -- the classic clip-art way to draw a
-// tree crown (a pile of soft "pom-pom" lobes) instead of one custom blob,
-// which is what actually reads as foliage at a glance. Positions are
-// relative to the canopy center (0,0) before translating.
-const CANOPY_CIRCLES = [
-  { dx: 0, dy: -10, r: 155 },
-  { dx: -165, dy: -65, r: 108 },
-  { dx: 165, dy: -65, r: 108 },
-  { dx: -90, dy: -150, r: 92 },
-  { dx: 90, dy: -150, r: 92 },
-  { dx: 0, dy: -175, r: 85 },
-  { dx: -225, dy: 35, r: 100 },
-  { dx: 225, dy: 35, r: 100 },
-  { dx: -125, dy: 125, r: 100 },
-  { dx: 125, dy: 125, r: 100 },
-  { dx: 0, dy: 150, r: 105 },
+// A spread of distinct, vivid hues -- deliberately NOT the app's
+// purple/pink/gold theme gradient -- cycled per role band so the "By
+// Person" chart reads as colorful/playful rather than monochrome.
+const ROLE_COLORS = [
+  "#ef4444", // red
+  "#f97316", // orange
+  "#eab308", // yellow
+  "#22c55e", // green
+  "#14b8a6", // teal
+  "#06b6d4", // cyan
+  "#3b82f6", // blue
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#64748b", // slate (Unranked)
 ];
-
-// Row sizes grow 2,3,4,5 then hold at 5 -- a rough pyramid that fills a
-// round canopy without a fixed shape depending on headcount.
-function buildRows(total: number) {
-  const rows: number[] = [];
-  let remaining = total;
-  let size = 2;
-  while (remaining > 0) {
-    const take = Math.min(size, remaining);
-    rows.push(take);
-    remaining -= take;
-    size = Math.min(size + 1, 5);
-  }
-  return rows;
-}
-
-// The "By Person" view as an actual tree illustration: a solid trunk
-// growing into one big green canopy, with everyone arranged in branching
-// rows inside it (not per-role clusters -- a real tree has one canopy).
-function GoalPersonTree({
-  groups,
-  goalsByOwner,
-  onSelect,
-}: {
-  groups: readonly (readonly [string, DirectoryProfile[]])[];
-  goalsByOwner: Map<string, Goal[]>;
-  onSelect: (p: DirectoryProfile) => void;
-}) {
-  const people = useMemo(() => groups.flatMap(([, ppl]) => ppl), [groups]);
-
-  const layout = useMemo(() => {
-    const rows = buildRows(people.length);
-    const topY = CANOPY_CY - CANOPY_RY + 55;
-    const bottomY = CANOPY_CY + CANOPY_RY - 35;
-    let idx = 0;
-    const nodes: { p: DirectoryProfile; x: number; y: number }[] = [];
-    rows.forEach((count, r) => {
-      const rowY = rows.length <= 1 ? (topY + bottomY) / 2 : topY + (r / (rows.length - 1)) * (bottomY - topY);
-      const dy = (rowY - CANOPY_CY) / CANOPY_RY;
-      const halfW = CANOPY_RX * Math.sqrt(Math.max(0, 1 - dy * dy)) * 0.78;
-      for (let i = 0; i < count; i++) {
-        const x = count === 1 ? CANOPY_CX : CANOPY_CX - halfW + (i / (count - 1)) * (halfW * 2);
-        nodes.push({ p: people[idx], x, y: rowY });
-        idx++;
-      }
-    });
-    return nodes;
-  }, [people]);
-
-  const trunkTopY = CANOPY_CY + CANOPY_RY - 45;
-  const trunkBottomY = TREE_H - 8;
-
-  // A handful of fixed sparkle positions relative to the canopy center --
-  // just enough to feel magical without being random/unstable across renders.
-  const sparkles = [
-    { dx: -190, dy: -100, r: 5 },
-    { dx: 150, dy: -130, r: 4 },
-    { dx: 210, dy: 30, r: 3.5 },
-    { dx: -230, dy: 40, r: 3.5 },
-    { dx: 20, dy: -165, r: 4.5 },
-  ];
-
-  return (
-    <div className="relative mx-auto" style={{ maxWidth: 720, aspectRatio: `${TREE_W} / ${TREE_H}` }}>
-      <svg viewBox={`0 0 ${TREE_W} ${TREE_H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMax meet">
-        <defs>
-          <linearGradient id="tree-canopy-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--color-primary)" />
-            <stop offset="55%" stopColor="var(--color-secondary)" />
-            <stop offset="100%" stopColor="var(--color-accent)" />
-          </linearGradient>
-          <linearGradient id="tree-trunk-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="var(--color-accent)" />
-            <stop offset="100%" stopColor="var(--color-primary)" />
-          </linearGradient>
-          <filter id="tree-canopy-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="20" />
-          </filter>
-        </defs>
-
-        {/* Soft glow behind the canopy, matching the app's gradient-card look */}
-        <g transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`} filter="url(#tree-canopy-glow)" opacity={0.5}>
-          {CANOPY_CIRCLES.map((c, i) => (
-            <circle key={i} cx={c.dx} cy={c.dy} r={c.r} fill="url(#tree-canopy-grad)" />
-          ))}
-        </g>
-
-        <path
-          d={`M ${CANOPY_CX - 32} ${trunkBottomY}
-              C ${CANOPY_CX - 42} ${trunkBottomY - 70} ${CANOPY_CX - 22} ${trunkTopY + 70} ${CANOPY_CX - 14} ${trunkTopY}
-              L ${CANOPY_CX + 14} ${trunkTopY}
-              C ${CANOPY_CX + 22} ${trunkTopY + 70} ${CANOPY_CX + 42} ${trunkBottomY - 70} ${CANOPY_CX + 32} ${trunkBottomY}
-              Z`}
-          fill="url(#tree-trunk-grad)"
-        />
-        <path
-          d={`M ${CANOPY_CX - 30} ${trunkBottomY - 4} L ${CANOPY_CX - 58} ${trunkBottomY + 16}`}
-          stroke="url(#tree-trunk-grad)"
-          strokeWidth={9}
-          strokeLinecap="round"
-        />
-        <path
-          d={`M ${CANOPY_CX + 30} ${trunkBottomY - 4} L ${CANOPY_CX + 58} ${trunkBottomY + 16}`}
-          stroke="url(#tree-trunk-grad)"
-          strokeWidth={9}
-          strokeLinecap="round"
-        />
-
-        <g stroke="var(--color-accent)" strokeWidth={1.5} opacity={0.5} fill="none">
-          {layout.map(({ p, x, y }) => (
-            <path key={p.id} d={`M ${CANOPY_CX} ${trunkTopY} Q ${(CANOPY_CX + x) / 2} ${(trunkTopY + y) / 2 + 12} ${x} ${y}`} />
-          ))}
-        </g>
-
-        {/* Crisp canopy lobes on top of the glow/trunk/branches. Each circle
-            gets a faint dark outline so overlapping lobes read as separate
-            clumps of foliage instead of melting into one flat oval. */}
-        <g transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}>
-          {CANOPY_CIRCLES.map((c, i) => (
-            <circle
-              key={i}
-              cx={c.dx}
-              cy={c.dy}
-              r={c.r}
-              fill="url(#tree-canopy-grad)"
-              stroke="rgba(0,0,0,0.08)"
-              strokeWidth={2}
-            />
-          ))}
-        </g>
-
-        {sparkles.map((s, i) => (
-          <circle
-            key={i}
-            cx={CANOPY_CX + s.dx}
-            cy={CANOPY_CY + s.dy}
-            r={s.r}
-            fill="var(--color-accent)"
-            opacity={0.85}
-          />
-        ))}
-      </svg>
-
-      {layout.map(({ p, x, y }) => {
-        const count = (goalsByOwner.get(p.id) ?? []).length;
-        return (
-          <button
-            key={p.id}
-            onClick={() => onSelect(p)}
-            className="absolute flex items-center gap-1.5 bg-card border border-border rounded-lg shadow-sm px-2 py-1.5 hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
-            style={{ left: `${(x / TREE_W) * 100}%`, top: `${(y / TREE_H) * 100}%`, transform: "translate(-50%, -50%)", maxWidth: 118 }}
-          >
-            <Avatar className="w-6 h-6 shrink-0">
-              <AvatarFallback className={cn("text-white text-[9px] font-bold", colorForId(p.id))}>
-                {initialsForUsername(p.username)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="text-left min-w-0">
-              <div className="text-[10px] font-medium truncate">@{p.username}</div>
-              {p.role && <div className="text-[8px] text-muted-foreground truncate">{p.role}</div>}
-            </div>
-            {count > 0 && <Badge variant="outline" className="text-[8px] shrink-0 ml-0.5">{count}</Badge>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
