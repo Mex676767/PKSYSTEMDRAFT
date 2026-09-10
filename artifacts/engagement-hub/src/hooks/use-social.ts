@@ -23,9 +23,25 @@ export type Reaction = {
   target_id: string;
   user_id: string;
   emoji: string;
+  user: { username: string | null } | null;
 };
 
-export const REACTION_EMOJIS = ["👍", "❤️", "🎉", "🔥"];
+// Shown as one-tap quick-react buttons whenever nobody's used them yet on a
+// given target.
+export const QUICK_REACTION_EMOJIS = ["👍", "❤️", "🎉", "🔥"];
+
+// The full picker (opened via the "+" button), Discord-style -- pick any of
+// these instead of being limited to the 4 quick ones.
+export const EMOJI_PICKER_OPTIONS = [
+  "👍", "👎", "❤️", "🔥", "🎉", "😂", "😍", "😮", "😢", "😡",
+  "🙌", "👏", "🤔", "😅", "🥳", "💯", "🚀", "✨", "👌", "🙏",
+  "😎", "🤝", "💪", "🎯", "⭐", "💡", "👀", "🤯", "😴", "🥲",
+  "🫡", "🤗", "😇", "🙃", "😜", "🤩", "😱", "🥹", "🤣", "😊",
+  "💔", "💖", "💛", "💚", "💙", "💜", "🖤", "🤍", "☕", "🍕",
+  "🍺", "🎂", "🎁", "🏆", "💰", "📈", "📉", "⚡", "🌟", "🎈",
+  "🦄", "🐶", "🐱", "👑", "💎", "🔨", "🧠", "👻", "💀", "🤡",
+  "🫠", "🫶", "🎊", "🍾", "📣", "🔔", "✅", "❌", "❓", "❗",
+];
 
 export function useComments(targetType: TargetType, targetId: string) {
   return useQuery({
@@ -67,11 +83,11 @@ export function useReactions(targetType: TargetType, targetId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
-        .select("*")
+        .select("*, user:profiles(username)")
         .eq("target_type", targetType)
         .eq("target_id", targetId);
       if (error) throw error;
-      return data as Reaction[];
+      return data as unknown as Reaction[];
     },
   });
 }
