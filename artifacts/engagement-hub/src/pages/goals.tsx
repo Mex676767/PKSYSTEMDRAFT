@@ -17,7 +17,7 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
-import { useCommentCounts, useReactionCounts } from "@/hooks/use-social";
+import { useCommentsForTargets, useReactionsForTargets, type Comment } from "@/hooks/use-social";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
@@ -25,13 +25,8 @@ import { getErrorMessage } from "@/lib/utils";
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
 
-// A spread of distinct, vivid hues -- deliberately NOT the app's
-// purple/pink/gold theme gradient -- cycled per role band so this reads as
-// colorful/playful rather than monochrome.
-const ROLE_COLORS = [
-  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b",
-];
+type ReactionSummary = { emoji: string; count: number };
+type SocialPreview = { commentCount: number; latestComment: Comment | null; reactions: ReactionSummary[] };
 
 type DraftGoal = {
   key: string;
@@ -127,39 +122,64 @@ export default function Goals() {
     return map;
   }, [goals]);
 
-  // Aggregate comment/reaction totals per person -- summed across all of
-  // their goals -- for the summary card preview. Full per-goal reactions
-  // and comments still happen inside the "all their goals" dialog.
+  // Preview data per person -- summed/picked across all of their goals --
+  // for the summary card. Full per-goal reactions and comments still work
+  // normally inside the "all their goals" dialog.
   const goalIds = useMemo(() => goals.map((g) => g.id), [goals]);
-  const { data: commentCounts = {} } = useCommentCounts("goal", goalIds);
-  const { data: reactionCounts = {} } = useReactionCounts("goal", goalIds);
+  const goalOwnerById = useMemo(() => new Map(goals.map((g) => [g.id, g.owner_id])), [goals]);
+  const { data: allComments = [] } = useCommentsForTargets("goal", goalIds);
+  const { data: allReactions = [] } = useReactionsForTargets("goal", goalIds);
 
-  const socialTotalsByOwner = useMemo(() => {
-    const map = new Map<string, { comments: number; reactions: number }>();
-    for (const g of goals) {
-      const prev = map.get(g.owner_id) ?? { comments: 0, reactions: 0 };
-      map.set(g.owner_id, {
-        comments: prev.comments + (commentCounts[g.id] ?? 0),
-        reactions: prev.reactions + (reactionCounts[g.id] ?? 0),
-      });
+  const socialByOwner = useMemo(() => {
+    const map = new Map<string, SocialPreview>();
+    const get = (ownerId: string) => {
+      if (!map.has(ownerId)) map.set(ownerId, { commentCount: 0, latestComment: null, reactions: [] });
+      return map.get(ownerId)!;
+    };
+
+    // allComments is already ordered newest-first, so the first one seen
+    // per owner is their latest.
+    for (const c of allComments) {
+      const ownerId = goalOwnerById.get(c.target_id);
+      if (!ownerId) continue;
+      const entry = get(ownerId);
+      entry.commentCount++;
+      if (!entry.latestComment) entry.latestComment = c;
     }
+
+    const emojiCountByOwner = new Map<string, Map<string, number>>();
+    for (const r of allReactions) {
+      const ownerId = goalOwnerById.get(r.target_id);
+      if (!ownerId) continue;
+      if (!emojiCountByOwner.has(ownerId)) emojiCountByOwner.set(ownerId, new Map());
+      const emojiMap = emojiCountByOwner.get(ownerId)!;
+      emojiMap.set(r.emoji, (emojiMap.get(r.emoji) ?? 0) + 1);
+    }
+    for (const [ownerId, emojiMap] of emojiCountByOwner) {
+      const entry = get(ownerId);
+      entry.reactions = [...emojiMap.entries()]
+        .map(([emoji, count]) => ({ emoji, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 4);
+    }
+
     return map;
-  }, [goals, commentCounts, reactionCounts]);
+  }, [allComments, allReactions, goalOwnerById]);
 
   const q = search.trim().toLowerCase();
   const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
 
-  const byRole = useMemo(() => {
-    const map = new Map<string, DirectoryProfile[]>();
-    for (const p of filtered) {
-      const key = p.role ?? "Unranked";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
-    }
-    return [...ROLES, "Unranked"]
-      .filter((r) => map.has(r))
-      .map((r) => [r, map.get(r)!] as const);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // No more grouping by role -- just a stable, sensible order (rank, then
+  // name) so the grid fills side by side instead of fragmenting into
+  // mostly-single-card "rows" per role.
+  const sortedPeople = useMemo(() => {
+    const rankOf = (role: string | null) => {
+      const idx = ROLES.indexOf(role as (typeof ROLES)[number]);
+      return idx === -1 ? ROLES.length : idx;
+    };
+    return [...filtered].sort(
+      (a, b) => rankOf(a.role) - rankOf(b.role) || a.username.localeCompare(b.username)
+    );
   }, [filtered]);
 
   if (goalsLoading || directoryLoading) {
@@ -294,36 +314,19 @@ export default function Goals() {
         />
       </div>
 
-      {byRole.length === 0 ? (
+      {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <div className="space-y-6">
-          {byRole.map(([role, people], i) => {
-            const color = ROLE_COLORS[i % ROLE_COLORS.length];
-            return (
-              <div key={role}>
-                <div className="flex justify-center mb-3">
-                  <span
-                    className="text-xs font-semibold uppercase tracking-wide text-white px-3 py-1 rounded-full shadow-sm"
-                    style={{ backgroundColor: color }}
-                  >
-                    {role}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {people.map((p) => (
-                    <PersonGoalCard
-                      key={p.id}
-                      person={p}
-                      goals={goalsByOwner.get(p.id) ?? []}
-                      social={socialTotalsByOwner.get(p.id) ?? { comments: 0, reactions: 0 }}
-                      onClick={() => setSelected(p)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {sortedPeople.map((p) => (
+            <PersonGoalCard
+              key={p.id}
+              person={p}
+              goals={goalsByOwner.get(p.id) ?? []}
+              social={socialByOwner.get(p.id) ?? { commentCount: 0, latestComment: null, reactions: [] }}
+              onClick={() => setSelected(p)}
+            />
+          ))}
         </div>
       )}
 
@@ -369,9 +372,9 @@ export default function Goals() {
 }
 
 // One card per person: name + a preview of their short/mid/long-term goal,
-// aggregate comment/reaction totals across all their goals -- click the
-// card to open the full dialog where each goal has its own real reaction
-// bar and comments.
+// plus a peek at the latest comment and top reactions across all their
+// goals -- click the card to open the full dialog where each goal has its
+// own real reaction bar and comments.
 function PersonGoalCard({
   person,
   goals,
@@ -380,7 +383,7 @@ function PersonGoalCard({
 }: {
   person: DirectoryProfile;
   goals: Goal[];
-  social: { comments: number; reactions: number };
+  social: SocialPreview;
   onClick: () => void;
 }) {
   const latestByTerm = useMemo(() => {
@@ -414,7 +417,7 @@ function PersonGoalCard({
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
           <MessageCircle className="w-3.5 h-3.5" />
-          {social.comments}
+          {social.commentCount}
         </div>
       </div>
 
@@ -437,9 +440,27 @@ function PersonGoalCard({
         })}
       </div>
 
-      <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t border-border/50">
-        <Heart className="w-3.5 h-3.5" />
-        {social.reactions}
+      {social.latestComment && (
+        <div className="flex items-start gap-1.5 text-[11px] bg-muted/40 rounded-md px-2 py-1.5 mb-2">
+          <span className="font-medium shrink-0">@{social.latestComment.author?.username ?? "?"}:</span>
+          <span className="text-muted-foreground line-clamp-1">{social.latestComment.body}</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-2 border-t border-border/50">
+        {social.reactions.length > 0 ? (
+          social.reactions.map((r) => (
+            <span key={r.emoji} className="flex items-center gap-0.5">
+              <span>{r.emoji}</span>
+              <span>{r.count}</span>
+            </span>
+          ))
+        ) : (
+          <>
+            <Heart className="w-3.5 h-3.5" />
+            <span>0</span>
+          </>
+        )}
       </div>
     </button>
   );
