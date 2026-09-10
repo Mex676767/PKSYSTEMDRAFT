@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/date-picker";
 import { motion } from "framer-motion";
-import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull } from "lucide-react";
+import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useChallengesList,
@@ -17,6 +17,7 @@ import {
   useCancelChallenge,
   useUpdateChallengeScore,
   useCompleteChallenge,
+  useDeleteChallenge,
   type Challenge,
 } from "@/hooks/use-challenges";
 import { useDirectory } from "@/hooks/use-mentors";
@@ -120,10 +121,12 @@ function PersonBadge({ id, username, role }: { id: string; username: string | nu
 }
 
 function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewerId: string | undefined }) {
+  const { isAdmin } = useAuth();
   const respond = useRespondChallenge();
   const cancel = useCancelChallenge();
   const updateScore = useUpdateChallengeScore();
   const complete = useCompleteChallenge();
+  const deleteChallenge = useDeleteChallenge();
   const [error, setError] = useState<string | null>(null);
   const [scoreInput, setScoreInput] = useState<string>("");
 
@@ -132,6 +135,7 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
   const isParticipant = isCreator || isOpponent;
   const myScore = isCreator ? c.score_creator : c.score_opponent;
   const direction = challengeDirection(c.creator?.role, c.opponent?.role);
+  const canDelete = (isCreator || isAdmin) && (c.status === "declined" || c.status === "completed");
 
   const run = (fn: () => Promise<void> | void) => {
     setError(null);
@@ -163,6 +167,16 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
             {c.status === "active" && <Badge className="text-[10px] bg-primary hover:bg-primary">Active</Badge>}
             {c.status === "completed" && <Badge className="text-[10px] bg-emerald-500 hover:bg-emerald-600">Completed</Badge>}
             {c.status === "declined" && <Badge variant="outline" className="text-[10px]">Declined</Badge>}
+            {canDelete && (
+              <button
+                onClick={() => window.confirm("Delete this challenge?") && run(() => deleteChallenge.mutateAsync(c.id))}
+                disabled={deleteChallenge.isPending}
+                title="Delete challenge"
+                className="text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -321,7 +335,10 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
             <label className="text-sm font-medium">Opponent</label>
             <select value={opponentId} onChange={(e) => setOpponentId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               <option value="">Select...</option>
-              {directory.map((p) => <option key={p.id} value={p.id}>@{p.username}{p.role ? ` (${p.role})` : ""}</option>)}
+              {directory.map((p) => {
+                const meta = [p.role, p.department].filter(Boolean).join(" · ");
+                return <option key={p.id} value={p.id}>@{p.username}{meta ? ` (${meta})` : ""}</option>;
+              })}
             </select>
           </div>
           <div className="space-y-2">
