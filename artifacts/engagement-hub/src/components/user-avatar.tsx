@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { getBorderStyle } from "@/lib/borders";
+import { BorderDecoration } from "./border-decoration";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
@@ -9,23 +9,22 @@ interface UserAvatarProps {
   accessory?: string | null;
   /** Uploaded profile photo -- falls back to the initials avatar when absent. */
   photoUrl?: string | null;
-  /** Key into BORDER_STYLES, e.g. a purchased Discord-style profile border. */
+  /** Key into BorderDecoration's themes, e.g. a purchased Discord-style profile border. */
   border?: string | null;
 }
 
 export function UserAvatar({ user, className, accessory, photoUrl, border }: UserAvatarProps) {
-  const borderStyle = getBorderStyle(border);
-
   return (
-    <div className={cn("relative inline-block shrink-0", borderStyle && "rounded-full p-[3px]", borderStyle)}>
-      <Avatar className={cn("border-2 border-background", className)}>
+    <div className="relative inline-block shrink-0">
+      <BorderDecoration border={border} />
+      <Avatar className={cn("border-2 border-background relative z-10", className)}>
         {photoUrl && <AvatarImage src={photoUrl} alt={user.name} />}
         <AvatarFallback className={cn("text-white font-bold", user.color)}>
           {user.initials}
         </AvatarFallback>
       </Avatar>
       {accessory && (
-        <span className="absolute -bottom-1 -right-1 text-xs bg-card border border-border rounded-full w-4 h-4 flex items-center justify-center leading-none">
+        <span className="absolute -bottom-1 -right-1 z-20 text-xs bg-card border border-border rounded-full w-4 h-4 flex items-center justify-center leading-none">
           {accessory}
         </span>
       )}

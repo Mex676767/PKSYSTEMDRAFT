@@ -10,7 +10,7 @@ import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase,
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
-import { BORDER_STYLES } from "@/lib/borders";
+import { BorderDecoration } from "@/components/border-decoration";
 import {
   useAccessoryCatalog,
   usePurchaseAccessory,
@@ -247,7 +247,10 @@ export default function Profile() {
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className={cn("w-10 h-10 rounded-full", BORDER_STYLES[item.key])} />
+                    <div className="relative w-10 h-10">
+                      <BorderDecoration border={item.key} />
+                      <div className="absolute inset-0 z-10 rounded-full bg-muted border-2 border-background" />
+                    </div>
                     <div className="text-xs font-semibold">{item.name}</div>
                     {owned ? (
                       <Button

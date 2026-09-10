@@ -330,36 +330,7 @@ function GoalTree({
       {byRole.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        <div className="space-y-6">
-          {byRole.map(([role, people]) => (
-            <div key={role}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-center mb-3">{role}</h3>
-              <div className="flex flex-wrap justify-center gap-3">
-                {people.map((p) => {
-                  const count = (goalsByOwner.get(p.id) ?? []).length;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelected(p)}
-                      className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-sm hover:border-primary/40 hover:shadow-md transition-all"
-                    >
-                      <Avatar className="w-8 h-8 shrink-0">
-                        <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(p.id))}>
-                          {initialsForUsername(p.username)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-left min-w-0">
-                        <div className="text-sm font-medium truncate">@{p.username}</div>
-                        <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
-                      </div>
-                      {count > 0 && <Badge variant="outline" className="text-[9px] ml-1 shrink-0">{count}</Badge>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+        <GoalPersonTree groups={byRole} goalsByOwner={goalsByOwner} onSelect={setSelected} />
       )}
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -399,6 +370,105 @@ function GoalTree({
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+const TREE_W = 800;
+const TREE_H = 460;
+// A closed, slightly lopsided blob outline centered on (0,0), roughly
+// +/-100 wide and +/-65 tall before scaling -- reused per canopy cluster so
+// each one doesn't need its own hand-tuned path.
+const CANOPY_BLOB =
+  "M -88 -8 C -98 -48 -52 -68 -2 -63 C 48 -69 98 -44 94 2 C 99 40 58 64 2 59 C -54 67 -93 34 -88 -8 Z";
+
+// The "By Person" view as an actual illustrated tree (per the user's own
+// sketch) instead of plain grouped rows: a trunk, and one leafy canopy
+// cluster per role group, with each person as an organic leaf-shaped node
+// inside their cluster. Clusters arc across the top like a real canopy;
+// with only one group they sit centered above the trunk.
+function GoalPersonTree({
+  groups,
+  goalsByOwner,
+  onSelect,
+}: {
+  groups: readonly (readonly [string, DirectoryProfile[]])[];
+  goalsByOwner: Map<string, Goal[]>;
+  onSelect: (p: DirectoryProfile) => void;
+}) {
+  const clusters = useMemo(() => {
+    const n = groups.length;
+    return groups.map(([role, people], i) => {
+      const t = n <= 1 ? 0.5 : i / (n - 1);
+      const cx = 130 + t * (TREE_W - 260);
+      const cy = 175 - Math.sin(t * Math.PI) * 65;
+      const scale = 0.55 + Math.min(people.length, 5) * 0.12;
+      return { role, people, cx, cy, scale };
+    });
+  }, [groups]);
+
+  const trunkX = TREE_W / 2;
+
+  return (
+    <div className="relative mx-auto" style={{ maxWidth: 720, aspectRatio: `${TREE_W} / ${TREE_H}` }}>
+      <svg viewBox={`0 0 ${TREE_W} ${TREE_H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMax meet">
+        <path
+          d={`M ${trunkX - 16} ${TREE_H} C ${trunkX - 34} ${TREE_H - 110}, ${trunkX - 8} ${TREE_H - 190}, ${trunkX} ${TREE_H - 255}`}
+          stroke="#8b5e34"
+          strokeWidth={16}
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${trunkX + 16} ${TREE_H} C ${trunkX + 30} ${TREE_H - 110}, ${trunkX + 6} ${TREE_H - 190}, ${trunkX} ${TREE_H - 255}`}
+          stroke="#6f4a29"
+          strokeWidth={11}
+          fill="none"
+          strokeLinecap="round"
+          opacity={0.7}
+        />
+        {clusters.map((c) => (
+          <path
+            key={c.role}
+            d={CANOPY_BLOB}
+            transform={`translate(${c.cx}, ${c.cy}) scale(${c.scale})`}
+            className="fill-primary/15"
+          />
+        ))}
+      </svg>
+
+      {clusters.map((c) => (
+        <div
+          key={c.role}
+          className="absolute flex flex-col items-center gap-1.5"
+          style={{ left: `${(c.cx / TREE_W) * 100}%`, top: `${(c.cy / TREE_H) * 100}%`, transform: "translate(-50%, -50%)", width: 190 }}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-background/80 backdrop-blur-sm px-1.5 rounded-full">
+            {c.role}
+          </span>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {c.people.map((p) => {
+              const count = (goalsByOwner.get(p.id) ?? []).length;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => onSelect(p)}
+                  className="flex items-center gap-1.5 bg-card border border-primary/25 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all px-2.5 py-1.5"
+                  style={{ borderRadius: "63% 37% 54% 46% / 43% 47% 53% 57%" }}
+                >
+                  <Avatar className="w-6 h-6 shrink-0">
+                    <AvatarFallback className={cn("text-white text-[9px] font-bold", colorForId(p.id))}>
+                      {initialsForUsername(p.username)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[11px] font-medium">@{p.username}</span>
+                  {count > 0 && <Badge variant="outline" className="text-[9px] shrink-0">{count}</Badge>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
