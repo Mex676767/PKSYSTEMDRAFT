@@ -50,6 +50,7 @@ type AuthState = {
   loading: boolean;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   claimUsername: (username: string) => Promise<{ error: string | null }>;
   refetchProfile: () => Promise<void>;
@@ -167,6 +168,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const signInWithGoogle = async () => {
+    // This redirects the whole page away to Google, then back to the app --
+    // supabase-js picks the returned session up automatically on load, the
+    // same way the magic-link redirect already does.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + import.meta.env.BASE_URL,
+      },
+    });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -211,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signInWithEmail,
         signInWithPassword,
+        signInWithGoogle,
         signOut,
         claimUsername,
         refetchProfile,
