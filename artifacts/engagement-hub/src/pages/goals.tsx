@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,7 +21,7 @@ import {
 } from "@/hooks/use-goals";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
@@ -353,11 +353,13 @@ function GoalTree({
                         className="flex items-center gap-2 bg-card border rounded-xl px-3 py-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
                         style={{ borderColor: color }}
                       >
-                        <Avatar className="w-8 h-8 shrink-0" style={{ boxShadow: `0 0 0 2px ${color}` }}>
-                          <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(p.id))}>
-                            {initialsForUsername(p.username)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
+                          photoUrl={p.avatar_url}
+                          border={p.active_border}
+                          className="w-8 h-8"
+                          style={{ boxShadow: `0 0 0 2px ${color}` }}
+                        />
                         <div className="text-left min-w-0">
                           <div className="text-sm font-medium truncate">@{p.username}</div>
                           <div className="text-[10px] text-muted-foreground">{p.role ?? "No role"}</div>
