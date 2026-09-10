@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, isPast } from "date-fns";
-import { Circle, Clock, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Circle, Clock, MessageCircle, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,7 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { useComments } from "@/hooks/use-social";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { type Goal } from "@/hooks/use-goals";
+import { GOAL_CATEGORY_META, type Goal } from "@/hooks/use-goals";
 import { cn } from "@/lib/utils";
 
 const TERM_STYLES: Record<Goal["term"], { border: string; from: string; text: string }> = {
@@ -58,12 +58,20 @@ export function GoalCard({
                 </AvatarFallback>
               </Avatar>
               <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>
+              {goal.owner?.role && <Badge variant="outline" className="text-[9px]">{goal.owner.role}</Badge>}
+              <Badge variant="outline" className="text-[9px]">{GOAL_CATEGORY_META[goal.category ?? "personal"].label}</Badge>
               {overdue && <Badge variant="destructive" className="text-[10px]">Overdue</Badge>}
               {goal.completed && <Badge className="text-[10px] bg-emerald-500 hover:bg-emerald-600">Completed</Badge>}
             </div>
             <h3 className="font-semibold text-lg truncate">{goal.title}</h3>
             {goal.description && (
               <p className="text-sm text-muted-foreground line-clamp-2">{goal.description}</p>
+            )}
+            {goal.accountability && (
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 mt-1.5">
+                <ListChecks className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{goal.accountability}</span>
+              </div>
             )}
 
             <div className="flex items-center gap-4 mt-3">

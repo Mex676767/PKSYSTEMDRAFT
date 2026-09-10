@@ -1,14 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { addYears, endOfYear } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
 export type GoalTerm = "short" | "mid" | "long";
 
 export const GOAL_TERM_META: Record<GoalTerm, { label: string; sub: string }> = {
-  long: { label: "Long-term", sub: "3-5 years — the main idea" },
-  mid: { label: "Mid-term", sub: "~6 months" },
-  short: { label: "Short-term", sub: "Under 6 months" },
+  long: { label: "Long-term", sub: "3 years out" },
+  mid: { label: "Mid-term", sub: "1 year out" },
+  short: { label: "Short-term", sub: "By the end of this year" },
 };
+
+export type GoalCategory = "personal" | "career";
+
+export const GOAL_CATEGORY_META: Record<GoalCategory, { label: string }> = {
+  personal: { label: "Personal Goal" },
+  career: { label: "Career Goal" },
+};
+
+// Deadlines are fixed by term, not hand-picked -- computed once at creation
+// and stored like any other field. Long-term is framed to the team as
+// "3-5 years"; this uses the near end of that range as the actual date.
+export function computeTargetDate(term: GoalTerm): string {
+  const now = new Date();
+  if (term === "short") return endOfYear(now).toISOString();
+  if (term === "mid") return addYears(now, 1).toISOString();
+  return addYears(now, 3).toISOString();
+}
 
 export type Goal = {
   id: string;
@@ -16,14 +34,16 @@ export type Goal = {
   title: string;
   description: string | null;
   term: GoalTerm;
+  category: GoalCategory;
+  accountability: string | null;
   target_date: string | null;
   progress: number;
   completed: boolean;
   created_at: string;
-  owner: { username: string | null } | null;
+  owner: { username: string | null; role: string | null } | null;
 };
 
-const GOAL_SELECT = "*, owner:profiles(username)";
+const GOAL_SELECT = "*, owner:profiles(username, role)";
 
 export function useGoalsFeed() {
   return useQuery({
@@ -64,12 +84,13 @@ export function useCreateGoal() {
       title: string;
       description: string;
       term: GoalTerm;
-      target_date: string | null;
+      category: GoalCategory;
+      accountability: string | null;
     }) => {
       if (!session) throw new Error("Not signed in");
       const { data, error } = await supabase
         .from("goals")
-        .insert({ ...input, owner_id: session.user.id })
+        .insert({ ...input, owner_id: session.user.id, target_date: computeTargetDate(input.term) })
         .select(GOAL_SELECT)
         .single();
       if (error) throw error;
