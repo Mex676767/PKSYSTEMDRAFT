@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, isPast } from "date-fns";
-import { Circle, Clock, MessageCircle, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
+import { Circle, Clock, MessageCircle, ChevronDown, ChevronUp, ListChecks, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { useComments } from "@/hooks/use-social";
-import { colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { GOAL_CATEGORY_META, type Goal } from "@/hooks/use-goals";
+import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { GOAL_CATEGORY_META, useDeleteGoal, type Goal } from "@/hooks/use-goals";
 import { cn } from "@/lib/utils";
 
 const TERM_STYLES: Record<Goal["term"], { border: string; from: string; text: string }> = {
@@ -29,10 +29,13 @@ export function GoalCard({
   onAdvance: () => void;
   updating: boolean;
 }) {
+  const { isAdmin } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const { data: comments = [] } = useComments("goal", goal.id);
+  const deleteGoal = useDeleteGoal();
   const style = TERM_STYLES[goal.term];
   const overdue = goal.target_date && !goal.completed && isPast(new Date(goal.target_date));
+  const canDelete = isOwner || isAdmin;
 
   return (
     <Card className={cn("border-l-4 shadow-sm hover:shadow-md transition-all bg-gradient-to-r to-card", style.border, style.from)}>
@@ -62,6 +65,16 @@ export function GoalCard({
               <Badge variant="outline" className="text-[9px]">{GOAL_CATEGORY_META[goal.category ?? "personal"].label}</Badge>
               {overdue && <Badge variant="destructive" className="text-[10px]">Overdue</Badge>}
               {goal.completed && <Badge className="text-[10px] bg-emerald-500 hover:bg-emerald-600">Completed</Badge>}
+              {canDelete && (
+                <button
+                  onClick={() => window.confirm("Delete this goal?") && deleteGoal.mutate(goal.id)}
+                  disabled={deleteGoal.isPending}
+                  title="Delete goal"
+                  className="ml-auto shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             <h3 className="font-semibold text-lg truncate">{goal.title}</h3>
             {goal.description && (

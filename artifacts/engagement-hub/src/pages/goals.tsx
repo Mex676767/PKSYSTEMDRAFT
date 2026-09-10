@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
+import { PageTransition } from "@/components/animations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { motion } from "framer-motion";
-import { Plus, Target, Trophy, Flame, Rows3, Network, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -24,13 +23,20 @@ import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
 
-const TERM_ORDER: { term: GoalTerm; icon: typeof Trophy }[] = [
-  { term: "long", icon: Trophy },
-  { term: "mid", icon: Flame },
-  { term: "short", icon: Target },
-];
-
+const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
+
+type DraftGoal = {
+  key: string;
+  title: string;
+  description: string;
+  term: GoalTerm;
+  accountability: string;
+};
+
+function emptyDraft(): DraftGoal {
+  return { key: crypto.randomUUID(), title: "", description: "", term: "short", accountability: "" };
+}
 
 export default function Goals() {
   const { session } = useAuth();
@@ -41,14 +47,11 @@ export default function Goals() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [category, setCategory] = useState<GoalCategory>("personal");
-  const [view, setView] = useState<"feed" | "tree">("feed");
 
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newTerm, setNewTerm] = useState<GoalTerm>("short");
   const [newCategory, setNewCategory] = useState<GoalCategory>("personal");
-  const [newAccountability, setNewAccountability] = useState("");
+  const [drafts, setDrafts] = useState<DraftGoal[]>([emptyDraft()]);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAdvance = (id: string, currentProgress: number) => {
     const newProgress = Math.min(100, currentProgress + 25);
@@ -62,30 +65,48 @@ export default function Goals() {
     updateGoal.mutate({ id, updates: { progress: newProgress, completed: isNowCompleted } });
   };
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    if (newTerm === "short" && !newAccountability.trim()) return;
-    setCreateError(null);
+  const updateDraft = (key: string, patch: Partial<DraftGoal>) =>
+    setDrafts((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+  const addDraft = () => setDrafts((prev) => [...prev, emptyDraft()]);
+  const removeDraft = (key: string) => setDrafts((prev) => prev.filter((d) => d.key !== key));
 
-    createGoal.mutate(
-      {
-        title: newTitle,
-        description: newDesc,
-        term: newTerm,
-        category: newCategory,
-        accountability: newTerm === "short" ? newAccountability.trim() : null,
-      },
-      {
-        onSuccess: () => {
-          setIsDialogOpen(false);
-          setNewTitle("");
-          setNewDesc("");
-          setNewAccountability("");
-        },
-        onError: (err) => setCreateError(getErrorMessage(err)),
-      }
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const valid = drafts.filter((d) => d.title.trim());
+    if (valid.length === 0) return;
+
+    const missingAccountability = valid.find((d) => d.term === "short" && !d.accountability.trim());
+    if (missingAccountability) {
+      setCreateError(`"${missingAccountability.title}" needs an accountability action since it's short-term.`);
+      return;
+    }
+
+    setCreateError(null);
+    setIsSubmitting(true);
+    const results = await Promise.allSettled(
+      valid.map((d) =>
+        createGoal.mutateAsync({
+          title: d.title.trim(),
+          description: d.description.trim(),
+          term: d.term,
+          category: newCategory,
+          accountability: d.term === "short" ? d.accountability.trim() : null,
+        })
+      )
     );
+    setIsSubmitting(false);
+
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      const firstError = (failed[0] as PromiseRejectedResult).reason;
+      setCreateError(
+        `${failed.length} of ${valid.length} goal${valid.length === 1 ? "" : "s"} failed to save (${getErrorMessage(firstError)}). The rest were created.`
+      );
+      return;
+    }
+
+    setIsDialogOpen(false);
+    setDrafts([emptyDraft()]);
   };
 
   const goalsByCategory = useMemo(() => {
@@ -116,15 +137,25 @@ export default function Goals() {
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={(o) => { setIsDialogOpen(o); if (o) setCreateError(null); }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(o) => {
+            setIsDialogOpen(o);
+            if (o) {
+              setCreateError(null);
+              setNewCategory(category);
+              setDrafts([emptyDraft()]);
+            }
+          }}
+        >
           <DialogTrigger asChild>
-            <Button className="shrink-0 hover-elevate" disabled={!session} onClick={() => setNewCategory(category)}>
-              <Plus className="w-4 h-4 mr-2" /> New Goal
+            <Button className="shrink-0 hover-elevate" disabled={!session}>
+              <Plus className="w-4 h-4 mr-2" /> Add Goals
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create a New Goal</DialogTitle>
+              <DialogTitle>Add Goals</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -144,59 +175,68 @@ export default function Goals() {
                   ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="e.g., Ship feature X"
-                  required
-                />
+
+              <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
+                {drafts.map((d, i) => (
+                  <div key={d.key} className="rounded-lg border border-border p-3 space-y-2 relative">
+                    {drafts.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDraft(d.key)}
+                        className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <div className="flex items-center gap-2 pr-6">
+                      <span className="text-xs font-semibold text-muted-foreground shrink-0">Goal {i + 1}</span>
+                      <select
+                        value={d.term}
+                        onChange={(e) => updateDraft(d.key, { term: e.target.value as GoalTerm })}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs ml-auto"
+                      >
+                        {TERM_ORDER.map((term) => (
+                          <option key={term} value={term}>{GOAL_TERM_META[term].label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <input
+                      type="text"
+                      value={d.title}
+                      onChange={(e) => updateDraft(d.key, { title: e.target.value })}
+                      placeholder="e.g., Ship feature X"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    />
+                    <textarea
+                      value={d.description}
+                      onChange={(e) => updateDraft(d.key, { description: e.target.value })}
+                      placeholder="Details..."
+                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{GOAL_TERM_META[d.term].sub}</p>
+                    {d.term === "short" && (
+                      <textarea
+                        value={d.accountability}
+                        onChange={(e) => updateDraft(d.key, { accountability: e.target.value })}
+                        placeholder="Accountability action -- what will you actually do to hold yourself to this?"
+                        className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="Details..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Term</label>
-                <div className="flex gap-2">
-                  {TERM_ORDER.map(({ term }) => (
-                    <Button
-                      key={term}
-                      type="button"
-                      size="sm"
-                      variant={newTerm === term ? "default" : "outline"}
-                      onClick={() => setNewTerm(term)}
-                      className="flex-1"
-                    >
-                      {GOAL_TERM_META[term].label}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">{GOAL_TERM_META[newTerm].sub}</p>
-              </div>
-              {newTerm === "short" && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Accountability action</label>
-                  <textarea
-                    value={newAccountability}
-                    onChange={(e) => setNewAccountability(e.target.value)}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    placeholder="What will you actually do to hold yourself accountable?"
-                    required
-                  />
-                </div>
-              )}
+
+              <Button type="button" variant="outline" size="sm" onClick={addDraft} className="w-full">
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Another Goal
+              </Button>
+
               {createError && <p className="text-sm text-destructive">{createError}</p>}
-              <Button type="submit" className="w-full mt-4" disabled={createGoal.isPending}>
-                {createGoal.isPending ? "Creating..." : "Create Goal"}
+              <Button type="submit" className="w-full mt-2" disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Creating..."
+                  : drafts.filter((d) => d.title.trim()).length > 1
+                    ? `Create ${drafts.filter((d) => d.title.trim()).length} Goals`
+                    : "Create Goal"}
               </Button>
             </form>
           </DialogContent>
@@ -210,107 +250,27 @@ export default function Goals() {
       )}
 
       <Tabs value={category} onValueChange={(v) => setCategory(v as GoalCategory)}>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex justify-center">
           <TabsList>
             {CATEGORY_ORDER.map((c) => (
               <TabsTrigger key={c} value={c}>{GOAL_CATEGORY_META[c].label}s</TabsTrigger>
             ))}
           </TabsList>
-          <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
-            <button
-              onClick={() => setView("feed")}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors",
-                view === "feed" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <Rows3 className="w-3.5 h-3.5" /> Feed
-            </button>
-            <button
-              onClick={() => setView("tree")}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors",
-                view === "tree" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <Network className="w-3.5 h-3.5" /> By Person
-            </button>
-          </div>
         </div>
 
         {CATEGORY_ORDER.map((c) => (
           <TabsContent key={c} value={c} className="pt-6">
-            {view === "feed" ? (
-              <GoalFeed
-                goals={goalsByCategory[c]}
-                ownerId={session?.user.id}
-                onAdvance={handleAdvance}
-                updating={updateGoal.isPending}
-              />
-            ) : (
-              <GoalTree
-                category={c}
-                goals={goalsByCategory[c]}
-                ownerId={session?.user.id}
-                onAdvance={handleAdvance}
-                updating={updateGoal.isPending}
-              />
-            )}
+            <GoalTree
+              category={c}
+              goals={goalsByCategory[c]}
+              ownerId={session?.user.id}
+              onAdvance={handleAdvance}
+              updating={updateGoal.isPending}
+            />
           </TabsContent>
         ))}
       </Tabs>
     </PageTransition>
-  );
-}
-
-function GoalFeed({
-  goals,
-  ownerId,
-  onAdvance,
-  updating,
-}: {
-  goals: Goal[];
-  ownerId: string | undefined;
-  onAdvance: (id: string, currentProgress: number) => void;
-  updating: boolean;
-}) {
-  return (
-    <div className="space-y-10">
-      {TERM_ORDER.map(({ term, icon: Icon }) => {
-        const termGoals = goals.filter((g) => g.term === term);
-        const meta = GOAL_TERM_META[term];
-
-        return (
-          <div key={term}>
-            <div className="flex items-baseline gap-2 mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Icon className="w-5 h-5 text-primary" /> {meta.label} Goals
-              </h2>
-              <span className="text-xs text-muted-foreground">{meta.sub}</span>
-            </div>
-
-            {termGoals.length === 0 ? (
-              <div className="p-6 text-center bg-muted/30 border border-dashed rounded-2xl text-muted-foreground text-sm">
-                No {meta.label.toLowerCase()} goals posted yet.
-              </div>
-            ) : (
-              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
-                {termGoals.map((goal) => (
-                  <motion.div key={goal.id} variants={slideUp}>
-                    <GoalCard
-                      goal={goal}
-                      isOwner={goal.owner_id === ownerId}
-                      onAdvance={() => onAdvance(goal.id, goal.progress)}
-                      updating={updating}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
@@ -413,7 +373,7 @@ function GoalTree({
                 {(goalsByOwner.get(selected.id) ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
                 ) : (
-                  TERM_ORDER.map(({ term }) => {
+                  TERM_ORDER.map((term) => {
                     const termGoals = (goalsByOwner.get(selected.id) ?? []).filter((g) => g.term === term);
                     if (termGoals.length === 0) return null;
                     return (

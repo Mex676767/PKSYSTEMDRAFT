@@ -10,11 +10,12 @@ import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { getPostImageUrl, useDeletePost, type Post } from "@/hooks/use-posts";
 
 export function PostCard({ post }: { post: Post }) {
-  const { session } = useAuth();
+  const { session, isAdmin } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const { data: comments = [] } = useComments("post", post.id);
   const deletePost = useDeletePost();
   const isOwner = post.author_id === session?.user.id;
+  const canDelete = isOwner || isAdmin;
 
   return (
     <Card className="shadow-sm overflow-hidden">
@@ -31,7 +32,7 @@ export function PostCard({ post }: { post: Post }) {
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
             </p>
           </div>
-          {isOwner && (
+          {canDelete && (
             <button
               onClick={() => window.confirm("Delete this post?") && deletePost.mutate(post.id)}
               className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10"
