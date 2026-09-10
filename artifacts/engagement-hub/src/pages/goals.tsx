@@ -381,10 +381,23 @@ const CANOPY_CY = 215;
 const CANOPY_RX = 270;
 const CANOPY_RY = 190;
 
-// One big rounded, slightly cloud-like canopy silhouette (not a plain
-// ellipse, so it reads as foliage) centered on (0,0) before translating.
-const CANOPY_PATH =
-  "M -260 10 C -280 -110 -160 -190 -40 -175 C 40 -205 180 -190 230 -90 C 280 -10 260 90 170 150 C 90 210 -90 210 -170 150 C -260 90 -250 60 -260 10 Z";
+// A cluster of overlapping circles -- the classic clip-art way to draw a
+// tree crown (a pile of soft "pom-pom" lobes) instead of one custom blob,
+// which is what actually reads as foliage at a glance. Positions are
+// relative to the canopy center (0,0) before translating.
+const CANOPY_CIRCLES = [
+  { dx: 0, dy: -10, r: 155 },
+  { dx: -165, dy: -65, r: 108 },
+  { dx: 165, dy: -65, r: 108 },
+  { dx: -90, dy: -150, r: 92 },
+  { dx: 90, dy: -150, r: 92 },
+  { dx: 0, dy: -175, r: 85 },
+  { dx: -225, dy: 35, r: 100 },
+  { dx: 225, dy: 35, r: 100 },
+  { dx: -125, dy: 125, r: 100 },
+  { dx: 125, dy: 125, r: 100 },
+  { dx: 0, dy: 150, r: 105 },
+];
 
 // Row sizes grow 2,3,4,5 then hold at 5 -- a rough pyramid that fills a
 // round canopy without a fixed shape depending on headcount.
@@ -466,13 +479,11 @@ function GoalPersonTree({
         </defs>
 
         {/* Soft glow behind the canopy, matching the app's gradient-card look */}
-        <path
-          d={CANOPY_PATH}
-          transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}
-          fill="url(#tree-canopy-grad)"
-          opacity={0.5}
-          filter="url(#tree-canopy-glow)"
-        />
+        <g transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`} filter="url(#tree-canopy-glow)" opacity={0.5}>
+          {CANOPY_CIRCLES.map((c, i) => (
+            <circle key={i} cx={c.dx} cy={c.dy} r={c.r} fill="url(#tree-canopy-grad)" />
+          ))}
+        </g>
 
         <path
           d={`M ${CANOPY_CX - 32} ${trunkBottomY}
@@ -501,12 +512,22 @@ function GoalPersonTree({
           ))}
         </g>
 
-        {/* Crisp canopy on top of the glow/trunk/branches */}
-        <path
-          d={CANOPY_PATH}
-          transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}
-          fill="url(#tree-canopy-grad)"
-        />
+        {/* Crisp canopy lobes on top of the glow/trunk/branches. Each circle
+            gets a faint dark outline so overlapping lobes read as separate
+            clumps of foliage instead of melting into one flat oval. */}
+        <g transform={`translate(${CANOPY_CX}, ${CANOPY_CY})`}>
+          {CANOPY_CIRCLES.map((c, i) => (
+            <circle
+              key={i}
+              cx={c.dx}
+              cy={c.dy}
+              r={c.r}
+              fill="url(#tree-canopy-grad)"
+              stroke="rgba(0,0,0,0.08)"
+              strokeWidth={2}
+            />
+          ))}
+        </g>
 
         {sparkles.map((s, i) => (
           <circle
