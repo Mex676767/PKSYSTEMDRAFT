@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
@@ -39,8 +40,11 @@ export const EMOJI_PICKER_OPTIONS = [
 ];
 
 export function useComments(targetType: TargetType, targetId: string) {
-  return useQuery({
-    queryKey: ["comments", targetType, targetId],
+  const qc = useQueryClient();
+  const queryKey = ["comments", targetType, targetId];
+
+  const query = useQuery({
+    queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
@@ -52,6 +56,23 @@ export function useComments(targetType: TargetType, targetId: string) {
       return data as unknown as Comment[];
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`comments-${targetType}-${targetId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments", filter: `target_type=eq.${targetType},target_id=eq.${targetId}` },
+        () => qc.invalidateQueries({ queryKey })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType, targetId]);
+
+  return query;
 }
 
 export function useAddComment(targetType: TargetType, targetId: string) {
@@ -73,8 +94,11 @@ export function useAddComment(targetType: TargetType, targetId: string) {
 }
 
 export function useReactions(targetType: TargetType, targetId: string) {
-  return useQuery({
-    queryKey: ["reactions", targetType, targetId],
+  const qc = useQueryClient();
+  const queryKey = ["reactions", targetType, targetId];
+
+  const query = useQuery({
+    queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
@@ -85,13 +109,32 @@ export function useReactions(targetType: TargetType, targetId: string) {
       return data as unknown as Reaction[];
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`reactions-${targetType}-${targetId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reactions", filter: `target_type=eq.${targetType},target_id=eq.${targetId}` },
+        () => qc.invalidateQueries({ queryKey })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType, targetId]);
+
+  return query;
 }
 
 // Bulk variants for summary cards that need previews/totals across many
 // targets at once (e.g. one card per person, aggregating across all their
 // goals) without firing one query per target.
 export function useCommentsForTargets(targetType: TargetType, targetIds: string[]) {
-  return useQuery({
+  const qc = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["comments-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
@@ -105,10 +148,32 @@ export function useCommentsForTargets(targetType: TargetType, targetIds: string[
       return data as unknown as Comment[];
     },
   });
+
+  // Scoped to targetType only (not the exact id list, which can change
+  // often) -- any comment on this kind of thing invalidates every bulk
+  // query for it, regardless of which ids were in the list at the time.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`comments-bulk-${targetType}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments", filter: `target_type=eq.${targetType}` },
+        () => qc.invalidateQueries({ queryKey: ["comments-bulk", targetType] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType]);
+
+  return query;
 }
 
 export function useReactionsForTargets(targetType: TargetType, targetIds: string[]) {
-  return useQuery({
+  const qc = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["reactions-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
@@ -121,6 +186,23 @@ export function useReactionsForTargets(targetType: TargetType, targetIds: string
       return data as { target_id: string; emoji: string }[];
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`reactions-bulk-${targetType}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reactions", filter: `target_type=eq.${targetType}` },
+        () => qc.invalidateQueries({ queryKey: ["reactions-bulk", targetType] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType]);
+
+  return query;
 }
 
 export function useToggleReaction(targetType: TargetType, targetId: string) {
