@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -13,6 +13,7 @@ import {
   useDeactivateUser,
   useReactivateUser,
   useAdminSetUsername,
+  useAdminAdjustPoints,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
@@ -94,6 +95,11 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState(row.username ?? "");
   const usernameValid = USERNAME_PATTERN.test(usernameInput);
+  const adjustPoints = useAdminAdjustPoints();
+  const [editingPoints, setEditingPoints] = useState(false);
+  const [pointsAmount, setPointsAmount] = useState("");
+  const [pointsReason, setPointsReason] = useState("");
+  const pointsAmountValid = pointsAmount.trim() !== "" && Number(pointsAmount) !== 0 && !Number.isNaN(Number(pointsAmount));
 
   const togglePermission = (perm: Permission) => {
     const next = row.permissions.includes(perm)
@@ -198,6 +204,49 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               <span>@{row.username ?? "(no username)"}</span>
               <button onClick={() => setEditingUsername(true)} className="text-primary hover:underline">
                 Change
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+          <Coins className="w-3.5 h-3.5 shrink-0" />
+          {editingPoints ? (
+            <>
+              <input
+                type="number"
+                value={pointsAmount}
+                onChange={(e) => setPointsAmount(e.target.value)}
+                placeholder="+/- amount"
+                className="h-7 rounded border border-input bg-background px-2 text-xs w-24"
+              />
+              <input
+                value={pointsReason}
+                onChange={(e) => setPointsReason(e.target.value)}
+                placeholder="Reason (optional)"
+                maxLength={200}
+                className="h-7 rounded border border-input bg-background px-2 text-xs w-40"
+              />
+              <button
+                disabled={!pointsAmountValid || adjustPoints.isPending}
+                onClick={() =>
+                  adjustPoints.mutate(
+                    { userId: row.id, amount: Number(pointsAmount), reason: pointsReason.trim() || undefined },
+                    { onSuccess: () => { setEditingPoints(false); setPointsAmount(""); setPointsReason(""); } }
+                  )
+                }
+                className="text-primary hover:underline disabled:opacity-50"
+              >
+                Apply
+              </button>
+              <button onClick={() => setEditingPoints(false)} className="hover:text-foreground">Cancel</button>
+              {adjustPoints.isError && <span className="text-destructive">Failed to save</span>}
+            </>
+          ) : (
+            <>
+              <span>{row.points} pts</span>
+              <button onClick={() => setEditingPoints(true)} className="text-primary hover:underline">
+                Adjust
               </button>
             </>
           )}
