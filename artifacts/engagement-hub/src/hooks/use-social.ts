@@ -26,9 +26,9 @@ export type Reaction = {
   user: { username: string | null } | null;
 };
 
-// Shown as one-tap quick-react buttons whenever nobody's used them yet on a
-// given target.
-export const QUICK_REACTION_EMOJIS = ["👍", "❤️", "🎉", "🔥"];
+// Shown as a one-tap quick-react button whenever nobody's used it yet on a
+// given target. Everything else lives behind the full picker (+ button).
+export const QUICK_REACTION_EMOJIS = ["❤️"];
 
 // The full picker (opened via the "+" button), Discord-style -- pick any of
 // these instead of being limited to the 4 quick ones.
