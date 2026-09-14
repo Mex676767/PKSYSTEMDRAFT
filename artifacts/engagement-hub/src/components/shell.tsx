@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
+import { useConversations } from "@/hooks/use-dm";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -12,6 +13,7 @@ const navItems = [
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
+  { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/mentors", label: "Mentors", icon: Users },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
@@ -25,6 +27,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
   const items = isAdmin ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldAlert }] : navItems;
+  const { unreadCounts } = useConversations();
+  const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
@@ -55,7 +59,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   isLocked && !isActive && "opacity-60"
                 )}
               >
-                <Icon className={cn("w-5 h-5", isActive && "md:text-primary-foreground")} />
+                <span className="relative">
+                  <Icon className={cn("w-5 h-5", isActive && "md:text-primary-foreground")} />
+                  {item.href === "/messages" && totalUnread > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 rounded-full bg-destructive text-white text-[9px] font-bold flex items-center justify-center">
+                      {totalUnread > 9 ? "9+" : totalUnread}
+                    </span>
+                  )}
+                </span>
                 <span className="flex items-center gap-1">
                   {item.label}
                   {isLocked && <Clock className="w-3 h-3 shrink-0" />}
