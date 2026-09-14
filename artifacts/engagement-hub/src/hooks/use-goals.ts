@@ -129,7 +129,12 @@ export function useUpdateGoal() {
       updates,
     }: {
       id: string;
-      updates: Partial<Pick<Goal, "progress" | "completed">>;
+      updates: Partial<
+        Pick<
+          Goal,
+          "progress" | "completed" | "title" | "description" | "term" | "category" | "accountability" | "target_date"
+        >
+      >;
     }) => {
       const { data, error } = await supabase
         .from("goals")

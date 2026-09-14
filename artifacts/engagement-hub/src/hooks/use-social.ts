@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
 // "target_type" identifies which feature a comment/reaction is attached to.
 // Add new values here as more features (birthdays, posts, ...) plug into
 // this same shared comment/reaction system.
-export type TargetType = "goal" | "birthday" | "post" | "hof_record" | "challenge";
+export type TargetType = "goal" | "birthday" | "post" | "hof_record" | "challenge" | "profile";
 
 export type Comment = {
   id: string;
@@ -39,12 +40,55 @@ export const EMOJI_PICKER_OPTIONS = [
   "🫠", "🫶", "🎊", "🍾", "📣", "🔔", "✅", "❌", "❓", "❗",
 ];
 
-export function useComments(targetType: TargetType, targetId: string) {
-  const qc = useQueryClient();
-  const queryKey = ["comments", targetType, targetId];
+// A goal card, challenge card, etc. each independently subscribing to its
+// own Realtime channel meant dozens of open sockets on a busy page (one per
+// visible card), which is almost certainly what made comments/reactions
+// intermittently error out. Instead, every hook below shares ONE
+// ref-counted channel per (table, target_type) pair -- opened on first use,
+// closed once the last subscriber unmounts -- and precisely invalidates
+// just the affected target's query (plus the bulk/summary query for that
+// type) from the realtime payload's own target_id.
+const realtimeRegistry = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
-  const query = useQuery({
-    queryKey,
+function useRealtimeInvalidate(table: "comments" | "reactions", targetType: TargetType) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const key = `${table}-${targetType}`;
+    let entry = realtimeRegistry.get(key);
+    if (!entry) {
+      const channel = supabase
+        .channel(`rt-${key}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table, filter: `target_type=eq.${targetType}` },
+          (payload: { new?: unknown; old?: unknown }) => {
+            const row = (payload.new ?? payload.old) as { target_id?: string } | null;
+            if (row?.target_id) qc.invalidateQueries({ queryKey: [table, targetType, row.target_id] });
+            qc.invalidateQueries({ queryKey: [`${table}-bulk`, targetType] });
+          }
+        )
+        .subscribe();
+      entry = { channel, refCount: 0 };
+      realtimeRegistry.set(key, entry);
+    }
+    entry.refCount++;
+
+    return () => {
+      const current = realtimeRegistry.get(key);
+      if (!current) return;
+      current.refCount--;
+      if (current.refCount <= 0) {
+        supabase.removeChannel(current.channel);
+        realtimeRegistry.delete(key);
+      }
+    };
+  }, [table, targetType, qc]);
+}
+
+export function useComments(targetType: TargetType, targetId: string) {
+  useRealtimeInvalidate("comments", targetType);
+  return useQuery({
+    queryKey: ["comments", targetType, targetId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
@@ -56,23 +100,6 @@ export function useComments(targetType: TargetType, targetId: string) {
       return data as unknown as Comment[];
     },
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`comments-${targetType}-${targetId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "comments", filter: `target_type=eq.${targetType},target_id=eq.${targetId}` },
-        () => qc.invalidateQueries({ queryKey })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetType, targetId]);
-
-  return query;
 }
 
 export function useAddComment(targetType: TargetType, targetId: string) {
@@ -94,11 +121,9 @@ export function useAddComment(targetType: TargetType, targetId: string) {
 }
 
 export function useReactions(targetType: TargetType, targetId: string) {
-  const qc = useQueryClient();
-  const queryKey = ["reactions", targetType, targetId];
-
-  const query = useQuery({
-    queryKey,
+  useRealtimeInvalidate("reactions", targetType);
+  return useQuery({
+    queryKey: ["reactions", targetType, targetId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
@@ -109,32 +134,15 @@ export function useReactions(targetType: TargetType, targetId: string) {
       return data as unknown as Reaction[];
     },
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`reactions-${targetType}-${targetId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reactions", filter: `target_type=eq.${targetType},target_id=eq.${targetId}` },
-        () => qc.invalidateQueries({ queryKey })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetType, targetId]);
-
-  return query;
 }
 
 // Bulk variants for summary cards that need previews/totals across many
 // targets at once (e.g. one card per person, aggregating across all their
-// goals) without firing one query per target.
+// goals) without firing one query per target. Shares the same realtime
+// channel as the single-target hooks above (see useRealtimeInvalidate).
 export function useCommentsForTargets(targetType: TargetType, targetIds: string[]) {
-  const qc = useQueryClient();
-
-  const query = useQuery({
+  useRealtimeInvalidate("comments", targetType);
+  return useQuery({
     queryKey: ["comments-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
@@ -148,32 +156,11 @@ export function useCommentsForTargets(targetType: TargetType, targetIds: string[
       return data as unknown as Comment[];
     },
   });
-
-  // Scoped to targetType only (not the exact id list, which can change
-  // often) -- any comment on this kind of thing invalidates every bulk
-  // query for it, regardless of which ids were in the list at the time.
-  useEffect(() => {
-    const channel = supabase
-      .channel(`comments-bulk-${targetType}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "comments", filter: `target_type=eq.${targetType}` },
-        () => qc.invalidateQueries({ queryKey: ["comments-bulk", targetType] })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetType]);
-
-  return query;
 }
 
 export function useReactionsForTargets(targetType: TargetType, targetIds: string[]) {
-  const qc = useQueryClient();
-
-  const query = useQuery({
+  useRealtimeInvalidate("reactions", targetType);
+  return useQuery({
     queryKey: ["reactions-bulk", targetType, targetIds],
     enabled: targetIds.length > 0,
     queryFn: async () => {
@@ -186,23 +173,6 @@ export function useReactionsForTargets(targetType: TargetType, targetIds: string
       return data as { target_id: string; emoji: string }[];
     },
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`reactions-bulk-${targetType}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reactions", filter: `target_type=eq.${targetType}` },
-        () => qc.invalidateQueries({ queryKey: ["reactions-bulk", targetType] })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetType]);
-
-  return query;
 }
 
 export function useToggleReaction(targetType: TargetType, targetId: string) {
