@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { UserAvatar } from "@/components/user-avatar";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -13,13 +13,17 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The two tree illustrations are landscape (1536x1024, 3:2). These are the
+// The two tree illustrations are landscape (1536x1024). These are the
 // actual white-flower centers on that canopy -- found by scanning the image
 // for near-white petal-colored pixel clusters (not just eyeballed), then
 // hand-checked against a marker overlay so every one of these really sits on
 // a flower. Canopy-only (the couple of flowers down in the grass are
-// excluded). Re-sample if the art ever changes.
-const IMAGE_ASPECT = "1536 / 1024";
+// excluded). Percentages are relative to the ORIGINAL 1536x1024 artwork;
+// useCoverMapping below re-projects them onto whatever crop is actually
+// visible once the background renders with `background-size: cover`.
+// Re-sample if the art ever changes.
+const IMAGE_W = 1536;
+const IMAGE_H = 1024;
 const BRANCH_POSITIONS: Pos[] = [
   { x: 54.3, y: 22.4 },
   { x: 42.7, y: 24.0 },
@@ -126,6 +130,60 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
   return positions;
 }
 
+// Tracks an element's own rendered box size so we can re-project the
+// artwork's flower coordinates onto whatever `background-size: cover`
+// actually shows (see useCoverMapping) -- keeps markers glued to their
+// flower through any resize instead of drifting once the crop changes.
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setSize({ width, height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, size] as const;
+}
+
+// `background-size: cover` scales the 1536x1024 artwork up until it fills
+// the box, then crops whichever axis overflows, centered. A flower's
+// percentage position on the *original* artwork therefore doesn't land at
+// the same percentage inside the box once cropping kicks in -- this maps
+// original-image percent -> percent-within-the-visible-crop, so markers
+// stay glued to their flower at any container size instead of drifting.
+function useCoverMapping(containerW: number, containerH: number) {
+  return useMemo(() => {
+    const imageAspect = IMAGE_W / IMAGE_H;
+    const containerAspect = containerW && containerH ? containerW / containerH : imageAspect;
+
+    let visibleWFrac = 1;
+    let visibleHFrac = 1;
+    if (containerAspect > imageAspect) {
+      visibleHFrac = imageAspect / containerAspect;
+    } else {
+      visibleWFrac = containerAspect / imageAspect;
+    }
+    const leftCrop = (1 - visibleWFrac) / 2;
+    const topCrop = (1 - visibleHFrac) / 2;
+
+    return (pos: Pos): Pos => {
+      const xFrac = (pos.x / 100 - leftCrop) / visibleWFrac;
+      const yFrac = (pos.y / 100 - topCrop) / visibleHFrac;
+      return {
+        x: Math.min(99, Math.max(1, xFrac * 100)),
+        y: Math.min(99, Math.max(1, yFrac * 100)),
+      };
+    };
+  }, [containerW, containerH]);
+}
+
 // A small avatar centered right on the flower (the flower's petals still
 // show around/behind it, per "growing from the flower" rather than
 // covering it), with the name and progress stacked underneath -- flower,
@@ -178,7 +236,7 @@ function TreePersonNode({
       </span>
 
       <span className="flex flex-col items-center leading-none">
-        <span className="text-[9px] font-bold text-white bg-black/55 backdrop-blur-sm rounded-full px-1.5 py-0.5 whitespace-nowrap">
+        <span className="text-[9px] font-bold text-white bg-black/55 backdrop-blur-sm rounded-full px-1.5 py-0.5 whitespace-nowrap max-w-[84px] truncate">
           @{person.username}
         </span>
         <span className={cn("mt-0.5 text-[8px] font-bold text-white rounded-full px-1.5 py-0.5 whitespace-nowrap", pillColor)}>
@@ -206,20 +264,27 @@ export function GoalsTreeView({
   // trying to fade/tint one image into both themes.
   const bgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
 
+  const [containerRef, { width, height }] = useElementSize<HTMLDivElement>();
+  const mapToVisible = useCoverMapping(width, height);
+
   return (
-    // No card: no border, shadow, background fill, or rounded frame -- this
-    // sits directly in the page as the "environment" the markers grow in,
-    // rendered via background-image (not <img>) so there's nothing reading
-    // as a pasted picture. aspect-ratio keeps it undistorted and keeps the
-    // flower percentages below accurate at any width; background-size:
-    // contain never crops or stretches the art.
+    // This *is* the environment, not a picture placed in one: no border,
+    // shadow, rounded corners, card background, or margin box -- the
+    // artwork is a `background-size: cover` layer that fills this section
+    // edge to edge, so there's no rectangle for the eye to read as "an
+    // image". useCoverMapping keeps every flower marker glued to its actual
+    // flower regardless of how much of the artwork `cover` crops at the
+    // current width/height.
     <div
-      className="relative w-full mx-auto"
+      ref={containerRef}
+      // Below `sm`, keep the section at the artwork's own 3:2 ratio (no
+      // crop at all) instead of the viewport-height treatment -- forcing a
+      // tall, narrow box on a phone screen made `cover` zoom in hard enough
+      // to crop flowers (and their name labels) right off the edges.
+      className="relative w-full aspect-[3/2] sm:aspect-auto sm:h-[62vh] sm:min-h-[420px] sm:max-h-[720px]"
       style={{
-        aspectRatio: IMAGE_ASPECT,
-        maxWidth: 880,
         backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
-        backgroundSize: "contain",
+        backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}
@@ -229,13 +294,14 @@ export function GoalsTreeView({
       {people.map((person) => {
         const pos = positions.get(person.id);
         if (!pos) return null;
+        const mapped = mapToVisible(pos);
         return (
           <TreePersonNode
             key={person.id}
             person={person}
             goals={goalsByOwner.get(person.id) ?? []}
-            x={pos.x}
-            y={pos.y}
+            x={mapped.x}
+            y={mapped.y}
             selected={person.id === selectedId}
             onClick={() => onSelect(person)}
           />
@@ -243,7 +309,7 @@ export function GoalsTreeView({
       })}
 
       {people.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm text-center px-8">
+        <div className="absolute inset-0 flex items-center justify-center text-white text-sm text-center px-8 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]">
           No one matches your search.
         </div>
       )}
