@@ -13,42 +13,42 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The two tree illustrations are landscape (1536x1024, 3:2) with the tree
-// pulled back to roughly the center 55-60% of the frame. These are the
-// actual white-flower centers on that canopy (found by color-sampling the
-// image for their yellow centers, then hand-filtered for spacing) -- sorted
-// clockwise around the canopy so contiguous runs read as one arc. Needs
-// re-sampling if the art changes again.
+// The two tree illustrations are landscape (1536x1024, 3:2). These are the
+// actual white-flower centers on that canopy -- found by scanning the image
+// for near-white petal-colored pixel clusters (not just eyeballed), then
+// hand-checked against a marker overlay so every one of these really sits on
+// a flower. Canopy-only (the couple of flowers down in the grass are
+// excluded). Re-sample if the art ever changes.
 const IMAGE_ASPECT = "1536 / 1024";
 const BRANCH_POSITIONS: Pos[] = [
-  { x: 34.7, y: 37.4 },
-  { x: 38.1, y: 28.8 },
-  { x: 46.5, y: 34.3 },
-  { x: 42.7, y: 24.2 },
-  { x: 54.4, y: 22.7 },
-  { x: 59.9, y: 29.2 },
-  { x: 64.7, y: 39.1 },
-  { x: 68.6, y: 48.7 },
+  { x: 54.3, y: 22.4 },
+  { x: 42.7, y: 24.0 },
+  { x: 38.0, y: 28.8 },
+  { x: 59.9, y: 28.9 },
+  { x: 57.8, y: 33.4 },
+  { x: 46.5, y: 34.2 },
+  { x: 34.7, y: 37.1 },
+  { x: 64.7, y: 39.0 },
+  { x: 39.4, y: 40.3 },
+  { x: 43.9, y: 43.0 },
+  { x: 53.0, y: 43.7 },
   { x: 58.2, y: 48.1 },
-  { x: 53.0, y: 43.8 },
-  { x: 63.6, y: 57.7 },
-  { x: 66.6, y: 63.5 },
-  { x: 58.4, y: 67.3 },
-  { x: 54.7, y: 58.9 },
-  { x: 46.8, y: 53.9 },
-  { x: 44.3, y: 60.5 },
-  { x: 39.9, y: 67.9 },
-  { x: 34.9, y: 61.9 },
-  { x: 39.0, y: 54.4 },
-  { x: 28.6, y: 56.5 },
-  { x: 44.0, y: 43.2 },
-  { x: 32.2, y: 49.2 },
+  { x: 68.6, y: 48.4 },
+  { x: 32.2, y: 49.0 },
+  { x: 71.8, y: 53.8 },
+  { x: 39.0, y: 54.2 },
+  { x: 28.5, y: 56.4 },
+  { x: 63.6, y: 57.4 },
+  { x: 35.0, y: 61.6 },
+  { x: 66.7, y: 63.4 },
+  { x: 58.1, y: 67.2 },
+  { x: 39.9, y: 67.6 },
 ];
 
-// Canopy center the flower angles below are measured from (not the image
-// center -- the canopy sits a bit left-of-center, higher up).
+// Canopy centroid the flower angles below are measured from (roughly the
+// middle of the BRANCH_POSITIONS above).
 const CANOPY_CX = 50;
-const CANOPY_CY = 40;
+const CANOPY_CY = 45;
 const TWO_PI = Math.PI * 2;
 
 type FlowerSlot = Pos & { angle: number };
@@ -126,6 +126,10 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
   return positions;
 }
 
+// A small avatar centered right on the flower (the flower's petals still
+// show around/behind it, per "growing from the flower" rather than
+// covering it), with the name and progress stacked underneath -- flower,
+// then avatar, then name, then %, top to bottom.
 function TreePersonNode({
   person,
   goals,
@@ -143,42 +147,41 @@ function TreePersonNode({
 }) {
   const completion = personCompletion(goals);
   const pillColor = colorForId(person.id);
+  const size = selected ? "w-8 h-8" : "w-6 h-6";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 group"
+      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 group z-10 hover:z-20"
       style={{ left: `${x}%`, top: `${y}%` }}
       title={`@${person.username} -- ${completion}% of goals`}
     >
-      <span
-        className={cn(
-          "relative shrink-0 rounded-full transition-shadow",
-          selected && "ring-4 ring-fuchsia-400/80 ring-offset-2 ring-offset-transparent shadow-[0_0_20px_rgba(217,70,239,0.65)]"
+      <span className="relative shrink-0 rounded-full">
+        {selected && (
+          <span
+            aria-hidden
+            className="absolute -inset-2 rounded-full blur-md pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(232,121,249,0.65), transparent 70%)" }}
+          />
         )}
-      >
-        {/* Soft warm glow, echoing the fireflies already glowing in the
-            illustration, so each avatar reads as part of the tree's own
-            lighting rather than a flat sticker laid on top. */}
-        <span
-          aria-hidden
-          className="absolute -inset-2 rounded-full blur-md opacity-70 pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(253,224,71,0.5), transparent 70%)" }}
-        />
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
-          className="relative z-10 w-16 h-16 border-[3px] border-white shadow-lg group-hover:scale-105 group-hover:brightness-110 transition-transform"
+          className={cn(
+            "relative z-10 border-2 border-white shadow-md group-hover:scale-110 transition-transform",
+            size,
+            selected && "ring-2 ring-fuchsia-400"
+          )}
         />
       </span>
 
-      <span className="hidden sm:flex flex-col items-start gap-1">
-        <span className="text-xs font-bold text-white bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1 whitespace-nowrap">
+      <span className="flex flex-col items-center leading-none">
+        <span className="text-[9px] font-bold text-white bg-black/55 backdrop-blur-sm rounded-full px-1.5 py-0.5 whitespace-nowrap">
           @{person.username}
         </span>
-        <span className={cn("text-[10px] font-bold text-white rounded-full px-2 py-0.5 whitespace-nowrap", pillColor)}>
+        <span className={cn("mt-0.5 text-[8px] font-bold text-white rounded-full px-1.5 py-0.5 whitespace-nowrap", pillColor)}>
           {completion}%
         </span>
       </span>
@@ -200,23 +203,29 @@ export function GoalsTreeView({
   const positions = useMemo(() => computeTreePositions(people), [people]);
   const { resolvedTheme } = useTheme();
   // Two separate illustrations (a moonlit tree, a sunlit one) rather than
-  // trying to fade/tint one image into both themes -- the dark version
-  // never worked well faded onto a light background, so light mode gets its
-  // own art instead of a compromise.
+  // trying to fade/tint one image into both themes.
   const bgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
 
   return (
+    // No card: no border, shadow, background fill, or rounded frame -- this
+    // sits directly in the page as the "environment" the markers grow in,
+    // rendered via background-image (not <img>) so there's nothing reading
+    // as a pasted picture. aspect-ratio keeps it undistorted and keeps the
+    // flower percentages below accurate at any width; background-size:
+    // contain never crops or stretches the art.
     <div
-      className="relative w-full rounded-2xl overflow-hidden border border-border/60 shadow-xl bg-card"
-      style={{ aspectRatio: IMAGE_ASPECT }}
+      className="relative w-full mx-auto"
+      style={{
+        aspectRatio: IMAGE_ASPECT,
+        maxWidth: 880,
+        backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
+        backgroundSize: "contain",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+      role="img"
+      aria-label="A glowing illustrated tree, each teammate growing from their own flower"
     >
-      <img
-        src={`${import.meta.env.BASE_URL}${bgFile}`}
-        alt="A glowing illustrated tree, each branch holding a teammate"
-        className="absolute inset-0 w-full h-full object-cover select-none"
-        draggable={false}
-      />
-
       {people.map((person) => {
         const pos = positions.get(person.id);
         if (!pos) return null;
@@ -234,7 +243,7 @@ export function GoalsTreeView({
       })}
 
       {people.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-white/80 text-sm text-center px-8">
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm text-center px-8">
           No one matches your search.
         </div>
       )}
