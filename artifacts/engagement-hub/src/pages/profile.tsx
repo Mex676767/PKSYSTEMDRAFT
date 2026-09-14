@@ -155,12 +155,15 @@ export default function Profile() {
                 <button
                   type="button"
                   disabled={setAvatarUrl.isPending}
-                  onClick={() =>
-                    setAvatarUrl.mutate(null, {
-                      onSuccess: () => setIsAvatarDialogOpen(false),
-                      onError: (err) => setAvatarError(getErrorMessage(err)),
-                    })
-                  }
+                  onClick={() => {
+                    // Close right away rather than in the mutation's
+                    // onSuccess -- this button unmounts itself the instant
+                    // avatar_url clears (its own visibility condition), and
+                    // racing that against Radix's close-focus handling was
+                    // leaving the dialog stuck open.
+                    setIsAvatarDialogOpen(false);
+                    setAvatarUrl.mutate(null, { onError: (err) => setAvatarError(getErrorMessage(err)) });
+                  }}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors mx-auto disabled:opacity-50"
                 >
                   <X className="w-3.5 h-3.5" /> Remove photo, use initials instead
