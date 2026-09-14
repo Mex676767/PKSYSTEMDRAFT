@@ -1,7 +1,43 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+
+// Both the sidebar (unread badge) and the Messages page itself call
+// useConversations() at the same time, and Supabase's realtime-js throws
+// ("cannot add postgres_changes callbacks ... after subscribe()") if two
+// separate channel objects are opened under the identical topic name and
+// both call .subscribe(). Share one ref-counted channel per topic instead --
+// the first caller creates and subscribes it, later callers just bump the
+// ref count, and it's only torn down once the last one unmounts.
+const channelRegistry = new Map<string, { channel: RealtimeChannel; refCount: number }>();
+
+function useSharedChannel(topic: string | null, register: (channel: RealtimeChannel) => void) {
+  useEffect(() => {
+    if (!topic) return;
+    let entry = channelRegistry.get(topic);
+    if (!entry) {
+      const channel = supabase.channel(topic);
+      register(channel);
+      channel.subscribe();
+      entry = { channel, refCount: 0 };
+      channelRegistry.set(topic, entry);
+    }
+    entry.refCount++;
+
+    return () => {
+      const current = channelRegistry.get(topic);
+      if (!current) return;
+      current.refCount--;
+      if (current.refCount <= 0) {
+        supabase.removeChannel(current.channel);
+        channelRegistry.delete(topic);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topic]);
+}
 
 type DmProfile = { id: string; username: string | null; avatar_url: string | null; active_border: string | null };
 
@@ -73,20 +109,15 @@ export function useConversations() {
 
   // Live: new message, or one of mine getting marked read elsewhere, should
   // refresh the inbox (ordering, unread badges) without a manual refresh.
-  useEffect(() => {
-    if (!session) return;
-    const channel = supabase
-      .channel(`dm-inbox-${session.user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, () => {
-        qc.invalidateQueries({ queryKey });
-        qc.invalidateQueries({ queryKey: ["dm-unread-counts", session.user.id] });
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id]);
+  // Shared channel -- see useSharedChannel above -- since the sidebar and
+  // this page's own list both call useConversations() at once.
+  const myId = session?.user.id;
+  useSharedChannel(myId ? `dm-inbox-${myId}` : null, (channel) => {
+    channel.on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, () => {
+      qc.invalidateQueries({ queryKey: ["dm-conversations", myId] });
+      qc.invalidateQueries({ queryKey: ["dm-unread-counts", myId] });
+    });
+  });
 
   return { ...query, unreadCounts };
 }
@@ -109,21 +140,13 @@ export function useMessages(conversationId: string | null) {
     },
   });
 
-  useEffect(() => {
-    if (!conversationId) return;
-    const channel = supabase
-      .channel(`dm-thread-${conversationId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "direct_messages", filter: `conversation_id=eq.${conversationId}` },
-        () => qc.invalidateQueries({ queryKey })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
+  useSharedChannel(conversationId ? `dm-thread-${conversationId}` : null, (channel) => {
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "direct_messages", filter: `conversation_id=eq.${conversationId}` },
+      () => qc.invalidateQueries({ queryKey: ["dm-messages", conversationId] })
+    );
+  });
 
   return query;
 }
