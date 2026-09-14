@@ -116,11 +116,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* pt-16 clears the fixed notification bell + theme toggle (top-4,
-          ~44px tall) that float over the top-right corner on every page --
-          without it, a page header's own top-right content (e.g. a button)
-          can render directly underneath them on mobile, where there's no
-          sidebar pushing things over to make room. */}
-      <main className="flex-1 w-full pt-16 md:pt-0 pb-20 md:pb-0 overflow-x-hidden">
+          ~44px tall) that float over the top-right corner on every page. This
+          used to be `md:pt-0` (skipped on desktop) on the assumption the
+          sidebar leaves the top-right corner clear -- but the sidebar only
+          occupies the left edge, so a page header whose own top-right content
+          (e.g. the Goals page's "Add Goals" button) reaches close to the
+          actual browser edge still lands underneath the icons on desktop
+          too. Keep the clearance on every breakpoint instead of guessing
+          which pages are "safe". */}
+      <main className="flex-1 w-full pt-16 pb-20 md:pb-0 overflow-x-hidden">
         {children}
       </main>
     </div>
