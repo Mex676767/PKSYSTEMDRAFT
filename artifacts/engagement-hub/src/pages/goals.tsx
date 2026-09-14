@@ -311,12 +311,14 @@ export default function Goals() {
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
         <div className="flex flex-col lg:flex-row gap-4 items-start justify-center">
-          <GoalsTreeView
-            people={sortedPeople}
-            goalsByOwner={goalsByOwner}
-            onSelect={setSelected}
-            selectedId={selected?.id ?? null}
-          />
+          <div className="w-full max-w-[62rem] lg:flex-1">
+            <GoalsTreeView
+              people={sortedPeople}
+              goalsByOwner={goalsByOwner}
+              onSelect={setSelected}
+              selectedId={selected?.id ?? null}
+            />
+          </div>
           {selected && (
             <TreeDetailPanel
               person={selected}
