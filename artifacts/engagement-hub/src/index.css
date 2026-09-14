@@ -189,10 +189,22 @@
     @apply border-border;
   }
 
+  /* Scrollbars stay functional everywhere (mouse wheel, touch, keyboard) --
+     this only hides the visible track/thumb so scrollable panels (sidebar,
+     dialogs, the tree detail panel, etc.) don't show a bar cluttering the
+     UI. */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 700;
