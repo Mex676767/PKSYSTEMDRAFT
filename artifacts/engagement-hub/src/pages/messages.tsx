@@ -4,12 +4,13 @@ import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquarePlus, Send, Search, ArrowLeft, MessageSquare } from "lucide-react";
+import { MessageSquarePlus, Send, Search, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useConversations,
   useMessages,
   useSendMessage,
+  useDeleteMessage,
   useStartConversation,
   useMarkConversationRead,
   otherParticipant,
@@ -117,6 +118,7 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
   const other = otherParticipant(conversation, session?.user.id);
   const { data: messages = [] } = useMessages(conversation.id);
   const sendMessage = useSendMessage(conversation.id);
+  const deleteMessage = useDeleteMessage(conversation.id);
   const markRead = useMarkConversationRead();
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -160,7 +162,17 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
         {messages.map((m) => {
           const mine = m.sender_id === session?.user.id;
           return (
-            <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+            <div key={m.id} className={cn("group flex items-center gap-1.5", mine ? "justify-end" : "justify-start")}>
+              {mine && (
+                <button
+                  onClick={() => window.confirm("Delete this message?") && deleteMessage.mutate(m.id)}
+                  disabled={deleteMessage.isPending}
+                  title="Delete message"
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               <div className={cn("max-w-[75%] rounded-2xl px-3 py-2", mine ? "bg-primary text-primary-foreground" : "bg-muted")}>
                 <p className="text-sm break-words whitespace-pre-wrap">{m.body}</p>
                 <p className={cn("text-[10px] mt-0.5", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>

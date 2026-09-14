@@ -151,6 +151,22 @@ export function useMessages(conversationId: string | null) {
   return query;
 }
 
+// RLS allows this for the message's own sender, or any admin -- see
+// dm-delete-message-setup.sql.
+export function useDeleteMessage(conversationId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await supabase.from("direct_messages").delete().eq("id", messageId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dm-messages", conversationId] });
+      qc.invalidateQueries({ queryKey: ["dm-conversations"] });
+    },
+  });
+}
+
 export function useSendMessage(conversationId: string | null) {
   const qc = useQueryClient();
   return useMutation({
