@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { Plus, Search, X, MessageCircle, ListChecks, Send } from "lucide-react";
+import { GoalsTreeView } from "@/components/goals-tree-view";
+import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -50,6 +51,7 @@ export default function Goals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<DirectoryProfile | null>(null);
+  const [view, setView] = useState<"card" | "tree">("card");
 
   const [drafts, setDrafts] = useState<DraftGoal[]>([emptyDraft()]);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -258,18 +260,45 @@ export default function Goals() {
         </div>
       )}
 
-      <div className="relative w-full sm:w-64 mx-auto">
-        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Find someone..."
-          className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
-        />
+      <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Find someone..."
+            className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 bg-muted/40 border border-border rounded-full p-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setView("card")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              view === "card" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Card View
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("tree")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              view === "tree" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <TreeDeciduous className="w-3.5 h-3.5" /> Tree View
+          </button>
+        </div>
       </div>
 
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
+      ) : view === "tree" ? (
+        <GoalsTreeView people={sortedPeople} goalsByOwner={goalsByOwner} onSelect={setSelected} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {sortedPeople.map((p) => (
