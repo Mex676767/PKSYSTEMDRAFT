@@ -1,85 +1,93 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { Leaf } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
 import type { Goal } from "@/hooks/use-goals";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
+import { cn } from "@/lib/utils";
 
-// Percentage-based (x, y) anchor points, hand-picked to land on the leaf
-// clusters of public/tree-bg.png -- if that image gets swapped out for a
-// differently-shaped tree, these will need re-tuning to match.
-const BRANCH_POSITIONS: { x: number; y: number }[] = [
-  { x: 50, y: 7 },
-  { x: 30, y: 11 },
-  { x: 70, y: 10 },
-  { x: 16, y: 21 },
-  { x: 84, y: 20 },
-  { x: 10, y: 37 },
-  { x: 90, y: 36 },
-  { x: 14, y: 53 },
-  { x: 86, y: 52 },
-  { x: 24, y: 63 },
-  { x: 76, y: 62 },
-  { x: 50, y: 25 },
-  { x: 38, y: 41 },
-  { x: 62, y: 43 },
-  { x: 50, y: 57 },
-];
+type Pos = { x: number; y: number };
 
 function personCompletion(goals: Goal[]): number {
   if (goals.length === 0) return 0;
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// Leaves fan out above the avatar and pop in one at a time as `progress`
-// crosses each one's threshold (5 leaves -> 0/20/40/60/80%), each easing in
-// with a spring so a progress update visibly "grows" the cluster instead of
-// just snapping to a new state. The gentle infinite rotate wobble is layered
-// on top of (not instead of) that grow-in, so already-grown leaves keep a
-// small breathing/sway motion rather than sitting totally static.
-const LEAF_ANGLES = [-70, -35, 0, 35, 70];
+// The ellipse the branch spots are scattered around, tuned to
+// public/tree-bg.png's canopy (roughly 7%-65% tall, 10%-90% wide) -- needs
+// re-tuning if that image is ever swapped for a differently-shaped tree.
+const CX = 50;
+const CY = 36;
+const RX = 40;
+const RY = 29;
 
-function GrowingLeafCluster({ progress, size }: { progress: number; size: number }) {
-  const radius = size * 0.55;
+// Groups people by department (not role) so teammates from the same
+// department land on a contiguous arc of the tree instead of scattered
+// randomly -- per "space it out ... separate by department". Each
+// department gets an angular slice sized to its headcount (so spacing stays
+// even for everyone), with a small gap between slices for a clear visual
+// break. If there are more people than comfortably fit on one ring, extra
+// concentric rings are used (alternating within each department) so avatars
+// never have to crowd closer together than the base spacing allows.
+function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
+  const positions = new Map<string, Pos>();
+  const n = people.length;
+  if (n === 0) return positions;
+
+  const groups = new Map<string, DirectoryProfile[]>();
+  for (const p of people) {
+    const key = p.department ?? "Unassigned";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(p);
+  }
+
+  const GAP_DEG = 9;
+  const availableDeg = Math.max(90, 360 - GAP_DEG * groups.size);
+  const anglePerPerson = availableDeg / n;
+  const ringFractions = n <= 12 ? [0.85] : n <= 24 ? [0.62, 1] : [0.45, 0.72, 1];
+
+  let angle = -90; // start at the top of the canopy, sweep clockwise
+  for (const members of groups.values()) {
+    members.forEach((person, i) => {
+      const ringFrac = ringFractions[i % ringFractions.length];
+      const rad = (angle * Math.PI) / 180;
+      positions.set(person.id, {
+        x: CX + Math.cos(rad) * RX * ringFrac,
+        y: CY + Math.sin(rad) * RY * ringFrac,
+      });
+      angle += anglePerPerson;
+    });
+    angle += GAP_DEG;
+  }
+
+  return positions;
+}
+
+// A single leaf badge that grows and brightens as `progress` fills, instead
+// of sitting static -- small and dim at 0%, full-size and vivid by 100%,
+// with a gentle continuous sway so it reads as "alive" rather than a plain
+// icon. Kept as one badge (not a fan of leaves) to match the compact corner
+// badge in the reference layout.
+function LeafBadge({ progress }: { progress: number }) {
+  const grown = Math.min(1, Math.max(0, progress / 100));
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      {LEAF_ANGLES.map((angle, i) => {
-        const threshold = (i / LEAF_ANGLES.length) * 100;
-        const grown = Math.min(1, Math.max(0, (progress - threshold) / (100 / LEAF_ANGLES.length)));
-        const rad = ((angle - 90) * Math.PI) / 180;
-        const x = Math.cos(rad) * radius;
-        const y = Math.sin(rad) * radius;
-        return (
-          <motion.div
-            key={i}
-            className="absolute left-1/2 top-1/2"
-            style={{
-              width: 15,
-              height: 15,
-              marginLeft: -7.5,
-              marginTop: -7.5,
-              background: "linear-gradient(135deg, #bef264, #4d7c0f)",
-              borderRadius: "0% 100% 0% 100%",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
-            }}
-            initial={false}
-            animate={{
-              x,
-              y,
-              scale: grown > 0 ? 0.55 + grown * 0.65 : 0,
-              opacity: grown > 0 ? 0.9 : 0,
-              rotate: [angle - 5, angle + 5, angle - 5],
-            }}
-            transition={{
-              x: { type: "spring", stiffness: 120, damping: 14 },
-              y: { type: "spring", stiffness: 120, damping: 14 },
-              scale: { type: "spring", stiffness: 140, damping: 12 },
-              opacity: { duration: 0.4 },
-              rotate: { duration: 3.5 + i * 0.4, repeat: Infinity, ease: "easeInOut" },
-            }}
-          />
-        );
-      })}
-    </div>
+    <motion.div
+      className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow"
+      initial={false}
+      animate={{
+        scale: 0.6 + grown * 0.55,
+        opacity: progress > 0 ? 1 : 0.4,
+        rotate: [-8, 8, -8],
+      }}
+      transition={{
+        scale: { type: "spring", stiffness: 150, damping: 12 },
+        opacity: { duration: 0.4 },
+        rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+      }}
+    >
+      <Leaf className="w-3 h-3 text-green-600" style={{ opacity: 0.5 + grown * 0.5 }} />
+    </motion.div>
   );
 }
 
@@ -88,39 +96,49 @@ function TreePersonNode({
   goals,
   x,
   y,
+  selected,
   onClick,
 }: {
   person: DirectoryProfile;
   goals: Goal[];
   x: number;
   y: number;
+  selected: boolean;
   onClick: () => void;
 }) {
   const completion = personCompletion(goals);
-  const size = 56;
+  const pillColor = colorForId(person.id);
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="absolute flex flex-col items-center gap-1 -translate-x-1/2 -translate-y-1/2 hover:scale-105 active:scale-95 transition-transform"
+      className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 group"
       style={{ left: `${x}%`, top: `${y}%` }}
       title={`@${person.username} -- ${completion}% of goals`}
     >
-      <div className="relative" style={{ width: size, height: size }}>
-        <GrowingLeafCluster progress={completion} size={size} />
+      <span
+        className={cn(
+          "relative shrink-0 rounded-full transition-shadow",
+          selected && "ring-4 ring-fuchsia-400/80 ring-offset-2 ring-offset-transparent shadow-[0_0_20px_rgba(217,70,239,0.65)]"
+        )}
+      >
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
-          className="w-14 h-14 border-[3px] border-white shadow-lg relative z-10"
+          className="w-14 h-14 border-[3px] border-white shadow-lg group-hover:scale-105 transition-transform"
         />
-        <span className="absolute -bottom-1 -right-1 z-20 text-[10px] font-bold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 shadow leading-none">
+        <LeafBadge progress={completion} />
+      </span>
+
+      <span className="hidden sm:flex flex-col items-start gap-1">
+        <span className="text-xs font-bold text-white bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1 whitespace-nowrap">
+          @{person.username}
+        </span>
+        <span className={cn("text-[10px] font-bold text-white rounded-full px-2 py-0.5 whitespace-nowrap", pillColor)}>
           {completion}%
         </span>
-      </div>
-      <span className="text-[11px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.85)] max-w-[84px] truncate">
-        @{person.username}
       </span>
     </button>
   );
@@ -130,14 +148,18 @@ export function GoalsTreeView({
   people,
   goalsByOwner,
   onSelect,
+  selectedId,
 }: {
   people: DirectoryProfile[];
   goalsByOwner: Map<string, Goal[]>;
   onSelect: (person: DirectoryProfile) => void;
+  selectedId: string | null;
 }) {
+  const positions = useMemo(() => computeTreePositions(people), [people]);
+
   return (
     <div
-      className="relative w-full max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-border/50 bg-[#0c1230]"
+      className="relative w-full max-w-2xl rounded-2xl overflow-hidden shadow-xl border border-border/50 bg-[#0c1230] mx-auto"
       style={{ aspectRatio: "1 / 1" }}
     >
       <img
@@ -147,19 +169,17 @@ export function GoalsTreeView({
         draggable={false}
       />
 
-      {people.map((person, i) => {
-        // Once we run out of hand-picked branch spots, cycle back through
-        // them with a small vertical nudge per lap so repeats don't stack
-        // exactly on top of each other.
-        const pos = BRANCH_POSITIONS[i % BRANCH_POSITIONS.length];
-        const lap = Math.floor(i / BRANCH_POSITIONS.length);
+      {people.map((person) => {
+        const pos = positions.get(person.id);
+        if (!pos) return null;
         return (
           <TreePersonNode
             key={person.id}
             person={person}
             goals={goalsByOwner.get(person.id) ?? []}
             x={pos.x}
-            y={Math.min(96, pos.y + lap * 3)}
+            y={pos.y}
+            selected={person.id === selectedId}
             onClick={() => onSelect(person)}
           />
         );
