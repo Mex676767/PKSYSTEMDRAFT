@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { Plus, Search, X, MessageCircle, Heart, ListChecks, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, X, MessageCircle, ListChecks, Send } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -17,19 +17,14 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
-import { useComments, useCommentsForTargets, useReactionsForTargets, type Comment } from "@/hooks/use-social";
+import { useComments, useAddComment } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
-import { CommentSection } from "@/components/social/comment-section";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
-
-type ReactionSummary = { emoji: string; count: number };
-type SocialPreview = { commentCount: number; recentComments: Comment[]; reactions: ReactionSummary[] };
-const MAX_PREVIEW_COMMENTS = 3;
 
 type DraftGoal = {
   key: string;
@@ -124,50 +119,6 @@ export default function Goals() {
     }
     return map;
   }, [goals]);
-
-  // Preview data per person -- summed/picked across all of their goals --
-  // for the summary card. Full per-goal reactions and comments still work
-  // normally inside the "all their goals" dialog.
-  const goalIds = useMemo(() => goals.map((g) => g.id), [goals]);
-  const goalOwnerById = useMemo(() => new Map(goals.map((g) => [g.id, g.owner_id])), [goals]);
-  const { data: allComments = [] } = useCommentsForTargets("goal", goalIds);
-  const { data: allReactions = [] } = useReactionsForTargets("goal", goalIds);
-
-  const socialByOwner = useMemo(() => {
-    const map = new Map<string, SocialPreview>();
-    const get = (ownerId: string) => {
-      if (!map.has(ownerId)) map.set(ownerId, { commentCount: 0, recentComments: [], reactions: [] });
-      return map.get(ownerId)!;
-    };
-
-    // allComments is already ordered newest-first, so the first few seen
-    // per owner are their most recent.
-    for (const c of allComments) {
-      const ownerId = goalOwnerById.get(c.target_id);
-      if (!ownerId) continue;
-      const entry = get(ownerId);
-      entry.commentCount++;
-      if (entry.recentComments.length < MAX_PREVIEW_COMMENTS) entry.recentComments.push(c);
-    }
-
-    const emojiCountByOwner = new Map<string, Map<string, number>>();
-    for (const r of allReactions) {
-      const ownerId = goalOwnerById.get(r.target_id);
-      if (!ownerId) continue;
-      if (!emojiCountByOwner.has(ownerId)) emojiCountByOwner.set(ownerId, new Map());
-      const emojiMap = emojiCountByOwner.get(ownerId)!;
-      emojiMap.set(r.emoji, (emojiMap.get(r.emoji) ?? 0) + 1);
-    }
-    for (const [ownerId, emojiMap] of emojiCountByOwner) {
-      const entry = get(ownerId);
-      entry.reactions = [...emojiMap.entries()]
-        .map(([emoji, count]) => ({ emoji, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 4);
-    }
-
-    return map;
-  }, [allComments, allReactions, goalOwnerById]);
 
   const q = search.trim().toLowerCase();
   const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
@@ -326,7 +277,6 @@ export default function Goals() {
               key={p.id}
               person={p}
               goals={goalsByOwner.get(p.id) ?? []}
-              social={socialByOwner.get(p.id) ?? { commentCount: 0, recentComments: [], reactions: [] }}
               onClick={() => setSelected(p)}
             />
           ))}
@@ -341,7 +291,6 @@ export default function Goals() {
                 <DialogTitle>@{selected.username}'s Goals</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2 max-h-[65vh] overflow-y-auto pr-1">
-                <ProfileWallSection key={selected.id} personId={selected.id} />
                 {(goalsByOwner.get(selected.id) ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
                 ) : (
@@ -378,43 +327,26 @@ export default function Goals() {
 // A general "wall" for the person, separate from any one goal -- react or
 // comment on them directly, the same way you'd leave something on their
 // profile, rather than being tied to a specific goal.
-function ProfileWallSection({ personId }: { personId: string }) {
-  const [showComments, setShowComments] = useState(false);
-  const { data: comments = [] } = useComments("profile", personId);
-
-  return (
-    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <ReactionBar targetType="profile" targetId={personId} />
-        <button
-          onClick={() => setShowComments((s) => !s)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment on their profile"}
-          {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        </button>
-      </div>
-      {showComments && <CommentSection targetType="profile" targetId={personId} />}
-    </div>
-  );
-}
-
-// One card per person: name + a preview of their short/mid/long-term goal,
-// plus a peek at the latest comment and top reactions across all their
-// goals -- click the card to open the full dialog where each goal has its
-// own real reaction bar and comments.
+// One card per person: name + a preview of their short/mid/long-term goal on
+// the left, and a real comment/reaction "wall" for them on the right/bottom
+// -- fully usable right there on the card, no need to open the dialog just
+// to say something. The two areas that open the full "all their goals"
+// dialog are separate buttons (avatar/name, and the goal list) so they
+// don't end up nesting inside the wall's own interactive buttons/inputs.
 function PersonGoalCard({
   person,
   goals,
-  social,
   onClick,
 }: {
   person: DirectoryProfile;
   goals: Goal[];
-  social: SocialPreview;
   onClick: () => void;
 }) {
+  const { session } = useAuth();
+  const { data: comments = [] } = useComments("profile", person.id);
+  const addComment = useAddComment("profile", person.id);
+  const [commentText, setCommentText] = useState("");
+
   const latestByTerm = useMemo(() => {
     const map = new Map<GoalTerm, Goal>();
     for (const g of goals) {
@@ -426,12 +358,19 @@ function PersonGoalCard({
     return map;
   }, [goals]);
 
+  // useComments returns oldest-first (chat-log order) -- take the last few
+  // and flip them for a newest-first preview.
+  const recentComments = comments.slice(-2).reverse();
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className="text-left flex flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 transition-all"
-    >
-      <div className="flex items-center gap-2.5 min-w-0 mb-4">
+    <div className="flex flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+      <button onClick={onClick} className="flex items-center gap-2.5 min-w-0 mb-4 text-left hover:opacity-80 transition-opacity">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
@@ -442,10 +381,10 @@ function PersonGoalCard({
           <div className="font-bold text-base truncate">@{person.username}</div>
           <div className="text-xs text-muted-foreground truncate">{person.role ?? "No role"}</div>
         </div>
-      </div>
+      </button>
 
       <div className="flex-1 flex gap-4 mb-3">
-        <div className="flex-1 min-w-0 space-y-3">
+        <button onClick={onClick} className="flex-1 min-w-0 space-y-3 text-left hover:opacity-80 transition-opacity">
           {TERM_ORDER.slice().reverse().map((term) => {
             const goal = latestByTerm.get(term);
             const category = goal?.category ?? "personal";
@@ -478,43 +417,48 @@ function PersonGoalCard({
               </div>
             );
           })}
-        </div>
+        </button>
 
         <div className="w-2/5 shrink-0 border-l border-border/50 pl-4 flex flex-col">
           <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-2 shrink-0">
             <MessageCircle className="w-3.5 h-3.5" />
-            Comments {social.commentCount > 0 && `(${social.commentCount})`}
+            Comments {comments.length > 0 && `(${comments.length})`}
           </div>
-          {social.recentComments.length > 0 ? (
-            <div className="space-y-2 overflow-hidden">
-              {social.recentComments.map((c) => (
+          <div className="flex-1 space-y-1.5 mb-2 overflow-hidden">
+            {recentComments.length > 0 ? (
+              recentComments.map((c) => (
                 <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5">
                   <span className="font-medium">@{c.author?.username ?? "?"}: </span>
                   <span className="text-muted-foreground line-clamp-2">{c.body}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] text-muted-foreground italic opacity-70">No comments yet</p>
+              ))
+            ) : (
+              <p className="text-[11px] text-muted-foreground italic opacity-70">No comments yet</p>
+            )}
+          </div>
+          {session && (
+            <form onSubmit={handleAddComment} className="flex gap-1.5 shrink-0">
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Comment..."
+                className="flex-1 min-w-0 h-7 rounded-full border border-input bg-background px-2.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                type="submit"
+                disabled={!commentText.trim() || addComment.isPending}
+                className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50"
+              >
+                <Send className="w-3 h-3" />
+              </button>
+            </form>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-2 border-t border-border/50">
-        {social.reactions.length > 0 ? (
-          social.reactions.map((r) => (
-            <span key={r.emoji} className="flex items-center gap-0.5">
-              <span>{r.emoji}</span>
-              <span>{r.count}</span>
-            </span>
-          ))
-        ) : (
-          <>
-            <Heart className="w-3.5 h-3.5" />
-            <span>0</span>
-          </>
-        )}
+      <div className="pt-2 border-t border-border/50">
+        <ReactionBar targetType="profile" targetId={person.id} />
       </div>
-    </button>
+    </div>
   );
 }
