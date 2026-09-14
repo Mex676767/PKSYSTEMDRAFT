@@ -120,6 +120,19 @@ export function useAddComment(targetType: TargetType, targetId: string) {
   });
 }
 
+// RLS allows this for the comment's own author, or any admin -- see
+// admin-delete-comments-setup.sql.
+export function useDeleteComment(targetType: TargetType, targetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const { error } = await supabase.from("comments").delete().eq("id", commentId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", targetType, targetId] }),
+  });
+}
+
 export function useReactions(targetType: TargetType, targetId: string) {
   useRealtimeInvalidate("reactions", targetType);
   return useQuery({

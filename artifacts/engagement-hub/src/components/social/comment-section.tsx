@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Send } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { useComments, useAddComment, type TargetType } from "@/hooks/use-social";
+import { useComments, useAddComment, useDeleteComment, type TargetType } from "@/hooks/use-social";
 import { cn } from "@/lib/utils";
 
 export function CommentSection({
@@ -20,9 +20,10 @@ export function CommentSection({
    */
   onDark?: boolean;
 }) {
-  const { session } = useAuth();
+  const { session, isAdmin } = useAuth();
   const { data: comments = [] } = useComments(targetType, targetId);
   const addComment = useAddComment(targetType, targetId);
+  const deleteComment = useDeleteComment(targetType, targetId);
   const [text, setText] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,6 +49,19 @@ export function CommentSection({
               <span className={cn("text-[10px]", onDark ? "text-white/70" : "text-muted-foreground")}>
                 {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
               </span>
+              {(isAdmin || c.author_id === session?.user.id) && (
+                <button
+                  onClick={() => window.confirm("Delete this comment?") && deleteComment.mutate(c.id)}
+                  disabled={deleteComment.isPending}
+                  title="Delete comment"
+                  className={cn(
+                    "ml-auto shrink-0 transition-colors",
+                    onDark ? "text-white/60 hover:text-white" : "text-muted-foreground hover:text-destructive"
+                  )}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
             </div>
             <p className={cn("text-sm break-words", onDark && "text-white")}>{c.body}</p>
           </div>
