@@ -105,7 +105,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
       </nav>
 
-      <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
+      {/* pt-16 clears the fixed notification bell + theme toggle (top-4,
+          ~44px tall) that float over the top-right corner on every page --
+          without it, a page header's own top-right content (e.g. a button)
+          can render directly underneath them on mobile, where there's no
+          sidebar pushing things over to make room. */}
+      <main className="flex-1 w-full pt-16 md:pt-0 pb-20 md:pb-0 overflow-x-hidden">
         {children}
       </main>
     </div>
