@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, MessageCircle, Heart, Swords, type LucideIcon } from "lucide-react";
+import { Bell, MessageCircle, Heart, Swords, MessageSquare, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useNotifications,
@@ -15,6 +15,7 @@ const TYPE_ICON: Record<AppNotification["type"], LucideIcon> = {
   comment: MessageCircle,
   reaction: Heart,
   challenge: Swords,
+  dm: MessageSquare,
 };
 
 // Where clicking a notification should take you -- keyed by target_type.
@@ -24,6 +25,7 @@ const TARGET_LINK: Record<string, string> = {
   post: "/social",
   hof_record: "/hall-of-fame",
   challenge: "/challenges",
+  dm: "/messages",
 };
 
 export function NotificationBell() {
