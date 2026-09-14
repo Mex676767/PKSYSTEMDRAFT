@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
-import { Plus, Search, X, MessageCircle, Heart, ListChecks } from "lucide-react";
+import { Plus, Search, X, MessageCircle, Heart, ListChecks, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -17,7 +17,9 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
-import { useCommentsForTargets, useReactionsForTargets, type Comment } from "@/hooks/use-social";
+import { useComments, useCommentsForTargets, useReactionsForTargets, type Comment } from "@/hooks/use-social";
+import { ReactionBar } from "@/components/social/reaction-bar";
+import { CommentSection } from "@/components/social/comment-section";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -339,6 +341,7 @@ export default function Goals() {
                 <DialogTitle>@{selected.username}'s Goals</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2 max-h-[65vh] overflow-y-auto pr-1">
+                <ProfileWallSection key={selected.id} personId={selected.id} />
                 {(goalsByOwner.get(selected.id) ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
                 ) : (
@@ -369,6 +372,31 @@ export default function Goals() {
         </DialogContent>
       </Dialog>
     </PageTransition>
+  );
+}
+
+// A general "wall" for the person, separate from any one goal -- react or
+// comment on them directly, the same way you'd leave something on their
+// profile, rather than being tied to a specific goal.
+function ProfileWallSection({ personId }: { personId: string }) {
+  const [showComments, setShowComments] = useState(false);
+  const { data: comments = [] } = useComments("profile", personId);
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <ReactionBar targetType="profile" targetId={personId} />
+        <button
+          onClick={() => setShowComments((s) => !s)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <MessageCircle className="w-4 h-4" />
+          {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment on their profile"}
+          {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      </div>
+      {showComments && <CommentSection targetType="profile" targetId={personId} />}
+    </div>
   );
 }
 
