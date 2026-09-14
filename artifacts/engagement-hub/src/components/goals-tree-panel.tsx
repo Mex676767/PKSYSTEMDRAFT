@@ -45,8 +45,11 @@ export function TreeDetailPanel({
   };
 
   return (
-    <div className="w-full lg:w-80 shrink-0 bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[640px]">
-      <div className="p-4 flex items-start gap-3 border-b border-border">
+    // A floating glass layer over the tree environment, not a boxed card --
+    // translucent + blurred instead of a bordered panel, per the "no visible
+    // border/outline/stroke" ask.
+    <div className="w-full lg:w-80 shrink-0 bg-background/70 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[640px]">
+      <div className="p-4 flex items-start gap-3 border-b border-white/10">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
@@ -70,7 +73,7 @@ export function TreeDetailPanel({
         </button>
       </div>
 
-      <div className="flex border-b border-border shrink-0">
+      <div className="flex border-b border-white/10 shrink-0">
         {(["goals", "progress", "comments"] as Tab[]).map((t) => (
           <button
             key={t}

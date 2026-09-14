@@ -184,10 +184,54 @@ function useCoverMapping(containerW: number, containerH: number) {
   }, [containerW, containerH]);
 }
 
-// A small avatar centered right on the flower (the flower's petals still
-// show around/behind it, per "growing from the flower" rather than
-// covering it), with the name and progress stacked underneath -- flower,
-// then avatar, then name, then %, top to bottom.
+// A CSS-drawn 6-petal flower (no new art assets -- just rounded divs
+// arranged radially) that frames the avatar, so the marker itself reads as
+// "a flower holding a photo" rather than a plain profile bubble sitting near
+// one. The avatar sits smaller than the petal spread, so white petals stay
+// visible all the way around it.
+function FlowerAvatarFrame({
+  size,
+  selected,
+  children,
+}: {
+  size: number;
+  selected: boolean;
+  children: React.ReactNode;
+}) {
+  const petalW = size * 0.42;
+  const petalH = size * 0.58;
+  const offset = size * 0.23;
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      {selected && (
+        <span
+          aria-hidden
+          className="absolute -inset-3 rounded-full blur-lg pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(232,121,249,0.6), transparent 70%)" }}
+        />
+      )}
+      {Array.from({ length: 6 }).map((_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={cn("absolute left-1/2 top-1/2 rounded-[50%]", selected ? "bg-fuchsia-50" : "bg-white")}
+          style={{
+            width: petalW,
+            height: petalH,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+            transform: `translate(-50%, -50%) rotate(${i * 60}deg) translateY(-${offset}px)`,
+          }}
+        />
+      ))}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">{children}</div>
+    </div>
+  );
+}
+
+// Flower, then avatar, then name, then % -- the flower frame above IS the
+// marker (not a separate decoration next to it), with the label stacked
+// underneath so it never covers the petals.
 function TreePersonNode({
   person,
   goals,
@@ -205,7 +249,8 @@ function TreePersonNode({
 }) {
   const completion = personCompletion(goals);
   const pillColor = colorForId(person.id);
-  const size = selected ? "w-8 h-8" : "w-6 h-6";
+  const frameSize = selected ? 84 : 60;
+  const avatarSize = selected ? 46 : 32;
 
   return (
     <button
@@ -215,25 +260,18 @@ function TreePersonNode({
       style={{ left: `${x}%`, top: `${y}%` }}
       title={`@${person.username} -- ${completion}% of goals`}
     >
-      <span className="relative shrink-0 rounded-full">
-        {selected && (
-          <span
-            aria-hidden
-            className="absolute -inset-2 rounded-full blur-md pointer-events-none"
-            style={{ background: "radial-gradient(circle, rgba(232,121,249,0.65), transparent 70%)" }}
-          />
-        )}
+      <FlowerAvatarFrame size={frameSize} selected={selected}>
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
+          style={{ width: avatarSize, height: avatarSize }}
           className={cn(
-            "relative z-10 border-2 border-white shadow-md group-hover:scale-110 transition-transform",
-            size,
+            "border-2 border-white shadow-md group-hover:scale-110 transition-transform",
             selected && "ring-2 ring-fuchsia-400"
           )}
         />
-      </span>
+      </FlowerAvatarFrame>
 
       <span className="flex flex-col items-center leading-none">
         <span className="text-[9px] font-bold text-white bg-black/55 backdrop-blur-sm rounded-full px-1.5 py-0.5 whitespace-nowrap max-w-[84px] truncate">
