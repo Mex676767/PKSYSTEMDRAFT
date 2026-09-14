@@ -310,8 +310,8 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        <div className="flex flex-col lg:flex-row gap-4 items-start justify-center">
-          <div className="w-full max-w-[62rem] lg:flex-1">
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+          <div className="w-full min-w-0 lg:flex-1">
             <GoalsTreeView
               people={sortedPeople}
               goalsByOwner={goalsByOwner}
