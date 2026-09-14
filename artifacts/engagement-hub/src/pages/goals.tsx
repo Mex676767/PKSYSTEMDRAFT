@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
+import { TreeDetailPanel } from "@/components/goals-tree-panel";
 import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
@@ -260,45 +261,70 @@ export default function Goals() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Find someone..."
-            className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
-          />
-        </div>
-
-        <div className="flex items-center gap-1 bg-muted/40 border border-border rounded-full p-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => setView("card")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-              view === "card" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" /> Card View
-          </button>
+      <div className="flex flex-col md:flex-row items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setView("tree")}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-              view === "tree" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
+              view === "tree"
+                ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
+                : "border border-border text-muted-foreground hover:text-foreground"
             )}
           >
-            <TreeDeciduous className="w-3.5 h-3.5" /> Tree View
+            <TreeDeciduous className="w-4 h-4" /> Tree View
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("card")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
+              view === "card"
+                ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
+                : "border border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="w-4 h-4" /> Card View
           </button>
         </div>
+
+        <div className="flex-1 flex justify-center w-full">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Find someone..."
+              className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Balances the toggle group's width so the search bar above sits
+            visually centered in the row instead of drifting toward the
+            toggle side. */}
+        <div className="hidden md:block w-[196px] shrink-0" />
       </div>
 
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        <GoalsTreeView people={sortedPeople} goalsByOwner={goalsByOwner} onSelect={setSelected} />
+        <div className="flex flex-col lg:flex-row gap-4 items-start justify-center">
+          <GoalsTreeView
+            people={sortedPeople}
+            goalsByOwner={goalsByOwner}
+            onSelect={setSelected}
+            selectedId={selected?.id ?? null}
+          />
+          {selected && (
+            <TreeDetailPanel
+              person={selected}
+              goals={goalsByOwner.get(selected.id) ?? []}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {sortedPeople.map((p) => (
@@ -312,7 +338,7 @@ export default function Goals() {
         </div>
       )}
 
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog open={view === "card" && !!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-lg">
           {selected && (
             <>
