@@ -105,9 +105,9 @@ export function GoalCard({
                 </div>
               )}
             </div>
-            <h3 className="font-semibold text-lg truncate">{goal.title}</h3>
+            <h3 className="font-semibold text-lg break-words">{goal.title}</h3>
             {goal.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{goal.description}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{goal.description}</p>
             )}
             {goal.accountability && (
               <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 mt-1.5">
