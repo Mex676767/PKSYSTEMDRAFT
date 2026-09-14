@@ -13,22 +13,60 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The ellipse the branch spots are scattered around, tuned to
-// public/tree-bg.png's canopy (roughly 1%-71% tall, 6%-95% wide) -- needs
-// re-tuning if that image is ever swapped for a differently-shaped tree.
-const CX = 50;
-const CY = 36;
-const RX = 43;
-const RY = 33;
+// The two tree illustrations are landscape (1536x1024, 3:2) with the tree
+// pulled back to roughly the center 55-60% of the frame. These are the
+// actual white-flower centers on that canopy (found by color-sampling the
+// image for their yellow centers, then hand-filtered for spacing) -- sorted
+// clockwise around the canopy so contiguous runs read as one arc. Needs
+// re-sampling if the art changes again.
+const IMAGE_ASPECT = "1536 / 1024";
+const BRANCH_POSITIONS: Pos[] = [
+  { x: 34.7, y: 37.4 },
+  { x: 38.1, y: 28.8 },
+  { x: 46.5, y: 34.3 },
+  { x: 42.7, y: 24.2 },
+  { x: 54.4, y: 22.7 },
+  { x: 59.9, y: 29.2 },
+  { x: 64.7, y: 39.1 },
+  { x: 68.6, y: 48.7 },
+  { x: 58.2, y: 48.1 },
+  { x: 53.0, y: 43.8 },
+  { x: 63.6, y: 57.7 },
+  { x: 66.6, y: 63.5 },
+  { x: 58.4, y: 67.3 },
+  { x: 54.7, y: 58.9 },
+  { x: 46.8, y: 53.9 },
+  { x: 44.3, y: 60.5 },
+  { x: 39.9, y: 67.9 },
+  { x: 34.9, y: 61.9 },
+  { x: 39.0, y: 54.4 },
+  { x: 28.6, y: 56.5 },
+  { x: 44.0, y: 43.2 },
+  { x: 32.2, y: 49.2 },
+];
+
+// Canopy center the flower angles below are measured from (not the image
+// center -- the canopy sits a bit left-of-center, higher up).
+const CANOPY_CX = 50;
+const CANOPY_CY = 40;
+const TWO_PI = Math.PI * 2;
+
+type FlowerSlot = Pos & { angle: number };
+
+const FLOWER_SLOTS: FlowerSlot[] = BRANCH_POSITIONS.map((p) => ({
+  ...p,
+  angle: Math.atan2(p.y - CANOPY_CY, p.x - CANOPY_CX),
+})).sort((a, b) => a.angle - b.angle);
 
 // Groups people by department (not role) so teammates from the same
-// department land on a contiguous arc of the tree instead of scattered
+// department land on a contiguous slice of the canopy instead of scattered
 // randomly -- per "space it out ... separate by department". Each
-// department gets an angular slice sized to its headcount (so spacing stays
-// even for everyone), with a small gap between slices for a clear visual
-// break. If there are more people than comfortably fit on one ring, extra
-// concentric rings are used (alternating within each department) so avatars
-// never have to crowd closer together than the base spacing allows.
+// department gets a slice of the full loop proportional to its headcount
+// (so a handful of people still spread across the *whole* tree instead of
+// bunching into the first few flowers), with a small gap between slices.
+// Each person's target angle within their slice snaps to whichever
+// still-unused real flower is angularly closest, so placement always lands
+// on an actual flower rather than a computed point that might miss one.
 function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
   const positions = new Map<string, Pos>();
   const n = people.length;
@@ -41,23 +79,48 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
     groups.get(key)!.push(p);
   }
 
-  const GAP_DEG = 9;
-  const availableDeg = Math.max(90, 360 - GAP_DEG * groups.size);
-  const anglePerPerson = availableDeg / n;
-  const ringFractions = n <= 12 ? [0.93] : n <= 24 ? [0.68, 1] : [0.5, 0.76, 1];
+  const GAP_FRAC = 0.02;
+  const availableFrac = Math.max(0.3, 1 - GAP_FRAC * groups.size);
+  const fracPerPerson = availableFrac / n;
 
-  let angle = -90; // start at the top of the canopy, sweep clockwise
+  const used = new Set<number>();
+  let fracCursor = 0;
+  let overflow = 0;
+
   for (const members of groups.values()) {
-    members.forEach((person, i) => {
-      const ringFrac = ringFractions[i % ringFractions.length];
-      const rad = (angle * Math.PI) / 180;
-      positions.set(person.id, {
-        x: CX + Math.cos(rad) * RX * ringFrac,
-        y: CY + Math.sin(rad) * RY * ringFrac,
+    const k = members.length;
+    members.forEach((person, j) => {
+      const frac = fracCursor + (j + 0.5) * fracPerPerson;
+      const targetAngle = -Math.PI + frac * TWO_PI;
+
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      FLOWER_SLOTS.forEach((slot, i) => {
+        if (used.has(i)) return;
+        let d = Math.abs(slot.angle - targetAngle);
+        if (d > Math.PI) d = TWO_PI - d;
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
       });
-      angle += anglePerPerson;
+
+      if (bestIdx === -1) {
+        // Every flower is already taken (more people than flowers) -- reuse
+        // spots in order, nudged down a little per lap so a repeat doesn't
+        // sit exactly on top of the earlier person's flower.
+        const idx = overflow % FLOWER_SLOTS.length;
+        const lap = Math.floor(overflow / FLOWER_SLOTS.length) + 1;
+        const slot = FLOWER_SLOTS[idx];
+        positions.set(person.id, { x: slot.x, y: Math.min(97, slot.y + lap * 3) });
+        overflow += 1;
+      } else {
+        used.add(bestIdx);
+        const slot = FLOWER_SLOTS[bestIdx];
+        positions.set(person.id, { x: slot.x, y: slot.y });
+      }
     });
-    angle += GAP_DEG;
+    fracCursor += k * fracPerPerson + GAP_FRAC;
   }
 
   return positions;
@@ -145,7 +208,7 @@ export function GoalsTreeView({
   return (
     <div
       className="relative w-full rounded-2xl overflow-hidden border border-border/60 shadow-xl bg-card"
-      style={{ aspectRatio: "1 / 1" }}
+      style={{ aspectRatio: IMAGE_ASPECT }}
     >
       <img
         src={`${import.meta.env.BASE_URL}${bgFile}`}
