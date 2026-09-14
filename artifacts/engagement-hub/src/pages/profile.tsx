@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, Upload, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
 import { BorderDecoration } from "@/components/border-decoration";
+import { AVATAR_PRESETS, avatarPresetDataUri, presetIdFromAvatarUrl } from "@/lib/avatar-presets";
 import {
   useAccessoryCatalog,
   usePurchaseAccessory,
@@ -20,6 +21,7 @@ import {
   usePurchaseBorder,
   useSetActiveBorder,
   useUploadAvatar,
+  useSetAvatarUrl,
 } from "@/hooks/use-profile-customization";
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
@@ -39,7 +41,9 @@ export default function Profile() {
   const purchaseBorder = usePurchaseBorder();
   const setBorder = useSetActiveBorder();
   const uploadAvatar = useUploadAvatar();
+  const setAvatarUrl = useSetAvatarUrl();
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
 
   if (!profile) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
@@ -47,50 +51,132 @@ export default function Profile() {
 
   const unlockedTitles = profile.unlocked_titles ?? [];
   const unlockedAccessories = profile.unlocked_accessories ?? [];
+  const activePresetId = presetIdFromAvatarUrl(profile.avatar_url);
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <label className="relative cursor-pointer group shrink-0">
-          <UserAvatar
-            user={{
-              name: profile.username ?? profile.email,
-              initials: initialsForUsername(profile.username ?? profile.email),
-              color: colorForId(profile.id),
-            }}
-            accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
-            photoUrl={profile.avatar_url}
-            border={profile.active_border}
-            className="w-16 h-16 text-xl"
-          />
-          <span className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Camera className="w-5 h-5 text-white" />
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={uploadAvatar.isPending}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (!file) return;
-              if (file.size > 5 * 1024 * 1024) {
-                setAvatarError("Image must be under 5MB.");
-                return;
-              }
-              setAvatarError(null);
-              uploadAvatar.mutate(file, { onError: (err) => setAvatarError(getErrorMessage(err)) });
-            }}
-          />
-        </label>
+        <Dialog open={isAvatarDialogOpen} onOpenChange={(o) => { setIsAvatarDialogOpen(o); setAvatarError(null); }}>
+          <DialogTrigger asChild>
+            <button type="button" className="relative group shrink-0">
+              <UserAvatar
+                user={{
+                  name: profile.username ?? profile.email,
+                  initials: initialsForUsername(profile.username ?? profile.email),
+                  color: colorForId(profile.id),
+                }}
+                accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+                photoUrl={profile.avatar_url}
+                border={profile.active_border}
+                className="w-16 h-16 text-xl"
+              />
+              <span className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white" />
+              </span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change your photo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <label
+                className={cn(
+                  "flex items-center justify-center gap-2 h-10 rounded-md border border-dashed border-input text-sm font-medium transition-colors",
+                  uploadAvatar.isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
+                )}
+              >
+                <Upload className="w-4 h-4" />
+                {uploadAvatar.isPending ? "Uploading..." : "Upload a photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadAvatar.isPending}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      setAvatarError("Image must be under 5MB.");
+                      return;
+                    }
+                    setAvatarError(null);
+                    uploadAvatar.mutate(file, {
+                      onSuccess: () => setIsAvatarDialogOpen(false),
+                      onError: (err) => setAvatarError(getErrorMessage(err)),
+                    });
+                  }}
+                />
+              </label>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">or pick an icon</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                {AVATAR_PRESETS.map((preset) => {
+                  const uri = avatarPresetDataUri(preset);
+                  const active = activePresetId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      title={preset.id}
+                      disabled={setAvatarUrl.isPending}
+                      onClick={() =>
+                        setAvatarUrl.mutate(uri, {
+                          onSuccess: () => setIsAvatarDialogOpen(false),
+                          onError: (err) => setAvatarError(getErrorMessage(err)),
+                        })
+                      }
+                      className={cn(
+                        "relative rounded-full overflow-hidden aspect-square border-2 transition-all hover:scale-105 disabled:opacity-50",
+                        active ? "border-primary" : "border-transparent"
+                      )}
+                    >
+                      <img src={uri} alt={preset.id} className="w-full h-full" />
+                      {active && (
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Check className="w-5 h-5 text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {profile.avatar_url && (
+                <button
+                  type="button"
+                  disabled={setAvatarUrl.isPending}
+                  onClick={() =>
+                    setAvatarUrl.mutate(null, {
+                      onSuccess: () => setIsAvatarDialogOpen(false),
+                      onError: (err) => setAvatarError(getErrorMessage(err)),
+                    })
+                  }
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors mx-auto disabled:opacity-50"
+                >
+                  <X className="w-3.5 h-3.5" /> Remove photo, use initials instead
+                </button>
+              )}
+
+              {avatarError && <p className="text-xs text-destructive text-center">{avatarError}</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
             {profile.active_title ? TITLE_CATALOG[profile.active_title]?.label ?? profile.active_title : "No title set"}
             {" · "}{profile.points} pts
           </p>
-          {avatarError && <p className="text-xs text-destructive mt-1">{avatarError}</p>}
         </div>
       </div>
 
