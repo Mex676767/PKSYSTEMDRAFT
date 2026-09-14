@@ -131,3 +131,19 @@ export function useUploadAvatar() {
     onSuccess: () => refetchProfile(),
   });
 }
+
+// Same "just set the column" trust level as useUploadAvatar -- a preset
+// icon is a generated data: URI (see lib/avatar-presets.ts), not a Storage
+// file, so this skips the upload step entirely. Passing null clears the
+// photo/icon back to the plain initials avatar.
+export function useSetAvatarUrl() {
+  const { session, refetchProfile } = useAuth();
+  return useMutation({
+    mutationFn: async (avatarUrl: string | null) => {
+      if (!session) throw new Error("Not signed in");
+      const { error } = await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", session.user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => refetchProfile(),
+  });
+}
