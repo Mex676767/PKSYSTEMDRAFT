@@ -20,6 +20,7 @@ import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Social from '@/pages/social';
 import Challenges from '@/pages/challenges';
+import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
 
@@ -44,6 +45,7 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/social" component={Social} />
           <Route path="/challenges" component={Challenges} />
+          <Route path="/messages" component={Messages} />
           <Route path="/hall-of-fame" component={() => <ComingSoon label="Hall of Fame" icon={Trophy} />} />
           <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
           <Route path="/birthdays" component={() => <ComingSoon label="Birthdays" icon={Cake} />} />
