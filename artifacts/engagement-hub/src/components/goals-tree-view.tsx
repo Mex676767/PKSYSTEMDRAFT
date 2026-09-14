@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { motion } from "framer-motion";
-import { Leaf } from "lucide-react";
+import { useTheme } from "next-themes";
 import { UserAvatar } from "@/components/user-avatar";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
 import type { Goal } from "@/hooks/use-goals";
@@ -64,33 +63,6 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
   return positions;
 }
 
-// A single leaf badge that grows and brightens as `progress` fills, instead
-// of sitting static -- small and dim at 0%, full-size and vivid by 100%,
-// with a gentle continuous sway so it reads as "alive" rather than a plain
-// icon. Kept as one badge (not a fan of leaves) to match the compact corner
-// badge in the reference layout.
-function LeafBadge({ progress }: { progress: number }) {
-  const grown = Math.min(1, Math.max(0, progress / 100));
-  return (
-    <motion.div
-      className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow"
-      initial={false}
-      animate={{
-        scale: 0.6 + grown * 0.55,
-        opacity: progress > 0 ? 1 : 0.4,
-        rotate: [-8, 8, -8],
-      }}
-      transition={{
-        scale: { type: "spring", stiffness: 150, damping: 12 },
-        opacity: { duration: 0.4 },
-        rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-      }}
-    >
-      <Leaf className="w-3 h-3 text-green-600" style={{ opacity: 0.5 + grown * 0.5 }} />
-    </motion.div>
-  );
-}
-
 function TreePersonNode({
   person,
   goals,
@@ -137,7 +109,6 @@ function TreePersonNode({
           border={person.active_border}
           className="relative z-10 w-16 h-16 border-[3px] border-white shadow-lg group-hover:scale-105 group-hover:brightness-110 transition-transform"
         />
-        <LeafBadge progress={completion} />
       </span>
 
       <span className="hidden sm:flex flex-col items-start gap-1">
@@ -164,32 +135,22 @@ export function GoalsTreeView({
   selectedId: string | null;
 }) {
   const positions = useMemo(() => computeTreePositions(people), [people]);
-
-  // Both the glow and the image fade using the same ellipse, centered on
-  // the same (CX, CY) the branch positions are scattered around and sized
-  // comfortably past the branch ellipse (RX/RY) -- so every avatar sits well
-  // inside the fully-opaque core, and only the sky/grass margin beyond the
-  // canopy dissolves into the page instead of ending in a hard rectangle.
-  const fadeMask =
-    `radial-gradient(ellipse ${RX + 12}% ${RY + 14}% at ${CX}% ${CY}%, black 62%, rgba(0,0,0,0.55) 80%, transparent 100%)`;
+  const { resolvedTheme } = useTheme();
+  // Two separate illustrations (a moonlit tree, a sunlit one) rather than
+  // trying to fade/tint one image into both themes -- the dark version
+  // never worked well faded onto a light background, so light mode gets its
+  // own art instead of a compromise.
+  const bgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
 
   return (
-    <div className="relative w-full max-w-3xl mx-auto" style={{ aspectRatio: "1 / 1" }}>
-      {/* Soft ambient glow behind the tree, in roughly the image's own
-          night-sky palette, so the fading edges blend into color instead of
-          dropping straight to the page background. */}
-      <div
-        className="absolute -inset-20 -z-10 rounded-full blur-3xl pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 55% at 50% 42%, rgba(88,60,180,0.35), rgba(20,40,30,0.25) 55%, transparent 75%)",
-        }}
-      />
+    <div
+      className="relative w-full rounded-2xl overflow-hidden border border-border/60 shadow-xl bg-card"
+      style={{ aspectRatio: "1 / 1" }}
+    >
       <img
-        src={`${import.meta.env.BASE_URL}tree-bg.png`}
+        src={`${import.meta.env.BASE_URL}${bgFile}`}
         alt="A glowing illustrated tree, each branch holding a teammate"
         className="absolute inset-0 w-full h-full object-cover select-none"
-        style={{ maskImage: fadeMask, WebkitMaskImage: fadeMask }}
         draggable={false}
       />
 
