@@ -1,15 +1,15 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post-card";
 import { motion } from "framer-motion";
-import { Image as ImageIcon, X, Rss } from "lucide-react";
+import { X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
 import { imageFromClipboard } from "@/lib/clipboard-image";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 
 export default function Social() {
   const { session, profile } = useAuth();
@@ -19,15 +19,10 @@ export default function Social() {
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setImage = (file: File | null) => {
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImage(e.target.files?.[0] ?? null);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -41,7 +36,6 @@ export default function Social() {
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -104,19 +98,7 @@ export default function Social() {
               )}
 
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                    <ImageIcon className="w-4 h-4 mr-1.5" /> Photo
-                  </Button>
-                  <PasteImageBox onImage={setImage} className="h-9" />
-                </div>
+                <ImagePickerButton onImage={setImage} label="Photo" />
                 <Button type="submit" disabled={createPost.isPending || (!body.trim() && !imageFile)}>
                   {createPost.isPending ? "Posting..." : "Post"}
                 </Button>

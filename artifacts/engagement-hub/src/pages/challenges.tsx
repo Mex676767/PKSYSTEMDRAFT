@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/date-picker";
 import { motion } from "framer-motion";
-import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useChallengesList,
@@ -25,7 +25,7 @@ import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { ProgressPhotos } from "@/components/progress-photos";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
@@ -320,7 +320,6 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tomorrow = useMemo(() => {
     const d = new Date();
@@ -336,7 +335,6 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const reset = () => {
@@ -459,20 +457,8 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  <ImageIcon className="w-4 h-4 mr-1.5" /> Photo
-                </Button>
-                <PasteImageBox onImage={setImage} className="h-9 flex-1" />
-              </div>
+              <ImagePickerButton onImage={setImage} label="Photo" />
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-            />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" variant="secondary" className="w-full mt-2" disabled={isSubmitting}>
