@@ -211,12 +211,14 @@ export default function Goals() {
           <div
             aria-hidden
             className={cn(
-              "absolute inset-y-0 -z-10 bg-cover bg-top pointer-events-none",
-              // Light theme: cancel PageTransition's own p-4/md:p-8 so the
-              // backdrop reaches the section's true (now full-width) edges
-              // instead of stopping at the padded column -- dark keeps the
-              // plain inset-0 it already had.
-              isLight ? "-inset-x-4 md:-inset-x-8" : "inset-x-0"
+              "absolute bottom-0 -z-10 bg-cover bg-top pointer-events-none",
+              // Light theme: cancel PageTransition's own p-4/md:p-8 on every
+              // side (including top) so the backdrop reaches the section's
+              // true (now full-width) edges and bleeds up past the
+              // container's own top padding instead of leaving a strip of
+              // plain page background above "Goals" -- dark keeps the plain
+              // top-0/inset-x-0 it already had.
+              isLight ? "-inset-x-4 md:-inset-x-8 -top-4 md:-top-8" : "inset-x-0 top-0"
             )}
             style={{
               backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
@@ -394,15 +396,30 @@ export default function Goals() {
         // Light theme: cancel the padding here too, so the sharp canvas
         // reaches the same full-width edges as the blurred backdrop above
         // it instead of leaving a gutter of its own. Dark theme unchanged.
-        <div className={cn("flex flex-col lg:flex-row gap-4 items-start", isLight && "-mx-4 md:-mx-8")}>
-          <div className="w-full min-w-0 lg:flex-1">
-            <GoalsTreeView
-              people={sortedPeople}
-              goalsByOwner={goalsByOwner}
-              onSelect={setSelected}
-              selectedId={selected?.id ?? null}
+        // `relative z-0` (needs the explicit z-0, not just relative -- same
+        // stacking-context gotcha as the header backdrop above) both hosts
+        // the bottom fade-out backdrop below and gives the detail panel a
+        // positioning root to float over at lg+ (see TreeDetailPanel).
+        <div className={cn("relative z-0", isLight && "-mx-4 md:-mx-8")}>
+          {isLight && (
+            <div
+              aria-hidden
+              className="absolute -z-10 left-0 right-0 top-full h-24 md:h-40 bg-cover bg-bottom pointer-events-none"
+              style={{
+                backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
+                filter: "blur(28px)",
+                transform: "scale(1.1)",
+                WebkitMaskImage: "linear-gradient(to bottom, black 0%, transparent 88%)",
+                maskImage: "linear-gradient(to bottom, black 0%, transparent 88%)",
+              }}
             />
-          </div>
+          )}
+          <GoalsTreeView
+            people={sortedPeople}
+            goalsByOwner={goalsByOwner}
+            onSelect={setSelected}
+            selectedId={selected?.id ?? null}
+          />
           {selected && (
             <TreeDetailPanel
               person={selected}

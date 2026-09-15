@@ -66,7 +66,24 @@ export function TreeDetailPanel({
   };
 
   return (
-    <div className="w-full lg:w-80 shrink-0 bg-card rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[640px]">
+    <div
+      className={cn(
+        // Below lg: a plain in-flow card stacked under the tree (not enough
+        // room to float it over art that's often shorter than the panel
+        // itself there). At lg+: floats as a translucent glass card over the
+        // tree's own top-right sky instead of pushing the canvas over and
+        // shrinking it -- the canvas stays full-size/full-bleed whether or
+        // not someone's selected, and the card reads as part of the scene
+        // (frosted, letting the art show through) rather than a flat white
+        // box bolted on beside it. `z-40` clears the tree avatars' own
+        // z-10/hover:z-20 (same stacking context -- both are children of the
+        // page's `relative z-0` tree wrapper).
+        "mt-4 lg:mt-0 lg:absolute lg:top-6 lg:right-6 lg:z-40 lg:max-h-[calc(100%-3rem)]",
+        "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
+        "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
+        "overflow-hidden flex flex-col max-h-[480px]"
+      )}
+    >
       <div className="p-4 flex items-start gap-3 border-b border-border">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
