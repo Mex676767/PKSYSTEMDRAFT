@@ -13,82 +13,39 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// Both illustrations are 1884x835 -- a "bigger tree" re-draw (day/night
-// pair, same composition/tree position/scale in both) that replaced the
-// original 1672x941 pair. Coordinates below are plain
-// percent-of-the-original-artwork -- found by scanning each image for
-// near-white petal-colored pixel clusters (not eyeballed), merging the
-// handful of raw clusters each flower's 5 separate petals produced back
-// into one point per flower, then hand-checked against a marker overlay so
-// every one of these really sits on a flower (and a few that landed on
-// sky/water/town instead were dropped). Re-sample if either file changes
-// again. Both now get the same gentle overzoom (TREE_ZOOM) since both share
-// the same generous sky/ground bleed and corner leaf sprigs around the tree
-// -- previously dark used zoom 1 ("contain", no crop) and light used 1.15,
-// back when the two arts had different compositions.
-const DARK_BRANCH_POSITIONS: Pos[] = [
-  { x: 51.11, y: 9.55 },
-  { x: 44.76, y: 15.97 },
-  { x: 56.35, y: 16.76 },
-  { x: 40.07, y: 25.11 },
-  { x: 60.20, y: 25.61 },
-  { x: 48.02, y: 25.81 },
-  { x: 56.57, y: 34.25 },
-  { x: 43.16, y: 34.56 },
-  { x: 64.05, y: 35.24 },
-  { x: 37.20, y: 35.41 },
-  { x: 46.92, y: 38.84 },
-  { x: 53.97, y: 41.70 },
-  { x: 59.40, y: 45.60 },
-  { x: 33.90, y: 46.01 },
-  { x: 66.92, y: 46.29 },
-  { x: 41.93, y: 48.19 },
-  { x: 32.67, y: 52.81 },
-  { x: 38.18, y: 54.67 },
-  { x: 61.69, y: 54.87 },
-  { x: 63.31, y: 63.33 },
-  { x: 38.83, y: 65.71 },
-  { x: 58.74, y: 66.23 },
-  { x: 42.17, y: 66.60 },
-  { x: 46.43, y: 66.79 },
-];
-
-const LIGHT_BRANCH_POSITIONS: Pos[] = [
-  { x: 51.07, y: 11.74 },
-  { x: 56.47, y: 18.11 },
-  { x: 44.05, y: 19.33 },
-  { x: 51.78, y: 22.68 },
-  { x: 39.94, y: 26.08 },
-  { x: 59.35, y: 26.94 },
-  { x: 47.97, y: 27.08 },
-  { x: 62.85, y: 28.06 },
-  { x: 55.93, y: 35.50 },
-  { x: 64.30, y: 36.15 },
-  { x: 37.52, y: 36.62 },
-  { x: 42.99, y: 37.04 },
-  { x: 47.09, y: 40.07 },
-  { x: 53.99, y: 42.86 },
-  { x: 59.40, y: 46.94 },
-  { x: 67.32, y: 47.12 },
-  { x: 33.56, y: 47.16 },
-  { x: 29.39, y: 48.46 },
-  { x: 42.02, y: 50.14 },
-  { x: 32.65, y: 53.73 },
-  { x: 38.20, y: 55.34 },
-  { x: 61.75, y: 55.60 },
-  { x: 70.11, y: 62.50 },
-  { x: 63.57, y: 63.36 },
-  { x: 58.94, y: 66.63 },
-  { x: 41.39, y: 66.65 },
-  { x: 69.59, y: 67.37 },
-  { x: 46.59, y: 67.43 },
-  { x: 33.78, y: 67.49 },
-];
-
-const TREE_CENTROID = { x: 50, y: 43 };
+// Both illustrations are 1884x835 (day/night pair, same composition/tree
+// position/scale in both). Rather than anchoring people to individual
+// flowers -- tried first, but it's fragile (needs re-detecting by hand
+// every time the art changes) and imprecise flower alignment isn't actually
+// the point -- people are spread across the general leafy canopy area
+// instead, via a few concentric rings inside an ellipse roughly matching
+// the canopy's shape and position in this artwork. Re-tune CANOPY_CENTER/
+// CANOPY_RADIUS if the art changes again; no per-image detection needed.
+const CANOPY_CENTER = { x: 50, y: 38 };
+const CANOPY_RADIUS = { x: 20, y: 28 };
 const TREE_ZOOM = 1.08;
-
 const TWO_PI = Math.PI * 2;
+
+function buildCanopySlots(): Pos[] {
+  const rings: { count: number; r: number; offset: number }[] = [
+    { count: 6, r: 0.35, offset: 0 },
+    { count: 10, r: 0.65, offset: 0.3 },
+    { count: 14, r: 0.92, offset: 0.6 },
+  ];
+  const slots: Pos[] = [];
+  for (const ring of rings) {
+    for (let i = 0; i < ring.count; i++) {
+      const angle = ((i + ring.offset) / ring.count) * TWO_PI;
+      slots.push({
+        x: CANOPY_CENTER.x + Math.cos(angle) * CANOPY_RADIUS.x * ring.r,
+        y: CANOPY_CENTER.y + Math.sin(angle) * CANOPY_RADIUS.y * ring.r,
+      });
+    }
+  }
+  return slots;
+}
+
+const CANOPY_SLOTS = buildCanopySlots();
 
 type FlowerSlot = Pos & { angle: number };
 
@@ -153,10 +110,9 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
 // randomly -- per "space it out ... separate by department". Each
 // department gets a slice of the full loop proportional to its headcount
 // (so a handful of people still spread across the *whole* tree instead of
-// bunching into the first few flowers), with a small gap between slices.
+// bunching into the first few slots), with a small gap between slices.
 // Each person's target angle within their slice snaps to whichever
-// still-unused real flower is angularly closest, so placement always lands
-// on an actual flower rather than a computed point that might miss one.
+// still-unused canopy slot is angularly closest.
 function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlot[]): Map<string, Pos> {
   const positions = new Map<string, Pos>();
   const n = people.length;
@@ -196,9 +152,9 @@ function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlo
       });
 
       if (bestIdx === -1) {
-        // Every flower is already taken (more people than flowers) -- reuse
+        // Every slot is already taken (more people than slots) -- reuse
         // spots in order, nudged down a little per lap so a repeat doesn't
-        // sit exactly on top of the earlier person's flower.
+        // sit exactly on top of the earlier person's spot.
         const idx = overflow % flowerSlots.length;
         const lap = Math.floor(overflow / flowerSlots.length) + 1;
         const slot = flowerSlots[idx];
@@ -216,10 +172,8 @@ function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlo
   return positions;
 }
 
-// The flower coordinates are just an anchor point -- the real painted
-// flower stays hidden under the avatar (that's the point of using it as a
-// "mark point"), not decorated or re-drawn, so the marker is a plain photo
-// circle sitting exactly where the flower is.
+// A plain photo circle in the canopy -- no decorative frame, nothing
+// drawn on top of the art itself.
 function TreePersonNode({
   person,
   goals,
@@ -339,10 +293,9 @@ export function GoalsTreeView({
   }, [isLgUp]);
 
   const flowerSlots = useMemo(() => {
-    const raw = isLight ? LIGHT_BRANCH_POSITIONS : DARK_BRANCH_POSITIONS;
-    if (isLgUp && containerRatio) return buildFlowerSlotsCover(raw, TREE_CENTROID, containerRatio);
-    return buildFlowerSlots(raw, TREE_CENTROID, TREE_ZOOM);
-  }, [isLight, isLgUp, containerRatio]);
+    if (isLgUp && containerRatio) return buildFlowerSlotsCover(CANOPY_SLOTS, CANOPY_CENTER, containerRatio);
+    return buildFlowerSlots(CANOPY_SLOTS, CANOPY_CENTER, TREE_ZOOM);
+  }, [isLgUp, containerRatio]);
   const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
   return (
@@ -354,7 +307,7 @@ export function GoalsTreeView({
     // heading, search, toggle and all, now that `header` overlays directly
     // on it -- fits on screen without scrolling. Below lg, both themes zoom
     // in slightly past 100% (TREE_ZOOM) so the art's own edges and corner
-    // leaf sprigs never show -- flower percentages already account for it.
+    // leaf sprigs never show -- canopy slot percentages already account for it.
     // No `role="img"` here anymore: once real interactive controls (search,
     // toggle, Add Goals) live inside this box at lg+, that role would tell
     // assistive tech to treat the whole thing as a single opaque image and
@@ -365,7 +318,7 @@ export function GoalsTreeView({
       className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})` }}
     >
-      <span className="sr-only">A glowing illustrated tree, each teammate growing from their own flower</span>
+      <span className="sr-only">A glowing illustrated tree, each teammate growing somewhere in its canopy</span>
 
       {header && (
         // A blurred duplicate of the SAME crop the sharp layer above shows
@@ -404,7 +357,18 @@ export function GoalsTreeView({
         // bar collides with the panel at the narrow end of the lg range
         // (just above 1024px, before `xl:pr-8` gives the header its normal
         // padding back once there's enough room for both side by side).
-        <div className="hidden lg:block absolute inset-x-0 top-0 z-30 p-6 lg:pr-[22rem] xl:p-8 xl:pr-8">{header}</div>
+        // `pointer-events-none` on the wrapper + `pointer-events-auto` back
+        // on just the actual controls: without this, the header's own
+        // padding/whitespace (there's a lot of it, since the row spans the
+        // full width to keep the search bar centered) sat on top of and
+        // blocked clicks on any canopy slot underneath it -- including the
+        // topmost one, which made that person's avatar completely
+        // unclickable even though it was clearly visible.
+        <div
+          className="hidden lg:block absolute inset-x-0 top-0 z-30 p-6 lg:pr-[22rem] xl:p-8 xl:pr-8 pointer-events-none [&_input]:pointer-events-auto [&_button]:pointer-events-auto"
+        >
+          {header}
+        </div>
       )}
 
       {people.map((person) => {
