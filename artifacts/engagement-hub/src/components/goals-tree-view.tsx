@@ -13,16 +13,17 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The two tree illustrations are landscape (1672x941, ~16:9). These are the
-// actual white-flower centers on that canopy -- found by scanning the image
-// for near-white petal-colored pixel clusters (not just eyeballed), then
+// Both illustrations are 1672x941. Coordinates below are plain
+// percent-of-the-original-artwork -- found by scanning each image for
+// near-white petal-colored pixel clusters (not eyeballed), then
 // hand-checked against a marker overlay so every one of these really sits on
-// a flower. Canopy-only. Percentages are plain percent-of-the-artwork: the
-// canvas below is locked to the artwork's own aspect ratio (never cropped),
-// so these never need remapping regardless of viewport size. Re-sample if
-// the art ever changes (it has twice already -- see git history).
+// a flower. Re-sample if either file changes again.
 const IMAGE_ASPECT = "1672 / 941";
-const BRANCH_POSITIONS: Pos[] = [
+
+// Dark (night) art: unchanged since the last re-sample. Canvas shows the
+// full frame (`background-size: contain`), so these map straight through
+// with no transform.
+const DARK_BRANCH_POSITIONS: Pos[] = [
   { x: 49.7, y: 26.1 },
   { x: 53.6, y: 28.7 },
   { x: 45.3, y: 29.4 },
@@ -46,19 +47,69 @@ const BRANCH_POSITIONS: Pos[] = [
   { x: 43.7, y: 65.8 },
   { x: 56.2, y: 65.9 },
 ];
+const DARK_CENTROID = { x: 50, y: 46 };
+const DARK_ZOOM = 1;
 
-// Canopy centroid the flower angles below are measured from (roughly the
-// middle of the BRANCH_POSITIONS above).
-const CANOPY_CX = 50;
-const CANOPY_CY = 46;
+// Light (day) art: replaced with a pulled-back version that has generous
+// sky/ground bleed around a much smaller tree, specifically so its edges
+// never have to show -- LIGHT_ZOOM below scales the background past 100%
+// (`background-size`) so only the deep interior is ever visible, pushing the
+// image's actual boundary safely outside the viewport instead of ending in
+// a hard edge. Flower coordinates stay in original-artwork percent; they're
+// re-projected onto that zoomed frame in useFlowerSlots below.
+const LIGHT_BRANCH_POSITIONS: Pos[] = [
+  { x: 49.21, y: 46.97 },
+  { x: 46.19, y: 49.87 },
+  { x: 51.95, y: 49.89 },
+  { x: 43.66, y: 53.25 },
+  { x: 54.25, y: 53.54 },
+  { x: 48.09, y: 54.89 },
+  { x: 52.51, y: 57.14 },
+  { x: 41.77, y: 58.20 },
+  { x: 56.56, y: 58.27 },
+  { x: 45.28, y: 59.21 },
+  { x: 50.98, y: 61.37 },
+  { x: 53.80, y: 63.39 },
+  { x: 58.21, y: 63.53 },
+  { x: 44.76, y: 65.51 },
+  { x: 39.61, y: 67.32 },
+  { x: 55.65, y: 67.76 },
+  { x: 42.50, y: 67.84 },
+  { x: 56.49, y: 71.03 },
+  { x: 44.67, y: 73.36 },
+  { x: 53.79, y: 73.40 },
+];
+const LIGHT_CENTROID = { x: 49, y: 60 };
+const LIGHT_ZOOM = 1.15;
+
 const TWO_PI = Math.PI * 2;
 
 type FlowerSlot = Pos & { angle: number };
 
-const FLOWER_SLOTS: FlowerSlot[] = BRANCH_POSITIONS.map((p) => ({
-  ...p,
-  angle: Math.atan2(p.y - CANOPY_CY, p.x - CANOPY_CX),
-})).sort((a, b) => a.angle - b.angle);
+// Re-projects a raw original-artwork-percent point onto the zoomed
+// `background-size` frame: at zoom Z centered, the visible window covers
+// original-percent range [marginPct, 100-marginPct] on each axis, where
+// marginPct = 50*(1 - 1/Z). Z=1 (dark theme) is a no-op.
+function applyZoom(pos: Pos, zoom: number): Pos {
+  if (zoom === 1) return pos;
+  const marginPct = 50 * (1 - 1 / zoom);
+  const span = 100 - 2 * marginPct;
+  return {
+    x: ((pos.x - marginPct) / span) * 100,
+    y: ((pos.y - marginPct) / span) * 100,
+  };
+}
+
+function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number): FlowerSlot[] {
+  // Centroid is given in original-artwork percent too, so it needs the same
+  // zoom projection as the points before angles are measured against it --
+  // otherwise the angle math mixes zoomed and unzoomed coordinate spaces.
+  const zoomedCentroid = applyZoom(centroid, zoom);
+  return raw
+    .map((p) => applyZoom(p, zoom))
+    .map((p) => ({ ...p, angle: Math.atan2(p.y - zoomedCentroid.y, p.x - zoomedCentroid.x) }))
+    .sort((a, b) => a.angle - b.angle);
+}
 
 // Groups people by department (not role) so teammates from the same
 // department land on a contiguous slice of the canopy instead of scattered
@@ -69,7 +120,7 @@ const FLOWER_SLOTS: FlowerSlot[] = BRANCH_POSITIONS.map((p) => ({
 // Each person's target angle within their slice snaps to whichever
 // still-unused real flower is angularly closest, so placement always lands
 // on an actual flower rather than a computed point that might miss one.
-function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
+function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlot[]): Map<string, Pos> {
   const positions = new Map<string, Pos>();
   const n = people.length;
   if (n === 0) return positions;
@@ -97,7 +148,7 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
 
       let bestIdx = -1;
       let bestDist = Infinity;
-      FLOWER_SLOTS.forEach((slot, i) => {
+      flowerSlots.forEach((slot, i) => {
         if (used.has(i)) return;
         let d = Math.abs(slot.angle - targetAngle);
         if (d > Math.PI) d = TWO_PI - d;
@@ -111,14 +162,14 @@ function computeTreePositions(people: DirectoryProfile[]): Map<string, Pos> {
         // Every flower is already taken (more people than flowers) -- reuse
         // spots in order, nudged down a little per lap so a repeat doesn't
         // sit exactly on top of the earlier person's flower.
-        const idx = overflow % FLOWER_SLOTS.length;
-        const lap = Math.floor(overflow / FLOWER_SLOTS.length) + 1;
-        const slot = FLOWER_SLOTS[idx];
+        const idx = overflow % flowerSlots.length;
+        const lap = Math.floor(overflow / flowerSlots.length) + 1;
+        const slot = flowerSlots[idx];
         positions.set(person.id, { x: slot.x, y: Math.min(97, slot.y + lap * 3) });
         overflow += 1;
       } else {
         used.add(bestIdx);
-        const slot = FLOWER_SLOTS[bestIdx];
+        const slot = flowerSlots[bestIdx];
         positions.set(person.id, { x: slot.x, y: slot.y });
       }
     });
@@ -202,27 +253,41 @@ export function GoalsTreeView({
   onSelect: (person: DirectoryProfile) => void;
   selectedId: string | null;
 }) {
-  const positions = useMemo(() => computeTreePositions(people), [people]);
   const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   // Two separate illustrations (a moonlit tree, a sunlit one) rather than
   // trying to fade/tint one image into both themes.
-  const bgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
+  const bgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
+  // Light art was redrawn pulled further back specifically so LIGHT_ZOOM can
+  // scale the background past 100% and hide its real edges (see the
+  // LIGHT_BRANCH_POSITIONS comment above) -- dark art is unchanged, so it
+  // stays at zoom 1 / `contain` exactly as before.
+  const zoom = isLight ? LIGHT_ZOOM : DARK_ZOOM;
+  const flowerSlots = useMemo(
+    () =>
+      buildFlowerSlots(
+        isLight ? LIGHT_BRANCH_POSITIONS : DARK_BRANCH_POSITIONS,
+        isLight ? LIGHT_CENTROID : DARK_CENTROID,
+        zoom
+      ),
+    [isLight, zoom]
+  );
+  const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
   return (
     // This *is* the environment, not a picture placed in one: no border,
     // shadow, rounded corners, card background, or margin box. The canvas
     // is locked to the artwork's own 3:2 ratio (via aspect-ratio, not a
-    // viewport-height guess), so `background-size: contain` never has to
-    // crop anything -- full sky, moon, roots and grass all stay visible no
-    // matter how wide or narrow the available width is. Because the canvas
-    // and the artwork always share the same aspect ratio, the flower
-    // percentages below map straight through with no crop-remapping needed.
+    // viewport-height guess). Dark theme uses `background-size: contain`
+    // (zoom 1) so nothing is cropped; light theme intentionally zooms past
+    // 100% so its wide-bleed art never shows its actual edge (see LIGHT_ZOOM
+    // above) -- flower percentages already account for whichever is active.
     <div
       className="relative w-full"
       style={{
         aspectRatio: IMAGE_ASPECT,
         backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
-        backgroundSize: "contain",
+        backgroundSize: isLight ? `${zoom * 100}% ${zoom * 100}%` : "contain",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}
