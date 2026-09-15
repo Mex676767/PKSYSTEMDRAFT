@@ -12,7 +12,21 @@ const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+const MONTH_ABBR = MONTH_NAMES.map((m) => m.slice(0, 3));
 const WEEKDAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+// Clicking the "{Month} {Year}" header drills up a level instead of forcing
+// one month/year at a time through the arrow buttons -- days -> months (pick
+// any month in the year) -> years (pick any year in a 12-year page). Picking
+// a cell at the months/years level drills back down one level rather than
+// straight to a day, so jumping straight from "years" to a specific day is
+// still just two clicks (year, then month) plus the day itself.
+type CalendarView = "days" | "months" | "years";
+const YEARS_PER_PAGE = 12;
+
+function yearsPageStart(year: number) {
+  return year - (((year % YEARS_PER_PAGE) + YEARS_PER_PAGE) % YEARS_PER_PAGE);
+}
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const keyFor = (y: number, m: number, d: number) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
@@ -65,6 +79,7 @@ export function DatePicker({
   className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [calView, setCalView] = useState<CalendarView>("days");
   const [view, setView] = useState(() => {
     if (value) {
       const [y, m] = value.split("-").map(Number);
@@ -109,14 +124,17 @@ export function DatePicker({
     onChange(key);
     const [y, m] = key.split("-").map(Number);
     setView({ year: y, month: m - 1 });
+    setCalView("days");
     setIsOpen(false);
   };
+
+  const pageYears = Array.from({ length: YEARS_PER_PAGE }, (_, i) => yearsPageStart(view.year) + i);
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        onClick={() => setIsOpen((o) => !o)}
+        onClick={() => { setIsOpen((o) => !o); setCalView("days"); }}
         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
       >
         <span className={cn(!value && "text-muted-foreground")}>{value ? formatDisplay(value) : placeholder}</span>
@@ -126,44 +144,125 @@ export function DatePicker({
       {isOpen && (
         <div className="absolute z-20 mt-1.5 w-64 rounded-lg border border-border bg-card p-2.5 shadow-lg">
           <div className="flex items-center gap-1 mb-2">
-            <button type="button" onClick={() => navYear(-1)} title="Previous year" className={navBtnClass}>«</button>
-            <button type="button" onClick={() => navMonth(-1)} title="Previous month" className={navBtnClass}>‹</button>
-            <span className="flex-1 text-center text-xs font-semibold">{MONTH_NAMES[view.month]} {view.year}</span>
-            <button type="button" onClick={() => navMonth(1)} title="Next month" className={navBtnClass}>›</button>
-            <button type="button" onClick={() => navYear(1)} title="Next year" className={navBtnClass}>»</button>
+            <button
+              type="button"
+              onClick={() => (calView === "days" ? navYear(-1) : setView((v) => ({ ...v, year: v.year - (calView === "years" ? YEARS_PER_PAGE : 1) })))}
+              title={calView === "days" ? "Previous year" : calView === "months" ? "Previous year" : "Previous years"}
+              className={navBtnClass}
+            >
+              «
+            </button>
+            {calView === "days" && (
+              <button type="button" onClick={() => navMonth(-1)} title="Previous month" className={navBtnClass}>‹</button>
+            )}
+            <button
+              type="button"
+              onClick={() => setCalView(calView === "days" ? "months" : calView === "months" ? "years" : "days")}
+              title="Change view"
+              className="flex-1 text-center text-xs font-semibold rounded-md py-1 hover:bg-muted hover:text-primary transition-colors"
+            >
+              {calView === "days" && `${MONTH_NAMES[view.month]} ${view.year}`}
+              {calView === "months" && view.year}
+              {calView === "years" && `${pageYears[0]}–${pageYears[pageYears.length - 1]}`}
+            </button>
+            {calView === "days" && (
+              <button type="button" onClick={() => navMonth(1)} title="Next month" className={navBtnClass}>›</button>
+            )}
+            <button
+              type="button"
+              onClick={() => (calView === "days" ? navYear(1) : setView((v) => ({ ...v, year: v.year + (calView === "years" ? YEARS_PER_PAGE : 1) })))}
+              title={calView === "days" ? "Next year" : calView === "months" ? "Next year" : "Next years"}
+              className={navBtnClass}
+            >
+              »
+            </button>
           </div>
-          <div className="grid grid-cols-7 gap-0.5 mb-1 text-[10px] uppercase tracking-wide text-muted-foreground text-center">
-            {WEEKDAY_LABELS.map((w) => <span key={w}>{w}</span>)}
-          </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {rows.flatMap((row, ri) =>
-              row.map((cell, ci) => {
-                const key = keyFor(cell.y, cell.m, cell.day);
-                const isToday = cell.y === todayY && cell.m === todayM && cell.day === todayD;
-                const isSelected = value === key;
-                const cellDate = new Date(cell.y, cell.m, cell.day);
-                const disabled = (maxDateObj ? cellDate > maxDateObj : false) || (minDateObj ? cellDate < minDateObj : false);
+
+          {calView === "days" && (
+            <>
+              <div className="grid grid-cols-7 gap-0.5 mb-1 text-[10px] uppercase tracking-wide text-muted-foreground text-center">
+                {WEEKDAY_LABELS.map((w) => <span key={w}>{w}</span>)}
+              </div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {rows.flatMap((row, ri) =>
+                  row.map((cell, ci) => {
+                    const key = keyFor(cell.y, cell.m, cell.day);
+                    const isToday = cell.y === todayY && cell.m === todayM && cell.day === todayD;
+                    const isSelected = value === key;
+                    const cellDate = new Date(cell.y, cell.m, cell.day);
+                    const disabled = (maxDateObj ? cellDate > maxDateObj : false) || (minDateObj ? cellDate < minDateObj : false);
+                    return (
+                      <button
+                        key={`${ri}-${ci}`}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => select(key)}
+                        className={cn(
+                          "rounded-md py-1.5 text-xs tabular-nums transition-colors",
+                          cell.otherMonth ? "text-muted-foreground/50" : "text-foreground",
+                          isToday && !isSelected && "text-primary font-semibold",
+                          isSelected && "bg-primary text-primary-foreground font-semibold",
+                          !isSelected && !disabled && "hover:bg-muted",
+                          disabled && "opacity-30 cursor-not-allowed"
+                        )}
+                      >
+                        {cell.day}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+
+          {calView === "months" && (
+            <div className="grid grid-cols-3 gap-1">
+              {MONTH_ABBR.map((label, m) => {
+                const isSelectedMonth = value ? Number(value.split("-")[0]) === view.year && Number(value.split("-")[1]) - 1 === m : false;
+                const isCurrentMonth = m === view.month;
                 return (
                   <button
-                    key={`${ri}-${ci}`}
+                    key={label}
                     type="button"
-                    disabled={disabled}
-                    onClick={() => select(key)}
+                    onClick={() => { setView((v) => ({ ...v, month: m })); setCalView("days"); }}
                     className={cn(
-                      "rounded-md py-1.5 text-xs tabular-nums transition-colors",
-                      cell.otherMonth ? "text-muted-foreground/50" : "text-foreground",
-                      isToday && !isSelected && "text-primary font-semibold",
-                      isSelected && "bg-primary text-primary-foreground font-semibold",
-                      !isSelected && !disabled && "hover:bg-muted",
-                      disabled && "opacity-30 cursor-not-allowed"
+                      "rounded-md py-2 text-xs font-medium transition-colors",
+                      isSelectedMonth && "bg-primary text-primary-foreground font-semibold",
+                      !isSelectedMonth && isCurrentMonth && "text-primary font-semibold",
+                      !isSelectedMonth && "hover:bg-muted"
                     )}
                   >
-                    {cell.day}
+                    {label}
                   </button>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
+
+          {calView === "years" && (
+            <div className="grid grid-cols-3 gap-1">
+              {pageYears.map((y) => {
+                const isSelectedYear = value ? Number(value.split("-")[0]) === y : false;
+                const isCurrentYear = y === view.year;
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => { setView((v) => ({ ...v, year: y })); setCalView("months"); }}
+                    className={cn(
+                      "rounded-md py-2 text-xs font-medium tabular-nums transition-colors",
+                      isSelectedYear && "bg-primary text-primary-foreground font-semibold",
+                      !isSelectedYear && isCurrentYear && "text-primary font-semibold",
+                      !isSelectedYear && "hover:bg-muted"
+                    )}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {onClear && (
             <div className="flex justify-end mt-2 pt-2 border-t border-border">
               <button
