@@ -29,7 +29,7 @@ import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
-import { imageFromClipboard } from "@/lib/clipboard-image";
+import { PasteImageBox } from "@/components/paste-image-box";
 import { format } from "date-fns";
 
 export default function Profile() {
@@ -89,40 +89,34 @@ export default function Profile() {
               </span>
             </button>
           </DialogTrigger>
-          <DialogContent
-            className="max-w-md"
-            onPaste={(e) => {
-              const file = imageFromClipboard(e);
-              if (file) {
-                e.preventDefault();
-                handleAvatarFile(file);
-              }
-            }}
-          >
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Change your photo</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <label
-                className={cn(
-                  "flex items-center justify-center gap-2 h-10 rounded-md border border-dashed border-input text-sm font-medium transition-colors",
-                  uploadAvatar.isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
-                )}
-              >
-                <Upload className="w-4 h-4" />
-                {uploadAvatar.isPending ? "Uploading..." : "Upload a photo (or paste one)"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={uploadAvatar.isPending}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    handleAvatarFile(file);
-                  }}
-                />
-              </label>
+              <div className="space-y-2">
+                <label
+                  className={cn(
+                    "flex items-center justify-center gap-2 h-10 rounded-md border border-dashed border-input text-sm font-medium transition-colors",
+                    uploadAvatar.isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
+                  )}
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadAvatar.isPending ? "Uploading..." : "Upload a photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadAvatar.isPending}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      handleAvatarFile(file);
+                    }}
+                  />
+                </label>
+                <PasteImageBox onImage={handleAvatarFile} className="w-full h-9" />
+              </div>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

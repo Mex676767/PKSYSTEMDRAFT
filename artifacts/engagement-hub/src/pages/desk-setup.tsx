@@ -10,7 +10,7 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { ArrowLeft, Monitor, Image as ImageIcon, X, Trophy } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useDeskSetupEntries, useCreatePost, getPostImageUrl } from "@/hooks/use-posts";
-import { imageFromClipboard } from "@/lib/clipboard-image";
+import { PasteImageBox } from "@/components/paste-image-box";
 import { cn } from "@/lib/utils";
 
 const RANK_STYLES = [
@@ -37,14 +37,6 @@ export default function DeskSetup() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setImage(e.target.files?.[0] ?? null);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const file = imageFromClipboard(e);
-    if (file) {
-      e.preventDefault();
-      setImage(file);
-    }
   };
 
   const clearImage = () => {
@@ -88,7 +80,7 @@ export default function DeskSetup() {
               <ImageIcon className="w-4 h-4 mr-2" /> Submit Your Setup
             </Button>
           </DialogTrigger>
-          <DialogContent onPaste={handlePaste}>
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Submit Your Setup</DialogTitle>
             </DialogHeader>
@@ -105,15 +97,17 @@ export default function DeskSetup() {
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-32 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:bg-muted/40 transition-colors"
-                >
-                  <ImageIcon className="w-6 h-6" />
-                  <span className="text-sm">Add a photo of your setup</span>
-                  <span className="text-xs">or paste one (Ctrl+V)</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-24 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:bg-muted/40 transition-colors"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                    <span className="text-sm">Add a photo of your setup</span>
+                  </button>
+                  <PasteImageBox onImage={setImage} className="w-full h-10" />
+                </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 

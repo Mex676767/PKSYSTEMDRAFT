@@ -9,6 +9,7 @@ import { Image as ImageIcon, X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
 import { imageFromClipboard } from "@/lib/clipboard-image";
+import { PasteImageBox } from "@/components/paste-image-box";
 
 export default function Social() {
   const { session, profile } = useAuth();
@@ -84,7 +85,7 @@ export default function Social() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   onPaste={handlePaste}
-                  placeholder="What's on your mind? (you can paste an image too)"
+                  placeholder="What's on your mind?"
                   className="flex-1 min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                 />
               </div>
@@ -102,7 +103,7 @@ export default function Social() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -110,9 +111,12 @@ export default function Social() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  <ImageIcon className="w-4 h-4 mr-1.5" /> Photo
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <ImageIcon className="w-4 h-4 mr-1.5" /> Photo
+                  </Button>
+                  <PasteImageBox onImage={setImage} className="h-9" />
+                </div>
                 <Button type="submit" disabled={createPost.isPending || (!body.trim() && !imageFile)}>
                   {createPost.isPending ? "Posting..." : "Post"}
                 </Button>

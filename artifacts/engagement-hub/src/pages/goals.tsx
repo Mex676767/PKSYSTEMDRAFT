@@ -7,7 +7,7 @@ import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
 import { TreeDetailPanel } from "@/components/goals-tree-panel";
-import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
+import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2, Image as ImageIcon } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -22,6 +22,8 @@ import {
 import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
+import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
+import { PasteImageBox } from "@/components/paste-image-box";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
 
@@ -35,10 +37,21 @@ type DraftGoal = {
   term: GoalTerm;
   category: GoalCategory;
   accountability: string;
+  imageFile: File | null;
+  imagePreview: string | null;
 };
 
 function emptyDraft(): DraftGoal {
-  return { key: crypto.randomUUID(), title: "", description: "", term: "short", category: "personal", accountability: "" };
+  return {
+    key: crypto.randomUUID(),
+    title: "",
+    description: "",
+    term: "short",
+    category: "personal",
+    accountability: "",
+    imageFile: null,
+    imagePreview: null,
+  };
 }
 
 export default function Goals() {
@@ -74,6 +87,8 @@ export default function Goals() {
     setDrafts((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
   const addDraft = () => setDrafts((prev) => [...prev, emptyDraft()]);
   const removeDraft = (key: string) => setDrafts((prev) => prev.filter((d) => d.key !== key));
+  const setDraftImage = (key: string, file: File | null) =>
+    updateDraft(key, { imageFile: file, imagePreview: file ? URL.createObjectURL(file) : null });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +114,25 @@ export default function Goals() {
         })
       )
     );
+
+    // Best-effort: a goal that saved but whose photo failed to attach still
+    // counts as created (it can always get a photo added afterward from its
+    // card) -- so this never turns a successful goal into a reported failure.
+    if (session) {
+      await Promise.allSettled(
+        results.map((r, i) => {
+          const draft = valid[i];
+          if (r.status !== "fulfilled" || !draft.imageFile) return Promise.resolve();
+          return uploadProgressPhoto({
+            targetType: "goal",
+            targetId: r.value.id,
+            file: draft.imageFile,
+            userId: session.user.id,
+          });
+        })
+      );
+    }
+
     setIsSubmitting(false);
 
     const failed = results.filter((r) => r.status === "rejected");
@@ -319,6 +353,32 @@ export default function Goals() {
                         placeholder="Accountability action -- what will you actually do to hold yourself to this?"
                         className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       />
+                    )}
+
+                    {d.imagePreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-border">
+                        <img src={d.imagePreview} alt="" className="w-full max-h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setDraftImage(d.key, null)}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-dashed border-input text-xs font-medium cursor-pointer hover:bg-muted/50 transition-colors">
+                          <ImageIcon className="w-3.5 h-3.5" /> Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => setDraftImage(d.key, e.target.files?.[0] ?? null)}
+                          />
+                        </label>
+                        <PasteImageBox onImage={(file) => setDraftImage(d.key, file)} className="h-8 flex-1" />
+                      </div>
                     )}
                   </div>
                 ))}

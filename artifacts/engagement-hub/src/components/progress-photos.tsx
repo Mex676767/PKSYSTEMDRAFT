@@ -9,7 +9,7 @@ import {
   type ProgressPhotoTargetType,
 } from "@/hooks/use-progress-photos";
 import { getErrorMessage } from "@/lib/utils";
-import { imageFromClipboard } from "@/lib/clipboard-image";
+import { PasteImageBox } from "@/components/paste-image-box";
 
 // A small photo strip -- thumbnails plus an "add" tile when the viewer is
 // allowed to upload (the goal's owner, or either side of a challenge; the
@@ -43,21 +43,7 @@ export function ProgressPhotos({
 
   return (
     <div className="space-y-1.5">
-      <div
-        className="flex items-center gap-2 flex-wrap rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        {...(canUpload
-          ? {
-              tabIndex: 0,
-              onPaste: (e: React.ClipboardEvent) => {
-                const file = imageFromClipboard(e);
-                if (file) {
-                  e.preventDefault();
-                  handleFile(file);
-                }
-              },
-            }
-          : {})}
-      >
+      <div className="flex items-center gap-2 flex-wrap">
         {photos.map((p) => (
           <div key={p.id} className="relative group shrink-0">
             <button
@@ -91,7 +77,7 @@ export function ProgressPhotos({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={addPhoto.isPending}
-              title="Add progress photo (or click anywhere here and paste with Ctrl+V)"
+              title="Add progress photo"
               className="w-14 h-14 shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-50"
             >
               <Camera className="w-5 h-5" />
@@ -106,6 +92,7 @@ export function ProgressPhotos({
                 e.target.value = "";
               }}
             />
+            <PasteImageBox onImage={(file) => handleFile(file)} className="h-14" label="or paste (Ctrl+V)" />
           </>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/use-auth";
 
 export type ChallengeStatus = "pending" | "active" | "completed" | "declined";
 
@@ -47,6 +48,7 @@ function useInvalidateChallenges() {
 }
 
 export function useCreateChallenge() {
+  const { session } = useAuth();
   const invalidate = useInvalidateChallenges();
   return useMutation({
     mutationFn: async (input: {
@@ -66,6 +68,29 @@ export function useCreateChallenge() {
         ends_at_param: input.endsAt,
       });
       if (error) throw error;
+
+      // The RPC itself doesn't hand back the new row, so if a caller needs
+      // the id right away (e.g. to attach a photo before this challenge's
+      // own ProgressPhotos instance ever mounts) look it up by the unique
+      // combination of who just created what, most-recent first. Retried a
+      // couple of times -- immediately after the RPC resolves, this select
+      // sometimes lands on a pooled connection that hasn't caught up yet and
+      // comes back empty even though the insert already committed.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: created, error: lookupError } = await supabase
+          .from("challenges")
+          .select("id")
+          .eq("creator_id", session?.user.id ?? "")
+          .eq("opponent_id", input.opponentId)
+          .eq("topic", input.topic)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (created) return created as { id: string };
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      return null;
     },
     onSuccess: invalidate,
   });
