@@ -45,11 +45,12 @@ function emptyDraft(): DraftGoal {
 export default function Goals() {
   const { session } = useAuth();
   const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   // Same file-per-theme choice GoalsTreeView makes -- used here for a
   // separate, purely decorative blurred backdrop behind the header/controls
   // (see the "relative"-wrapped block below), not for the sharp canvas
   // itself.
-  const treeBgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
+  const treeBgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
@@ -178,8 +179,17 @@ export default function Goals() {
           notification/theme icons) -- now that Add Goals docks next to those
           icons instead of reaching for them from the page's own header, the
           Goals title has nothing left near that corner and doesn't need the
-          clearance, so this un-does the big gap above the heading on desktop. */}
-      <PageTransition className="p-4 md:p-8 md:-mt-16 max-w-[100rem] mx-auto space-y-8">
+          clearance, so this un-does the big gap above the heading on desktop.
+          Light-theme Tree View drops max-w/mx-auto so the section can
+          stretch to the full width of <main> (no leftover page-background
+          gutters on wide screens) -- light theme only for now; dark keeps
+          its max-w-[100rem] exactly as before. */}
+      <PageTransition
+        className={cn(
+          "p-4 md:p-8 md:-mt-16 space-y-8",
+          !(view === "tree" && isLight) && "max-w-[100rem] mx-auto"
+        )}
+      >
       <Confetti active={showConfetti} />
 
       {/* Wraps the heading + toggle/search row only (not the tree canvas
@@ -200,7 +210,14 @@ export default function Goals() {
         {view === "tree" && (
           <div
             aria-hidden
-            className="absolute inset-0 -z-10 bg-cover bg-top pointer-events-none"
+            className={cn(
+              "absolute inset-y-0 -z-10 bg-cover bg-top pointer-events-none",
+              // Light theme: cancel PageTransition's own p-4/md:p-8 so the
+              // backdrop reaches the section's true (now full-width) edges
+              // instead of stopping at the padded column -- dark keeps the
+              // plain inset-0 it already had.
+              isLight ? "-inset-x-4 md:-inset-x-8" : "inset-x-0"
+            )}
             style={{
               backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
               filter: "blur(28px)",
@@ -374,7 +391,10 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
+        // Light theme: cancel the padding here too, so the sharp canvas
+        // reaches the same full-width edges as the blurred backdrop above
+        // it instead of leaving a gutter of its own. Dark theme unchanged.
+        <div className={cn("flex flex-col lg:flex-row gap-4 items-start", isLight && "-mx-4 md:-mx-8")}>
           <div className="w-full min-w-0 lg:flex-1">
             <GoalsTreeView
               people={sortedPeople}
