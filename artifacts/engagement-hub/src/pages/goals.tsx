@@ -367,11 +367,7 @@ export default function Goals() {
                         </button>
                       </div>
                     ) : (
-                      <ImagePickerButton
-                        onImage={(file) => setDraftImage(d.key, file)}
-                        label="Photo"
-                        className="h-8 text-xs"
-                      />
+                      <ImagePickerButton onImage={(file) => setDraftImage(d.key, file)} label="Photo" />
                     )}
                   </div>
                 ))}

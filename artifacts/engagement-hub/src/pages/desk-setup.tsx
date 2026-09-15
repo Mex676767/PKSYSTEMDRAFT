@@ -91,11 +91,7 @@ export default function DeskSetup() {
                   </button>
                 </div>
               ) : (
-                <ImagePickerButton
-                  onImage={setImage}
-                  label="Add a photo of your setup"
-                  className="w-full h-24 flex-col"
-                />
+                <ImagePickerButton onImage={setImage} label="Add a photo of your setup" className="w-full" />
               )}
 
               <input
