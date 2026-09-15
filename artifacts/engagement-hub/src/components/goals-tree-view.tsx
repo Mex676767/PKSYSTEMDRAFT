@@ -67,7 +67,7 @@ const TREE_ZOOM = 1.08;
 // header's own blurred backdrop (elsewhere in this file) already covers
 // whatever's newly visible up there -- it reads the same shifted position,
 // see its `backgroundPosition` below.
-const TREE_FOCAL_Y = 0.25;
+const TREE_FOCAL_Y = 0.04;
 const TREE_BACKGROUND_POSITION = `center ${TREE_FOCAL_Y * 100}%`;
 const TWO_PI = Math.PI * 2;
 
@@ -106,26 +106,52 @@ function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number, focalY: numbe
 // theme.
 const IMAGE_RATIO = 1884 / 835;
 
-// At lg+ the canvas switches from an aspect-ratio-locked box (grows however
-// tall a full-bleed width demands, which is what forced the page to scroll
-// on wide/short viewports) to a fixed, viewport-capped height with
-// `background-size: cover` -- so it always fits on screen, at the cost of
-// cropping whichever axis the real viewport doesn't match the art's own
-// ratio on. `cover` only ever crops ONE axis (never distorts), so this
-// mirrors applyZoom's margin math but for a single, measured axis instead of
-// a fixed author-time zoom constant. `focalY` only matters when the crop is
-// vertical (containerRatio >= IMAGE_RATIO) -- when it's horizontal instead,
-// the Y axis isn't cropped at all, so there's nothing to shift.
+// Plain `cover` only crops whichever ONE axis the container's ratio
+// disagrees with the art's own ratio on -- at container ratios close to
+// IMAGE_RATIO that's still true, but at ratios on the OTHER side of it
+// (narrower/taller containers, common once the sidebar eats into a modest
+// window width), `cover` crops the WIDTH instead, leaving the height
+// completely uncropped. TREE_FOCAL_Y has nothing to shift in that case: the
+// full image height shows at container y=[0%,100%] regardless, which is
+// exactly the bug that let the topmost canopy slots (near image y=4%) sit
+// right under the header. EXTRA_ZOOM fixes this by always zooming in a bit
+// past bare `cover`, guaranteeing genuine vertical crop margin exists at
+// EVERY container ratio, so `focalY` always has real room to redistribute.
+const EXTRA_ZOOM = 1.18;
+
+// The `cover` scale, in the same normalized units used below (image height
+// = 1, image width = IMAGE_RATIO) -- i.e. how much bigger than the
+// container the image must render to fully cover it, before EXTRA_ZOOM.
+function coverScale(containerRatio: number): number {
+  return Math.max(containerRatio / IMAGE_RATIO, 1) * EXTRA_ZOOM;
+}
+
+// CSS `background-size` percentages (relative to the CONTAINER, per the
+// spec) that reproduce `coverScale` exactly -- used as an explicit inline
+// style in place of the bare `cover` keyword, so the actual rendered image
+// and this file's own coordinate math can never drift apart.
+function coverBackgroundSize(containerRatio: number): string {
+  const s = coverScale(containerRatio);
+  const sizeXPct = ((IMAGE_RATIO * s) / containerRatio) * 100;
+  const sizeYPct = s * 100;
+  return `${sizeXPct}% ${sizeYPct}%`;
+}
+
+// Re-projects a raw original-artwork-percent point through `coverScale`,
+// same margin/focalY math as applyZoom but driven by the real measured
+// container ratio instead of a fixed author-time zoom constant. X always
+// stays centered (its margin is split evenly); only Y is ever shifted.
 function applyCoverCrop(pos: Pos, containerRatio: number, focalY: number): Pos {
-  if (containerRatio >= IMAGE_RATIO) {
-    const totalMarginPct = 100 * (1 - IMAGE_RATIO / containerRatio);
-    const topMargin = totalMarginPct * focalY;
-    const span = 100 - totalMarginPct;
-    return { x: pos.x, y: ((pos.y - topMargin) / span) * 100 };
-  }
-  const marginPct = 50 * (1 - containerRatio / IMAGE_RATIO);
-  const span = 100 - 2 * marginPct;
-  return { x: ((pos.x - marginPct) / span) * 100, y: pos.y };
+  const s = coverScale(containerRatio);
+  const marginPctX = 50 * (1 - containerRatio / (IMAGE_RATIO * s));
+  const spanX = 100 - 2 * marginPctX;
+  const totalMarginPctY = 100 * (1 - 1 / s);
+  const topMarginY = totalMarginPctY * focalY;
+  const spanY = 100 - totalMarginPctY;
+  return {
+    x: ((pos.x - marginPctX) / spanX) * 100,
+    y: ((pos.y - topMarginY) / spanY) * 100,
+  };
 }
 
 function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number, focalY: number): FlowerSlot[] {
@@ -347,7 +373,15 @@ export function GoalsTreeView({
     <div
       ref={containerRef}
       className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-no-repeat"
-      style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`, backgroundPosition: TREE_BACKGROUND_POSITION }}
+      style={{
+        backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
+        backgroundPosition: TREE_BACKGROUND_POSITION,
+        // Explicit size (in place of the `lg:bg-cover` class, kept only as
+        // a pre-measurement fallback) so the real render always matches
+        // coverScale/applyCoverCrop's own math -- see EXTRA_ZOOM above for
+        // why plain `cover` isn't used here.
+        ...(isLgUp && containerRatio ? { backgroundSize: coverBackgroundSize(containerRatio) } : {}),
+      }}
     >
       <span className="sr-only">A glowing illustrated tree, each teammate growing somewhere in its canopy</span>
 
@@ -376,6 +410,7 @@ export function GoalsTreeView({
           style={{
             backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
             backgroundPosition: TREE_BACKGROUND_POSITION,
+            ...(containerRatio ? { backgroundSize: coverBackgroundSize(containerRatio) } : {}),
             filter: "blur(60px)",
             WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
             maskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
