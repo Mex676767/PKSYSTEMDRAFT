@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { MoreVertical, ListChecks, Send, Leaf, Sprout, TreeDeciduous, ChevronDown } from "lucide-react";
+import { MoreVertical, ListChecks, Send, Leaf, Sprout, TreeDeciduous, ChevronDown, Trash2 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { useComments, useAddComment } from "@/hooks/use-social";
+import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
 import { GOAL_TERM_META, GOAL_CATEGORY_META, type Goal, type GoalTerm } from "@/hooks/use-goals";
 import { titleLabel } from "@/lib/titles";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
@@ -38,7 +38,7 @@ export function TreeDetailPanel({
   goals: Goal[];
   onClose: () => void;
 }) {
-  const { session } = useAuth();
+  const { session, isAdmin } = useAuth();
   const [tab, setTab] = useState<Tab>("goals");
   // Which term's card list is expanded -- the term rows start collapsed
   // (just an icon + label + count) and open in place when tapped, rather
@@ -46,15 +46,17 @@ export function TreeDetailPanel({
   const [expandedTerm, setExpandedTerm] = useState<GoalTerm | null>(null);
   const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
+  const deleteComment = useDeleteComment("profile", person.id);
   const [commentText, setCommentText] = useState("");
   const completion = personCompletion(goals);
   const totalCompleted = goals.filter((g) => g.completed).length;
 
-  // Position (role) takes the priority subtitle spot; the unlocked title is
-  // its own badge alongside it -- previously the title badge fell back to
-  // showing the role when no title was set, which meant anyone WITH a title
-  // silently lost their role/position from view entirely.
-  const position = person.role ?? person.department ?? "No team";
+  // "Position - Department" (e.g. "ATL - VIP RTN"), each shown only if set --
+  // the unlocked title is its own separate badge alongside this, not folded
+  // in here (previously the title badge fell back to the role when no title
+  // was set, which meant anyone WITH a title silently lost their role from
+  // view entirely).
+  const position = [person.role, person.department].filter(Boolean).join(" - ") || "No team";
   const badgeLabel = person.active_title ? titleLabel(person.active_title) : null;
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -228,9 +230,22 @@ export function TreeDetailPanel({
           ) : (
             <div className="space-y-2">
               {comments.map((c) => (
-                <div key={c.id} className="text-xs bg-muted/40 rounded-md px-2.5 py-2">
-                  <span className="font-medium">@{c.author?.username ?? "?"}: </span>
-                  <span className="text-muted-foreground">{c.body}</span>
+                <div key={c.id} className="text-xs bg-muted/40 rounded-md px-2.5 py-2 flex items-start gap-1.5">
+                  <p className="flex-1 min-w-0">
+                    <span className="font-medium">@{c.author?.username ?? "?"}: </span>
+                    <span className="text-muted-foreground">{c.body}</span>
+                  </p>
+                  {(isAdmin || c.author_id === session?.user.id) && (
+                    <button
+                      type="button"
+                      onClick={() => window.confirm("Delete this comment?") && deleteComment.mutate(c.id)}
+                      disabled={deleteComment.isPending}
+                      title="Delete comment"
+                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

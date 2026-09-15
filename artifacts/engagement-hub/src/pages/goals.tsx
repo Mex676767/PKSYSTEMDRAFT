@@ -7,7 +7,7 @@ import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
 import { TreeDetailPanel } from "@/components/goals-tree-panel";
-import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous } from "lucide-react";
+import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -19,7 +19,7 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
-import { useComments, useAddComment } from "@/hooks/use-social";
+import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { ROLES } from "@/lib/roles";
@@ -427,9 +427,10 @@ function PersonGoalCard({
   goals: Goal[];
   onClick: () => void;
 }) {
-  const { session } = useAuth();
+  const { session, isAdmin } = useAuth();
   const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
+  const deleteComment = useDeleteComment("profile", person.id);
   const [commentText, setCommentText] = useState("");
 
   const latestByTerm = useMemo(() => {
@@ -512,9 +513,22 @@ function PersonGoalCard({
           <div className="flex-1 space-y-1.5 mb-2 overflow-hidden">
             {recentComments.length > 0 ? (
               recentComments.map((c) => (
-                <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5">
-                  <span className="font-medium">@{c.author?.username ?? "?"}: </span>
-                  <span className="text-muted-foreground line-clamp-2">{c.body}</span>
+                <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5 flex items-start gap-1">
+                  <p className="flex-1 min-w-0">
+                    <span className="font-medium">@{c.author?.username ?? "?"}: </span>
+                    <span className="text-muted-foreground line-clamp-2">{c.body}</span>
+                  </p>
+                  {(isAdmin || c.author_id === session?.user.id) && (
+                    <button
+                      type="button"
+                      onClick={() => window.confirm("Delete this comment?") && deleteComment.mutate(c.id)}
+                      disabled={deleteComment.isPending}
+                      title="Delete comment"
+                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
