@@ -24,6 +24,7 @@ import { useDirectory } from "@/hooks/use-mentors";
 import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
+import { ProgressPhotos } from "@/components/progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 
@@ -277,6 +278,8 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         )}
 
         {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <ProgressPhotos targetType="challenge" targetId={c.id} canUpload={isParticipant} />
 
         <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-border/50 -mx-4 px-4 pt-3">
           <ReactionBar targetType="challenge" targetId={c.id} />

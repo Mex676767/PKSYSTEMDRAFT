@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
+import { ProgressPhotos } from "@/components/progress-photos";
 import { useComments } from "@/hooks/use-social";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
@@ -131,6 +132,8 @@ export function GoalCard({
                 </div>
               )}
             </div>
+
+            <ProgressPhotos targetType="goal" targetId={goal.id} canUpload={isOwner} />
           </div>
         </div>
 
