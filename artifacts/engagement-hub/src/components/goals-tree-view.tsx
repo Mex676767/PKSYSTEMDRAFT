@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { UserAvatar } from "@/components/user-avatar";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -18,7 +18,6 @@ function personCompletion(goals: Goal[]): number {
 // near-white petal-colored pixel clusters (not eyeballed), then
 // hand-checked against a marker overlay so every one of these really sits on
 // a flower. Re-sample if either file changes again.
-const IMAGE_ASPECT = "1672 / 941";
 
 // Dark (night) art: unchanged since the last re-sample. Canvas shows the
 // full frame (`background-size: contain`), so these map straight through
@@ -108,6 +107,37 @@ function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number): FlowerSlot[]
   return raw
     .map((p) => applyZoom(p, zoom))
     .map((p) => ({ ...p, angle: Math.atan2(p.y - zoomedCentroid.y, p.x - zoomedCentroid.x) }))
+    .sort((a, b) => a.angle - b.angle);
+}
+
+// Both illustrations are 1672x941 -- same ratio used below regardless of
+// theme.
+const IMAGE_RATIO = 1672 / 941;
+
+// At lg+ the canvas switches from an aspect-ratio-locked box (grows however
+// tall a full-bleed width demands, which is what forced the page to scroll
+// on wide/short viewports) to a fixed, viewport-capped height with
+// `background-size: cover` -- so it always fits on screen, at the cost of
+// cropping whichever axis the real viewport doesn't match the art's own
+// ratio on. `cover` only ever crops ONE axis (never distorts), so this
+// mirrors applyZoom's margin math but for a single, measured axis instead of
+// a fixed author-time zoom constant.
+function applyCoverCrop(pos: Pos, containerRatio: number): Pos {
+  if (containerRatio >= IMAGE_RATIO) {
+    const marginPct = 50 * (1 - IMAGE_RATIO / containerRatio);
+    const span = 100 - 2 * marginPct;
+    return { x: pos.x, y: ((pos.y - marginPct) / span) * 100 };
+  }
+  const marginPct = 50 * (1 - containerRatio / IMAGE_RATIO);
+  const span = 100 - 2 * marginPct;
+  return { x: ((pos.x - marginPct) / span) * 100, y: pos.y };
+}
+
+function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number): FlowerSlot[] {
+  const projectedCentroid = applyCoverCrop(centroid, containerRatio);
+  return raw
+    .map((p) => applyCoverCrop(p, containerRatio))
+    .map((p) => ({ ...p, angle: Math.atan2(p.y - projectedCentroid.y, p.x - projectedCentroid.x) }))
     .sort((a, b) => a.angle - b.angle);
 }
 
@@ -263,34 +293,65 @@ export function GoalsTreeView({
   // LIGHT_BRANCH_POSITIONS comment above) -- dark art is unchanged, so it
   // stays at zoom 1 / `contain` exactly as before.
   const zoom = isLight ? LIGHT_ZOOM : DARK_ZOOM;
-  const flowerSlots = useMemo(
-    () =>
-      buildFlowerSlots(
-        isLight ? LIGHT_BRANCH_POSITIONS : DARK_BRANCH_POSITIONS,
-        isLight ? LIGHT_CENTROID : DARK_CENTROID,
-        zoom
-      ),
-    [isLight, zoom]
-  );
+
+  // Below lg the canvas keeps its original aspect-ratio-locked sizing
+  // (height follows width, growing however tall a full-bleed image demands
+  // -- fine there since the page already scrolls on mobile). At lg+ it
+  // switches to a viewport-capped fixed height with `background-size: cover`
+  // instead, specifically so the Tree View section fits on screen without
+  // forcing a scroll on a section that's meant to read as a static scene.
+  // `containerRatio` is the box's REAL measured aspect ratio (unlike the
+  // aspect-locked path, it isn't known until layout -- it shifts with every
+  // viewport size at lg+), used to project flower coordinates through the
+  // matching single-axis crop `background-size: cover` will apply.
+  const [isLgUp, setIsLgUp] = useState(false);
+  const [containerRatio, setContainerRatio] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsLgUp(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!isLgUp || !containerRef.current) return;
+    const el = containerRef.current;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setContainerRatio(width / height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isLgUp]);
+
+  const flowerSlots = useMemo(() => {
+    const raw = isLight ? LIGHT_BRANCH_POSITIONS : DARK_BRANCH_POSITIONS;
+    const centroid = isLight ? LIGHT_CENTROID : DARK_CENTROID;
+    if (isLgUp && containerRatio) return buildFlowerSlotsCover(raw, centroid, containerRatio);
+    return buildFlowerSlots(raw, centroid, zoom);
+  }, [isLight, zoom, isLgUp, containerRatio]);
   const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
   return (
     // This *is* the environment, not a picture placed in one: no border,
-    // shadow, rounded corners, card background, or margin box. The canvas
-    // is locked to the artwork's own 3:2 ratio (via aspect-ratio, not a
-    // viewport-height guess). Dark theme uses `background-size: contain`
-    // (zoom 1) so nothing is cropped; light theme intentionally zooms past
-    // 100% so its wide-bleed art never shows its actual edge (see LIGHT_ZOOM
-    // above) -- flower percentages already account for whichever is active.
+    // shadow, rounded corners, card background, or margin box. Below lg the
+    // canvas is locked to the artwork's own 3:2 ratio (via aspect-ratio);
+    // at lg+ it's a fixed, viewport-capped height with `cover` instead (see
+    // the containerRatio comment above) so the whole Tree View section fits
+    // on screen without scrolling. Dark theme's `contain`/zoom-1 sizing
+    // below lg shows nothing cropped; light theme intentionally zooms past
+    // 100% so its wide-bleed art never shows its actual edge -- flower
+    // percentages already account for whichever sizing mode is active.
     <div
-      className="relative w-full"
-      style={{
-        aspectRatio: IMAGE_ASPECT,
-        backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
-        backgroundSize: isLight ? `${zoom * 100}% ${zoom * 100}%` : "contain",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+      ref={containerRef}
+      className={cn(
+        "relative w-full aspect-[1672/941] lg:aspect-auto lg:h-[min(72vh,900px)] bg-center bg-no-repeat",
+        isLight ? "bg-[length:115%_115%] lg:bg-cover" : "bg-contain lg:bg-cover"
+      )}
+      style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})` }}
       role="img"
       aria-label="A glowing illustrated tree, each teammate growing from their own flower"
     >

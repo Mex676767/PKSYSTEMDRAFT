@@ -165,15 +165,19 @@ export default function Goals() {
           Inline `position: fixed` because the `.hover-elevate` utility class
           sets `position: relative` at higher CSS specificity (a `:not()`
           selector) than the plain `fixed` Tailwind class, silently winning
-          over it otherwise. */}
-      <Button
-        onClick={() => setIsDialogOpen(true)}
-        disabled={!session}
+          over it otherwise. The frosted pill wrapper exists purely for
+          contrast: Tree View's header backdrop now bleeds all the way up
+          behind this corner too, and a bright sky photo behind a flat
+          gradient button washed out its legibility -- this guarantees the
+          button reads clearly on top no matter what's behind it. */}
+      <div
         style={{ position: "fixed" }}
-        className="hidden md:inline-flex top-4 right-[124px] z-50 hover-elevate"
+        className="hidden md:block top-2.5 right-[116px] z-50 p-1.5 rounded-full bg-background/60 backdrop-blur-md shadow-sm"
       >
-        <Plus className="w-4 h-4 mr-2" /> Add Goals
-      </Button>
+        <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="hover-elevate">
+          <Plus className="w-4 h-4 mr-2" /> Add Goals
+        </Button>
+      </div>
 
       {/* md:-mt-16 cancels Shell's pt-16 (there to clear the fixed
           notification/theme icons) -- now that Add Goals docks next to those
@@ -211,7 +215,7 @@ export default function Goals() {
           <div
             aria-hidden
             className={cn(
-              "absolute bottom-0 -z-10 bg-cover bg-top pointer-events-none",
+              "absolute bottom-0 -z-10 bg-cover bg-center pointer-events-none",
               // Light theme: cancel PageTransition's own p-4/md:p-8 on every
               // side (including top) so the backdrop reaches the section's
               // true (now full-width) edges and bleeds up past the
@@ -222,10 +226,18 @@ export default function Goals() {
             )}
             style={{
               backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
-              filter: "blur(28px)",
-              transform: "scale(1.1)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 92%)",
-              maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 92%)",
+              // This header strip is much wider than it is tall, so `cover`
+              // (via the `bg-cover` class) already crops it down to a thin
+              // horizontal slice -- `bg-center` (rather than the previous
+              // `bg-top`) samples that slice from the tree's actual canopy
+              // area instead of the decorative leaf sprigs painted in the
+              // art's corners, which blew up into odd blotchy shapes when
+              // stretched across this strip. A heavier blur (was 28px)
+              // smooths whatever detail remains into a soft color wash
+              // rather than a mini re-drawing of the scene.
+              filter: "blur(48px)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 94%)",
+              maskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 94%)",
             }}
           />
         )}
