@@ -111,13 +111,15 @@ const IMAGE_RATIO = 1884 / 835;
 // IMAGE_RATIO that's still true, but at ratios on the OTHER side of it
 // (narrower/taller containers, common once the sidebar eats into a modest
 // window width), `cover` crops the WIDTH instead, leaving the height
-// completely uncropped. TREE_FOCAL_Y has nothing to shift in that case: the
-// full image height shows at container y=[0%,100%] regardless, which is
-// exactly the bug that let the topmost canopy slots (near image y=4%) sit
-// right under the header. EXTRA_ZOOM fixes this by always zooming in a bit
-// past bare `cover`, guaranteeing genuine vertical crop margin exists at
-// EVERY container ratio, so `focalY` always has real room to redistribute.
-const EXTRA_ZOOM = 1.18;
+// completely uncropped, making TREE_FOCAL_Y a no-op there. EXTRA_ZOOM just
+// needs to clear 1.0 so SOME vertical crop margin always exists to
+// redistribute -- the actual guarantee against header overlap is
+// `minTopPx` on TreePersonNode below (a hard pixel floor via CSS `max()`),
+// since which canopy slot a given person lands on can jump around as the
+// department-angle assignment reshuffles, which made tuning this value
+// alone an unreliable way to guarantee clearance. Keep this small -- a
+// bigger value visibly enlarges the whole tree, not just its position.
+const EXTRA_ZOOM = 1.03;
 
 // The `cover` scale, in the same normalized units used below (image height
 // = 1, image width = IMAGE_RATIO) -- i.e. how much bigger than the
@@ -236,6 +238,7 @@ function TreePersonNode({
   goals,
   x,
   y,
+  minTopPx,
   selected,
   onClick,
 }: {
@@ -243,6 +246,16 @@ function TreePersonNode({
   goals: Goal[];
   x: number;
   y: number;
+  // Floor for the rendered top position, in real pixels -- separate from
+  // `y` (a percentage) because a percentage-only guarantee can't reliably
+  // clear a fixed-height header: the projection math that produces `y`
+  // assumes a clean, continuous relationship between its inputs and the
+  // rendered position, but WHICH canopy slot a given person lands on can
+  // jump between slots as the department-angle assignment reshuffles, so
+  // tuning the projection's own parameters to "leave enough room" turned
+  // out not to be reliable. CSS `max()` mixes units directly, so this
+  // simply can't be violated regardless of what `y` comes out to.
+  minTopPx?: number;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -255,7 +268,7 @@ function TreePersonNode({
       type="button"
       onClick={onClick}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 group z-10 hover:z-20"
-      style={{ left: `${x}%`, top: `${y}%` }}
+      style={{ left: `${x}%`, top: minTopPx ? `max(${y}%, ${minTopPx}px)` : `${y}%` }}
       title={`@${person.username} -- ${completion}% of goals`}
     >
       <span className="relative shrink-0 rounded-full">
@@ -448,6 +461,10 @@ export function GoalsTreeView({
             goals={goalsByOwner.get(person.id) ?? []}
             x={pos.x}
             y={pos.y}
+            // Only at lg+, where the header overlays directly on the canvas
+            // (see `header` above) -- below lg the header is a normal
+            // in-flow element above a separate canvas, nothing to clear.
+            minTopPx={isLgUp ? 230 : undefined}
             selected={person.id === selectedId}
             onClick={() => onSelect(person)}
           />
