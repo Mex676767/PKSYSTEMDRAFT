@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
@@ -144,7 +144,35 @@ export default function Goals() {
   }
 
   return (
-    <PageTransition className="p-4 md:p-8 max-w-[100rem] mx-auto space-y-8">
+    <>
+      {/* Rendered outside PageTransition on purpose: that wrapper animates
+          with framer-motion, and any transformed ancestor becomes the
+          containing block for `fixed` descendants -- nested inside it, this
+          button would position relative to PageTransition's own box instead
+          of the viewport, landing well below the notification/theme icons
+          instead of next to them. Docks at top-4 right-[124px], just left
+          of those icons (top-4 right-4 / right-[68px]). Mobile keeps the
+          plain in-flow button below instead -- there's no room to spare
+          next to the icons on a narrow screen.
+          Inline `position: fixed` because the `.hover-elevate` utility class
+          sets `position: relative` at higher CSS specificity (a `:not()`
+          selector) than the plain `fixed` Tailwind class, silently winning
+          over it otherwise. */}
+      <Button
+        onClick={() => setIsDialogOpen(true)}
+        disabled={!session}
+        style={{ position: "fixed" }}
+        className="hidden md:inline-flex top-4 right-[124px] z-50 hover-elevate"
+      >
+        <Plus className="w-4 h-4 mr-2" /> Add Goals
+      </Button>
+
+      {/* md:-mt-16 cancels Shell's pt-16 (there to clear the fixed
+          notification/theme icons) -- now that Add Goals docks next to those
+          icons instead of reaching for them from the page's own header, the
+          Goals title has nothing left near that corner and doesn't need the
+          clearance, so this un-does the big gap above the heading on desktop. */}
+      <PageTransition className="p-4 md:p-8 md:-mt-16 max-w-[100rem] mx-auto space-y-8">
       <Confetti active={showConfetti} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -154,6 +182,10 @@ export default function Goals() {
             Everyone's goals, out in the open. Cheer each other on.
           </p>
         </div>
+
+        <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
+          <Plus className="w-4 h-4 mr-2" /> Add Goals
+        </Button>
 
         <Dialog
           open={isDialogOpen}
@@ -165,11 +197,6 @@ export default function Goals() {
             }
           }}
         >
-          <DialogTrigger asChild>
-            <Button className="shrink-0 hover-elevate" disabled={!session}>
-              <Plus className="w-4 h-4 mr-2" /> Add Goals
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Add Goals</DialogTitle>
@@ -377,7 +404,8 @@ export default function Goals() {
           )}
         </DialogContent>
       </Dialog>
-    </PageTransition>
+      </PageTransition>
+    </>
   );
 }
 
