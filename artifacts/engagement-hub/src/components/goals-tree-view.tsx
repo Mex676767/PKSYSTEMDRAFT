@@ -67,7 +67,7 @@ const TREE_ZOOM = 1.08;
 // header's own blurred backdrop (elsewhere in this file) already covers
 // whatever's newly visible up there -- it reads the same shifted position,
 // see its `backgroundPosition` below.
-const TREE_FOCAL_Y = 0.04;
+const TREE_FOCAL_Y = 0;
 const TREE_BACKGROUND_POSITION = `center ${TREE_FOCAL_Y * 100}%`;
 const TWO_PI = Math.PI * 2;
 
@@ -119,7 +119,7 @@ const IMAGE_RATIO = 1884 / 835;
 // department-angle assignment reshuffles, which made tuning this value
 // alone an unreliable way to guarantee clearance. Keep this small -- a
 // bigger value visibly enlarges the whole tree, not just its position.
-const EXTRA_ZOOM = 1.03;
+const EXTRA_ZOOM = 1.15;
 
 // The `cover` scale, in the same normalized units used below (image height
 // = 1, image width = IMAGE_RATIO) -- i.e. how much bigger than the
