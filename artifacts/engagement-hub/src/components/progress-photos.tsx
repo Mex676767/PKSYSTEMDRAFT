@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Camera, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Trash2, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useProgressPhotos,
@@ -9,7 +9,7 @@ import {
   type ProgressPhotoTargetType,
 } from "@/hooks/use-progress-photos";
 import { getErrorMessage } from "@/lib/utils";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 
 // A small photo strip -- thumbnails plus an "add" tile when the viewer is
 // allowed to upload (the goal's owner, or either side of a challenge; the
@@ -29,7 +29,6 @@ export function ProgressPhotos({
   const { data: photos = [] } = useProgressPhotos(targetType, targetId);
   const addPhoto = useAddProgressPhoto(targetType, targetId);
   const deletePhoto = useDeleteProgressPhoto(targetType, targetId);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -72,28 +71,7 @@ export function ProgressPhotos({
         ))}
 
         {canUpload && (
-          <>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={addPhoto.isPending}
-              title="Add progress photo"
-              className="w-14 h-14 shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-50"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                handleFile(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-            <PasteImageBox onImage={(file) => handleFile(file)} className="h-14" label="or paste (Ctrl+V)" />
-          </>
+          <ImagePickerButton onImage={handleFile} disabled={addPhoto.isPending} compact label="Add progress photo" />
         )}
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}

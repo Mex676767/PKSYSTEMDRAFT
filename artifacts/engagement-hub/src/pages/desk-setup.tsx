@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
@@ -10,7 +10,7 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { ArrowLeft, Monitor, Image as ImageIcon, X, Trophy } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useDeskSetupEntries, useCreatePost, getPostImageUrl } from "@/hooks/use-posts";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 import { cn } from "@/lib/utils";
 
 const RANK_STYLES = [
@@ -28,21 +28,15 @@ export default function DeskSetup() {
   const [caption, setCaption] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setImage = (file: File | null) => {
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImage(e.target.files?.[0] ?? null);
-  };
-
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -97,19 +91,12 @@ export default function DeskSetup() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-24 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:bg-muted/40 transition-colors"
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                    <span className="text-sm">Add a photo of your setup</span>
-                  </button>
-                  <PasteImageBox onImage={setImage} className="w-full h-10" />
-                </div>
+                <ImagePickerButton
+                  onImage={setImage}
+                  label="Add a photo of your setup"
+                  className="w-full h-24 flex-col"
+                />
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 
               <input
                 type="text"

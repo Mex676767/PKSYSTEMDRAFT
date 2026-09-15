@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, Upload, X } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
@@ -29,7 +29,7 @@ import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 import { format } from "date-fns";
 
 export default function Profile() {
@@ -94,29 +94,12 @@ export default function Profile() {
               <DialogTitle>Change your photo</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <label
-                  className={cn(
-                    "flex items-center justify-center gap-2 h-10 rounded-md border border-dashed border-input text-sm font-medium transition-colors",
-                    uploadAvatar.isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
-                  )}
-                >
-                  <Upload className="w-4 h-4" />
-                  {uploadAvatar.isPending ? "Uploading..." : "Upload a photo"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploadAvatar.isPending}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      handleAvatarFile(file);
-                    }}
-                  />
-                </label>
-                <PasteImageBox onImage={handleAvatarFile} className="w-full h-9" />
-              </div>
+              <ImagePickerButton
+                onImage={handleAvatarFile}
+                disabled={uploadAvatar.isPending}
+                label={uploadAvatar.isPending ? "Uploading..." : "Upload a photo"}
+                className="w-full"
+              />
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

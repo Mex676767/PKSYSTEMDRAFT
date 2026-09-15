@@ -7,7 +7,7 @@ import { Confetti } from "@/components/confetti";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
 import { TreeDetailPanel } from "@/components/goals-tree-panel";
-import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
@@ -23,7 +23,7 @@ import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
-import { PasteImageBox } from "@/components/paste-image-box";
+import { ImagePickerButton } from "@/components/image-picker-button";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
 
@@ -367,18 +367,11 @@ export default function Goals() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-dashed border-input text-xs font-medium cursor-pointer hover:bg-muted/50 transition-colors">
-                          <ImageIcon className="w-3.5 h-3.5" /> Photo
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => setDraftImage(d.key, e.target.files?.[0] ?? null)}
-                          />
-                        </label>
-                        <PasteImageBox onImage={(file) => setDraftImage(d.key, file)} className="h-8 flex-1" />
-                      </div>
+                      <ImagePickerButton
+                        onImage={(file) => setDraftImage(d.key, file)}
+                        label="Photo"
+                        className="h-8 text-xs"
+                      />
                     )}
                   </div>
                 ))}
