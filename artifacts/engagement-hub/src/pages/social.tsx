@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Image as ImageIcon, X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
+import { imageFromClipboard } from "@/lib/clipboard-image";
 
 export default function Social() {
   const { session, profile } = useAuth();
@@ -19,10 +20,21 @@ export default function Social() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const setImage = (file: File | null) => {
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImage(e.target.files?.[0] ?? null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const file = imageFromClipboard(e);
+    if (file) {
+      e.preventDefault();
+      setImage(file);
+    }
   };
 
   const clearImage = () => {
@@ -71,7 +83,8 @@ export default function Social() {
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="What's on your mind?"
+                  onPaste={handlePaste}
+                  placeholder="What's on your mind? (you can paste an image too)"
                   className="flex-1 min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                 />
               </div>
