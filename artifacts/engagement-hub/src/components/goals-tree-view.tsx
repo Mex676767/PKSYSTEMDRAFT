@@ -277,11 +277,20 @@ export function GoalsTreeView({
   goalsByOwner,
   onSelect,
   selectedId,
+  header,
 }: {
   people: DirectoryProfile[];
   goalsByOwner: Map<string, Goal[]>;
   onSelect: (person: DirectoryProfile) => void;
   selectedId: string | null;
+  // The page heading/search/toggle row, at lg+ only -- rendered as an
+  // overlay INSIDE this same box (see the reference mockups) so it sits
+  // directly on the sharp art with no seam, instead of on a separate blurred
+  // strip above a distinct canvas. Below lg the page renders its own plain
+  // in-flow header instead (not enough room to overlay it legibly on a
+  // short, full-bleed-width mobile image) -- this prop is simply not shown
+  // there (`hidden lg:block` below).
+  header?: React.ReactNode;
 }) {
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
@@ -340,21 +349,36 @@ export function GoalsTreeView({
     // shadow, rounded corners, card background, or margin box. Below lg the
     // canvas is locked to the artwork's own 3:2 ratio (via aspect-ratio);
     // at lg+ it's a fixed, viewport-capped height with `cover` instead (see
-    // the containerRatio comment above) so the whole Tree View section fits
-    // on screen without scrolling. Dark theme's `contain`/zoom-1 sizing
-    // below lg shows nothing cropped; light theme intentionally zooms past
-    // 100% so its wide-bleed art never shows its actual edge -- flower
-    // percentages already account for whichever sizing mode is active.
+    // the containerRatio comment above) so the whole Tree View section --
+    // heading, search, toggle and all, now that `header` overlays directly
+    // on it -- fits on screen without scrolling. Dark theme's `contain`/
+    // zoom-1 sizing below lg shows nothing cropped; light theme
+    // intentionally zooms past 100% so its wide-bleed art never shows its
+    // actual edge -- flower percentages already account for whichever
+    // sizing mode is active. No `role="img"` here anymore: once real
+    // interactive controls (search, toggle, Add Goals) live inside this box
+    // at lg+, that role would tell assistive tech to treat the whole thing
+    // as a single opaque image and hide them -- the sr-only span below
+    // keeps a description without doing that.
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full aspect-[1672/941] lg:aspect-auto lg:h-[min(72vh,900px)] bg-center bg-no-repeat",
+        "relative w-full aspect-[1672/941] lg:aspect-auto lg:h-screen bg-center bg-no-repeat",
         isLight ? "bg-[length:115%_115%] lg:bg-cover" : "bg-contain lg:bg-cover"
       )}
       style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})` }}
-      role="img"
-      aria-label="A glowing illustrated tree, each teammate growing from their own flower"
     >
+      <span className="sr-only">A glowing illustrated tree, each teammate growing from their own flower</span>
+
+      {header && (
+        // `lg:pr-[22rem]` reserves room for the detail panel's ~20rem width
+        // plus its own right gap -- without it, the header's centered search
+        // bar collides with the panel at the narrow end of the lg range
+        // (just above 1024px, before `xl:pr-8` gives the header its normal
+        // padding back once there's enough room for both side by side).
+        <div className="hidden lg:block absolute inset-x-0 top-0 z-30 p-6 lg:pr-[22rem] xl:p-8 xl:pr-8">{header}</div>
+      )}
+
       {people.map((person) => {
         const pos = positions.get(person.id);
         if (!pos) return null;
