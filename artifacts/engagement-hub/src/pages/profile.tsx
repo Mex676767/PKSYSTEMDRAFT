@@ -29,6 +29,7 @@ import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
+import { imageFromClipboard } from "@/lib/clipboard-image";
 import { format } from "date-fns";
 
 export default function Profile() {
@@ -44,6 +45,19 @@ export default function Profile() {
   const setAvatarUrl = useSetAvatarUrl();
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
+
+  const handleAvatarFile = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Image must be under 5MB.");
+      return;
+    }
+    setAvatarError(null);
+    uploadAvatar.mutate(file, {
+      onSuccess: () => setIsAvatarDialogOpen(false),
+      onError: (err) => setAvatarError(getErrorMessage(err)),
+    });
+  };
 
   if (!profile) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
@@ -75,7 +89,16 @@ export default function Profile() {
               </span>
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent
+            className="max-w-md"
+            onPaste={(e) => {
+              const file = imageFromClipboard(e);
+              if (file) {
+                e.preventDefault();
+                handleAvatarFile(file);
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Change your photo</DialogTitle>
             </DialogHeader>
@@ -87,7 +110,7 @@ export default function Profile() {
                 )}
               >
                 <Upload className="w-4 h-4" />
-                {uploadAvatar.isPending ? "Uploading..." : "Upload a photo"}
+                {uploadAvatar.isPending ? "Uploading..." : "Upload a photo (or paste one)"}
                 <input
                   type="file"
                   accept="image/*"
@@ -96,16 +119,7 @@ export default function Profile() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     e.target.value = "";
-                    if (!file) return;
-                    if (file.size > 5 * 1024 * 1024) {
-                      setAvatarError("Image must be under 5MB.");
-                      return;
-                    }
-                    setAvatarError(null);
-                    uploadAvatar.mutate(file, {
-                      onSuccess: () => setIsAvatarDialogOpen(false),
-                      onError: (err) => setAvatarError(getErrorMessage(err)),
-                    });
+                    handleAvatarFile(file);
                   }}
                 />
               </label>

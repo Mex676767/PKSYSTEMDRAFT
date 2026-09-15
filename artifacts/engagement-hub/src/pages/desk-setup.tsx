@@ -10,6 +10,7 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { ArrowLeft, Monitor, Image as ImageIcon, X, Trophy } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useDeskSetupEntries, useCreatePost, getPostImageUrl } from "@/hooks/use-posts";
+import { imageFromClipboard } from "@/lib/clipboard-image";
 import { cn } from "@/lib/utils";
 
 const RANK_STYLES = [
@@ -29,10 +30,21 @@ export default function DeskSetup() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const setImage = (file: File | null) => {
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImage(e.target.files?.[0] ?? null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const file = imageFromClipboard(e);
+    if (file) {
+      e.preventDefault();
+      setImage(file);
+    }
   };
 
   const clearImage = () => {
@@ -76,7 +88,7 @@ export default function DeskSetup() {
               <ImageIcon className="w-4 h-4 mr-2" /> Submit Your Setup
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent onPaste={handlePaste}>
             <DialogHeader>
               <DialogTitle>Submit Your Setup</DialogTitle>
             </DialogHeader>
@@ -100,6 +112,7 @@ export default function DeskSetup() {
                 >
                   <ImageIcon className="w-6 h-6" />
                   <span className="text-sm">Add a photo of your setup</span>
+                  <span className="text-xs">or paste one (Ctrl+V)</span>
                 </button>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
