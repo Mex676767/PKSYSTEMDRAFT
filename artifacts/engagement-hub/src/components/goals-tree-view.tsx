@@ -13,73 +13,80 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// Both illustrations are 1672x941. Coordinates below are plain
+// Both illustrations are 1884x835 -- a "bigger tree" re-draw (day/night
+// pair, same composition/tree position/scale in both) that replaced the
+// original 1672x941 pair. Coordinates below are plain
 // percent-of-the-original-artwork -- found by scanning each image for
-// near-white petal-colored pixel clusters (not eyeballed), then
-// hand-checked against a marker overlay so every one of these really sits on
-// a flower. Re-sample if either file changes again.
-
-// Dark (night) art: unchanged since the last re-sample. Canvas shows the
-// full frame (`background-size: contain`), so these map straight through
-// with no transform.
+// near-white petal-colored pixel clusters (not eyeballed), merging the
+// handful of raw clusters each flower's 5 separate petals produced back
+// into one point per flower, then hand-checked against a marker overlay so
+// every one of these really sits on a flower (and a few that landed on
+// sky/water/town instead were dropped). Re-sample if either file changes
+// again. Both now get the same gentle overzoom (TREE_ZOOM) since both share
+// the same generous sky/ground bleed and corner leaf sprigs around the tree
+// -- previously dark used zoom 1 ("contain", no crop) and light used 1.15,
+// back when the two arts had different compositions.
 const DARK_BRANCH_POSITIONS: Pos[] = [
-  { x: 49.7, y: 26.1 },
-  { x: 53.6, y: 28.7 },
-  { x: 45.3, y: 29.4 },
-  { x: 42.4, y: 34.2 },
-  { x: 56.1, y: 34.6 },
-  { x: 47.9, y: 38.0 },
-  { x: 39.3, y: 40.4 },
-  { x: 60.1, y: 42.0 },
-  { x: 43.3, y: 43.4 },
-  { x: 46.1, y: 45.5 },
-  { x: 52.1, y: 45.5 },
-  { x: 61.7, y: 48.6 },
-  { x: 38.1, y: 48.7 },
-  { x: 56.3, y: 48.7 },
-  { x: 64.3, y: 54.1 },
-  { x: 42.8, y: 54.3 },
-  { x: 35.4, y: 55.4 },
-  { x: 59.4, y: 57.2 },
-  { x: 39.7, y: 59.1 },
-  { x: 61.2, y: 62.4 },
-  { x: 43.7, y: 65.8 },
-  { x: 56.2, y: 65.9 },
+  { x: 51.11, y: 9.55 },
+  { x: 44.76, y: 15.97 },
+  { x: 56.35, y: 16.76 },
+  { x: 40.07, y: 25.11 },
+  { x: 60.20, y: 25.61 },
+  { x: 48.02, y: 25.81 },
+  { x: 56.57, y: 34.25 },
+  { x: 43.16, y: 34.56 },
+  { x: 64.05, y: 35.24 },
+  { x: 37.20, y: 35.41 },
+  { x: 46.92, y: 38.84 },
+  { x: 53.97, y: 41.70 },
+  { x: 59.40, y: 45.60 },
+  { x: 33.90, y: 46.01 },
+  { x: 66.92, y: 46.29 },
+  { x: 41.93, y: 48.19 },
+  { x: 32.67, y: 52.81 },
+  { x: 38.18, y: 54.67 },
+  { x: 61.69, y: 54.87 },
+  { x: 63.31, y: 63.33 },
+  { x: 38.83, y: 65.71 },
+  { x: 58.74, y: 66.23 },
+  { x: 42.17, y: 66.60 },
+  { x: 46.43, y: 66.79 },
 ];
-const DARK_CENTROID = { x: 50, y: 46 };
-const DARK_ZOOM = 1;
 
-// Light (day) art: replaced with a pulled-back version that has generous
-// sky/ground bleed around a much smaller tree, specifically so its edges
-// never have to show -- LIGHT_ZOOM below scales the background past 100%
-// (`background-size`) so only the deep interior is ever visible, pushing the
-// image's actual boundary safely outside the viewport instead of ending in
-// a hard edge. Flower coordinates stay in original-artwork percent; they're
-// re-projected onto that zoomed frame in useFlowerSlots below.
 const LIGHT_BRANCH_POSITIONS: Pos[] = [
-  { x: 49.21, y: 46.97 },
-  { x: 46.19, y: 49.87 },
-  { x: 51.95, y: 49.89 },
-  { x: 43.66, y: 53.25 },
-  { x: 54.25, y: 53.54 },
-  { x: 48.09, y: 54.89 },
-  { x: 52.51, y: 57.14 },
-  { x: 41.77, y: 58.20 },
-  { x: 56.56, y: 58.27 },
-  { x: 45.28, y: 59.21 },
-  { x: 50.98, y: 61.37 },
-  { x: 53.80, y: 63.39 },
-  { x: 58.21, y: 63.53 },
-  { x: 44.76, y: 65.51 },
-  { x: 39.61, y: 67.32 },
-  { x: 55.65, y: 67.76 },
-  { x: 42.50, y: 67.84 },
-  { x: 56.49, y: 71.03 },
-  { x: 44.67, y: 73.36 },
-  { x: 53.79, y: 73.40 },
+  { x: 51.07, y: 11.74 },
+  { x: 56.47, y: 18.11 },
+  { x: 44.05, y: 19.33 },
+  { x: 51.78, y: 22.68 },
+  { x: 39.94, y: 26.08 },
+  { x: 59.35, y: 26.94 },
+  { x: 47.97, y: 27.08 },
+  { x: 62.85, y: 28.06 },
+  { x: 55.93, y: 35.50 },
+  { x: 64.30, y: 36.15 },
+  { x: 37.52, y: 36.62 },
+  { x: 42.99, y: 37.04 },
+  { x: 47.09, y: 40.07 },
+  { x: 53.99, y: 42.86 },
+  { x: 59.40, y: 46.94 },
+  { x: 67.32, y: 47.12 },
+  { x: 33.56, y: 47.16 },
+  { x: 29.39, y: 48.46 },
+  { x: 42.02, y: 50.14 },
+  { x: 32.65, y: 53.73 },
+  { x: 38.20, y: 55.34 },
+  { x: 61.75, y: 55.60 },
+  { x: 70.11, y: 62.50 },
+  { x: 63.57, y: 63.36 },
+  { x: 58.94, y: 66.63 },
+  { x: 41.39, y: 66.65 },
+  { x: 69.59, y: 67.37 },
+  { x: 46.59, y: 67.43 },
+  { x: 33.78, y: 67.49 },
 ];
-const LIGHT_CENTROID = { x: 49, y: 60 };
-const LIGHT_ZOOM = 1.15;
+
+const TREE_CENTROID = { x: 50, y: 43 };
+const TREE_ZOOM = 1.08;
 
 const TWO_PI = Math.PI * 2;
 
@@ -110,9 +117,9 @@ function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number): FlowerSlot[]
     .sort((a, b) => a.angle - b.angle);
 }
 
-// Both illustrations are 1672x941 -- same ratio used below regardless of
+// Both illustrations are 1884x835 -- same ratio used below regardless of
 // theme.
-const IMAGE_RATIO = 1672 / 941;
+const IMAGE_RATIO = 1884 / 835;
 
 // At lg+ the canvas switches from an aspect-ratio-locked box (grows however
 // tall a full-bleed width demands, which is what forced the page to scroll
@@ -297,11 +304,6 @@ export function GoalsTreeView({
   // Two separate illustrations (a moonlit tree, a sunlit one) rather than
   // trying to fade/tint one image into both themes.
   const bgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
-  // Light art was redrawn pulled further back specifically so LIGHT_ZOOM can
-  // scale the background past 100% and hide its real edges (see the
-  // LIGHT_BRANCH_POSITIONS comment above) -- dark art is unchanged, so it
-  // stays at zoom 1 / `contain` exactly as before.
-  const zoom = isLight ? LIGHT_ZOOM : DARK_ZOOM;
 
   // Below lg the canvas keeps its original aspect-ratio-locked sizing
   // (height follows width, growing however tall a full-bleed image demands
@@ -338,37 +340,63 @@ export function GoalsTreeView({
 
   const flowerSlots = useMemo(() => {
     const raw = isLight ? LIGHT_BRANCH_POSITIONS : DARK_BRANCH_POSITIONS;
-    const centroid = isLight ? LIGHT_CENTROID : DARK_CENTROID;
-    if (isLgUp && containerRatio) return buildFlowerSlotsCover(raw, centroid, containerRatio);
-    return buildFlowerSlots(raw, centroid, zoom);
-  }, [isLight, zoom, isLgUp, containerRatio]);
+    if (isLgUp && containerRatio) return buildFlowerSlotsCover(raw, TREE_CENTROID, containerRatio);
+    return buildFlowerSlots(raw, TREE_CENTROID, TREE_ZOOM);
+  }, [isLight, isLgUp, containerRatio]);
   const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
   return (
     // This *is* the environment, not a picture placed in one: no border,
     // shadow, rounded corners, card background, or margin box. Below lg the
-    // canvas is locked to the artwork's own 3:2 ratio (via aspect-ratio);
-    // at lg+ it's a fixed, viewport-capped height with `cover` instead (see
+    // canvas is locked to the artwork's own ratio (via aspect-ratio); at
+    // lg+ it's a fixed, viewport-capped height with `cover` instead (see
     // the containerRatio comment above) so the whole Tree View section --
     // heading, search, toggle and all, now that `header` overlays directly
-    // on it -- fits on screen without scrolling. Dark theme's `contain`/
-    // zoom-1 sizing below lg shows nothing cropped; light theme
-    // intentionally zooms past 100% so its wide-bleed art never shows its
-    // actual edge -- flower percentages already account for whichever
-    // sizing mode is active. No `role="img"` here anymore: once real
-    // interactive controls (search, toggle, Add Goals) live inside this box
-    // at lg+, that role would tell assistive tech to treat the whole thing
-    // as a single opaque image and hide them -- the sr-only span below
-    // keeps a description without doing that.
+    // on it -- fits on screen without scrolling. Below lg, both themes zoom
+    // in slightly past 100% (TREE_ZOOM) so the art's own edges and corner
+    // leaf sprigs never show -- flower percentages already account for it.
+    // No `role="img"` here anymore: once real interactive controls (search,
+    // toggle, Add Goals) live inside this box at lg+, that role would tell
+    // assistive tech to treat the whole thing as a single opaque image and
+    // hide them -- the sr-only span below keeps a description without doing
+    // that.
     <div
       ref={containerRef}
-      className={cn(
-        "relative w-full aspect-[1672/941] lg:aspect-auto lg:h-screen bg-center bg-no-repeat",
-        isLight ? "bg-[length:115%_115%] lg:bg-cover" : "bg-contain lg:bg-cover"
-      )}
+      className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})` }}
     >
       <span className="sr-only">A glowing illustrated tree, each teammate growing from their own flower</span>
+
+      {header && (
+        // A blurred duplicate of the SAME crop the sharp layer above shows
+        // (same background-size/position, sized to the identical box via
+        // `inset-0`), faded out after its top ~30% by the mask -- softens
+        // whatever's directly behind the heading/search/toggle text (busy
+        // leaves, bright clouds) into a smoother, lower-contrast wash so the
+        // text stays readable, without covering it with a flat tint (tried
+        // first, looked like a pasted-on box) or relying on a text-shadow
+        // glow alone (failed against the art's own bright white clouds,
+        // where a white glow is no contrast at all). Reusing the sharp
+        // layer's exact sizing matters: an earlier version gave this its
+        // own fixed height, which sampled a DIFFERENT (much more
+        // aggressively cropped) slice of the art than what the sharp layer
+        // shows there, so the blur showed unrelated content (the tree's own
+        // canopy smeared into a green blob) instead of a softened version of
+        // the same sky it's meant to sit in front of. No z-index needed --
+        // it has none, so it stacks below the header (z-30) and avatars
+        // (z-10+) regardless of DOM order, and above nothing except this
+        // same element's own sharp background-image sibling.
+        <div
+          aria-hidden
+          className="hidden lg:block absolute inset-0 bg-cover bg-center pointer-events-none"
+          style={{
+            backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
+            filter: "blur(60px)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
+            maskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
+          }}
+        />
+      )}
 
       {header && (
         // `lg:pr-[22rem]` reserves room for the detail panel's ~20rem width

@@ -189,30 +189,10 @@ export default function Goals() {
     </div>
   );
 
-  // `onPhoto`: the hero version (rendered directly on the tree art) gets a
-  // soft white glow behind the text -- the subtitle's normal muted-gray
-  // color was nearly unreadable against bright sky/leaves in light theme.
-  // The glow is a no-op against dark theme's already-white text, so this
-  // doesn't need an isLight branch; the plain in-flow header (solid page
-  // background) skips it since it has no contrast problem to begin with.
-  const headingBlock = (onPhoto: boolean) => (
+  const headingBlock = () => (
     <div>
-      <h1
-        className={cn(
-          "text-3xl md:text-4xl font-bold tracking-tight",
-          onPhoto && "[text-shadow:0_1px_10px_rgba(255,255,255,0.55)]"
-        )}
-      >
-        Goals
-      </h1>
-      <p
-        className={cn(
-          "text-muted-foreground mt-1",
-          onPhoto && "[text-shadow:0_1px_3px_rgba(255,255,255,0.9),0_0px_12px_rgba(255,255,255,0.7)]"
-        )}
-      >
-        Everyone's goals, out in the open. Cheer each other on.
-      </p>
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
+      <p className="text-muted-foreground mt-1">Everyone's goals, out in the open. Cheer each other on.</p>
     </div>
   );
 
@@ -375,14 +355,20 @@ export default function Goals() {
           View still gets a normal, readable header instead of cramming text
           onto a short image. */}
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        {/* `relative` + the search wrapper's `sm:absolute sm:left-1/2
+            sm:-translate-x-1/2` centers it against the row's TRUE full
+            width, regardless of how wide the heading block ends up --
+            `flex-1 justify-center` (the previous approach) only centered it
+            within the space left over after the heading, which visibly
+            drifted right of center once the heading's own width varied. */}
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-start justify-between gap-3 shrink-0">
-            {headingBlock(false)}
+            {headingBlock()}
             <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> Add Goals
             </Button>
           </div>
-          <div className="flex-1 flex justify-center w-full">{searchInput}</div>
+          <div className="w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2">{searchInput}</div>
         </div>
         {toggleButtons}
       </div>
@@ -410,9 +396,13 @@ export default function Goals() {
             selectedId={selected?.id ?? null}
             header={
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {headingBlock(true)}
-                  <div className="flex-1 flex justify-center w-full">{searchInput}</div>
+                {/* Same true-center technique as the plain header above --
+                    absolutely positioned at the row's real midpoint instead
+                    of centered within whatever space the heading leaves
+                    over, which drifted right of center. */}
+                <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                  {headingBlock()}
+                  <div className="w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2">{searchInput}</div>
                 </div>
                 {toggleButtons}
               </div>
