@@ -14,62 +14,90 @@ function personCompletion(goals: Goal[]): number {
 }
 
 // Both illustrations are 1884x835 (day/night pair, same composition/tree
-// position/scale in both). Rather than anchoring people to individual
-// flowers -- tried first, but it's fragile (needs re-detecting by hand
-// every time the art changes) and imprecise flower alignment isn't actually
-// the point -- people are spread across the general leafy canopy area
-// instead, via a few concentric rings inside an ellipse roughly matching
-// the canopy's shape and position in this artwork. Re-tune CANOPY_CENTER/
-// CANOPY_RADIUS if the art changes again; no per-image detection needed.
-const CANOPY_CENTER = { x: 50, y: 38 };
-const CANOPY_RADIUS = { x: 20, y: 28 };
+// position/scale in both). Real leaf-canopy positions -- NOT an ellipse
+// approximation, NOT individual flowers -- found by flood-filling the
+// canopy's actual green-pixel silhouette from a seed point in its center
+// (so it traces the real, slightly asymmetric leaf shape and stays
+// connected across the gap where trunk/sky show through, while excluding
+// disconnected background greenery like the far-off pine trees), then
+// picking ~30 points spread evenly through that mask (greedy farthest-point
+// sampling) and hand-checked against a marker overlay. Re-run the flood-fill
+// if the art changes again -- an ellipse is a poor fit for this canopy's
+// actual outline.
+const CANOPY_SLOTS: Pos[] = [
+  { x: 52.07, y: 3.95 },
+  { x: 47.51, y: 8.86 },
+  { x: 54.78, y: 12.57 },
+  { x: 43.21, y: 14.37 },
+  { x: 60.56, y: 16.17 },
+  { x: 47.51, y: 19.40 },
+  { x: 58.07, y: 23.11 },
+  { x: 42.09, y: 23.71 },
+  { x: 48.94, y: 26.59 },
+  { x: 65.39, y: 27.90 },
+  { x: 35.83, y: 30.90 },
+  { x: 53.40, y: 31.74 },
+  { x: 60.19, y: 31.86 },
+  { x: 46.34, y: 32.69 },
+  { x: 40.76, y: 36.29 },
+  { x: 67.25, y: 37.96 },
+  { x: 48.35, y: 41.80 },
+  { x: 32.22, y: 43.11 },
+  { x: 64.38, y: 44.19 },
+  { x: 42.30, y: 46.71 },
+  { x: 33.97, y: 51.50 },
+  { x: 70.33, y: 53.89 },
+  { x: 47.40, y: 54.61 },
+  { x: 63.75, y: 55.93 },
+  { x: 40.92, y: 57.60 },
+  { x: 55.47, y: 61.44 },
+  { x: 34.87, y: 62.04 },
+  { x: 65.55, y: 63.11 },
+  { x: 43.15, y: 64.07 },
+  { x: 60.14, y: 66.83 },
+  { x: 53.98, y: 69.58 },
+  { x: 42.30, y: 70.90 },
+];
+const CANOPY_CENTROID = { x: 51, y: 40 };
 const TREE_ZOOM = 1.08;
+// Shifts the visible crop window up within the source image (revealing more
+// sky) so the canopy sits lower in the container instead of its topmost
+// leaves landing right under the header controls. 0.5 = centered (the old
+// behavior); smaller = more sky revealed at the top, tree pushed down. The
+// header's own blurred backdrop (elsewhere in this file) already covers
+// whatever's newly visible up there -- it reads the same shifted position,
+// see its `backgroundPosition` below.
+const TREE_FOCAL_Y = 0.25;
+const TREE_BACKGROUND_POSITION = `center ${TREE_FOCAL_Y * 100}%`;
 const TWO_PI = Math.PI * 2;
-
-function buildCanopySlots(): Pos[] {
-  const rings: { count: number; r: number; offset: number }[] = [
-    { count: 6, r: 0.35, offset: 0 },
-    { count: 10, r: 0.65, offset: 0.3 },
-    { count: 14, r: 0.92, offset: 0.6 },
-  ];
-  const slots: Pos[] = [];
-  for (const ring of rings) {
-    for (let i = 0; i < ring.count; i++) {
-      const angle = ((i + ring.offset) / ring.count) * TWO_PI;
-      slots.push({
-        x: CANOPY_CENTER.x + Math.cos(angle) * CANOPY_RADIUS.x * ring.r,
-        y: CANOPY_CENTER.y + Math.sin(angle) * CANOPY_RADIUS.y * ring.r,
-      });
-    }
-  }
-  return slots;
-}
-
-const CANOPY_SLOTS = buildCanopySlots();
 
 type FlowerSlot = Pos & { angle: number };
 
 // Re-projects a raw original-artwork-percent point onto the zoomed
-// `background-size` frame: at zoom Z centered, the visible window covers
-// original-percent range [marginPct, 100-marginPct] on each axis, where
-// marginPct = 50*(1 - 1/Z). Z=1 (dark theme) is a no-op.
-function applyZoom(pos: Pos, zoom: number): Pos {
-  if (zoom === 1) return pos;
-  const marginPct = 50 * (1 - 1 / zoom);
-  const span = 100 - 2 * marginPct;
+// `background-size` frame: at zoom Z, the visible window covers
+// original-percent range [topMargin, 100-bottomMargin] on the Y axis, where
+// topMargin/bottomMargin split the total crop (100*(1-1/Z)) according to
+// `focalY` (0.5 = centered, matching background-position's own Y percent
+// semantics) -- X always stays centered, only Y is ever shifted here.
+function applyZoom(pos: Pos, zoom: number, focalY: number): Pos {
+  if (zoom === 1 && focalY === 0.5) return pos;
+  const totalMarginPct = 100 * (1 - 1 / zoom);
+  const marginPctX = totalMarginPct / 2;
+  const topMargin = totalMarginPct * focalY;
+  const span = 100 - totalMarginPct;
   return {
-    x: ((pos.x - marginPct) / span) * 100,
-    y: ((pos.y - marginPct) / span) * 100,
+    x: ((pos.x - marginPctX) / span) * 100,
+    y: ((pos.y - topMargin) / span) * 100,
   };
 }
 
-function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number): FlowerSlot[] {
+function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number, focalY: number): FlowerSlot[] {
   // Centroid is given in original-artwork percent too, so it needs the same
   // zoom projection as the points before angles are measured against it --
   // otherwise the angle math mixes zoomed and unzoomed coordinate spaces.
-  const zoomedCentroid = applyZoom(centroid, zoom);
+  const zoomedCentroid = applyZoom(centroid, zoom, focalY);
   return raw
-    .map((p) => applyZoom(p, zoom))
+    .map((p) => applyZoom(p, zoom, focalY))
     .map((p) => ({ ...p, angle: Math.atan2(p.y - zoomedCentroid.y, p.x - zoomedCentroid.x) }))
     .sort((a, b) => a.angle - b.angle);
 }
@@ -85,22 +113,25 @@ const IMAGE_RATIO = 1884 / 835;
 // cropping whichever axis the real viewport doesn't match the art's own
 // ratio on. `cover` only ever crops ONE axis (never distorts), so this
 // mirrors applyZoom's margin math but for a single, measured axis instead of
-// a fixed author-time zoom constant.
-function applyCoverCrop(pos: Pos, containerRatio: number): Pos {
+// a fixed author-time zoom constant. `focalY` only matters when the crop is
+// vertical (containerRatio >= IMAGE_RATIO) -- when it's horizontal instead,
+// the Y axis isn't cropped at all, so there's nothing to shift.
+function applyCoverCrop(pos: Pos, containerRatio: number, focalY: number): Pos {
   if (containerRatio >= IMAGE_RATIO) {
-    const marginPct = 50 * (1 - IMAGE_RATIO / containerRatio);
-    const span = 100 - 2 * marginPct;
-    return { x: pos.x, y: ((pos.y - marginPct) / span) * 100 };
+    const totalMarginPct = 100 * (1 - IMAGE_RATIO / containerRatio);
+    const topMargin = totalMarginPct * focalY;
+    const span = 100 - totalMarginPct;
+    return { x: pos.x, y: ((pos.y - topMargin) / span) * 100 };
   }
   const marginPct = 50 * (1 - containerRatio / IMAGE_RATIO);
   const span = 100 - 2 * marginPct;
   return { x: ((pos.x - marginPct) / span) * 100, y: pos.y };
 }
 
-function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number): FlowerSlot[] {
-  const projectedCentroid = applyCoverCrop(centroid, containerRatio);
+function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number, focalY: number): FlowerSlot[] {
+  const projectedCentroid = applyCoverCrop(centroid, containerRatio, focalY);
   return raw
-    .map((p) => applyCoverCrop(p, containerRatio))
+    .map((p) => applyCoverCrop(p, containerRatio, focalY))
     .map((p) => ({ ...p, angle: Math.atan2(p.y - projectedCentroid.y, p.x - projectedCentroid.x) }))
     .sort((a, b) => a.angle - b.angle);
 }
@@ -293,8 +324,8 @@ export function GoalsTreeView({
   }, [isLgUp]);
 
   const flowerSlots = useMemo(() => {
-    if (isLgUp && containerRatio) return buildFlowerSlotsCover(CANOPY_SLOTS, CANOPY_CENTER, containerRatio);
-    return buildFlowerSlots(CANOPY_SLOTS, CANOPY_CENTER, TREE_ZOOM);
+    if (isLgUp && containerRatio) return buildFlowerSlotsCover(CANOPY_SLOTS, CANOPY_CENTROID, containerRatio, TREE_FOCAL_Y);
+    return buildFlowerSlots(CANOPY_SLOTS, CANOPY_CENTROID, TREE_ZOOM, TREE_FOCAL_Y);
   }, [isLgUp, containerRatio]);
   const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
@@ -315,8 +346,8 @@ export function GoalsTreeView({
     // that.
     <div
       ref={containerRef}
-      className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})` }}
+      className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-no-repeat"
+      style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`, backgroundPosition: TREE_BACKGROUND_POSITION }}
     >
       <span className="sr-only">A glowing illustrated tree, each teammate growing somewhere in its canopy</span>
 
@@ -341,9 +372,10 @@ export function GoalsTreeView({
         // same element's own sharp background-image sibling.
         <div
           aria-hidden
-          className="hidden lg:block absolute inset-0 bg-cover bg-center pointer-events-none"
+          className="hidden lg:block absolute inset-0 bg-cover bg-no-repeat pointer-events-none"
           style={{
             backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
+            backgroundPosition: TREE_BACKGROUND_POSITION,
             filter: "blur(60px)",
             WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
             maskImage: "linear-gradient(to bottom, black 0%, black 8%, transparent 17%)",
