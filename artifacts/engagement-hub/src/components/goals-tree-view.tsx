@@ -13,45 +13,44 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The two tree illustrations are landscape (1536x1024, a 3:2 ratio). These
-// are the actual white-flower centers on that canopy -- found by scanning
-// the image for near-white petal-colored pixel clusters (not just
-// eyeballed), then hand-checked against a marker overlay so every one of
-// these really sits on a flower. Canopy-only (the couple of flowers down in
-// the grass are excluded). Percentages are plain percent-of-the-artwork: the
-// canvas below is locked to the artwork's own 3:2 aspect ratio (never
-// cropped), so these never need remapping regardless of viewport size.
-// Re-sample if the art ever changes.
-const IMAGE_ASPECT = "3 / 2";
+// The two tree illustrations are landscape (1672x941, ~16:9). These are the
+// actual white-flower centers on that canopy -- found by scanning the image
+// for near-white petal-colored pixel clusters (not just eyeballed), then
+// hand-checked against a marker overlay so every one of these really sits on
+// a flower. Canopy-only. Percentages are plain percent-of-the-artwork: the
+// canvas below is locked to the artwork's own aspect ratio (never cropped),
+// so these never need remapping regardless of viewport size. Re-sample if
+// the art ever changes (it has twice already -- see git history).
+const IMAGE_ASPECT = "1672 / 941";
 const BRANCH_POSITIONS: Pos[] = [
-  { x: 54.3, y: 22.4 },
-  { x: 42.7, y: 24.0 },
-  { x: 38.0, y: 28.8 },
-  { x: 59.9, y: 28.9 },
-  { x: 57.8, y: 33.4 },
-  { x: 46.5, y: 34.2 },
-  { x: 34.7, y: 37.1 },
-  { x: 64.7, y: 39.0 },
-  { x: 39.4, y: 40.3 },
-  { x: 43.9, y: 43.0 },
-  { x: 53.0, y: 43.7 },
-  { x: 58.2, y: 48.1 },
-  { x: 68.6, y: 48.4 },
-  { x: 32.2, y: 49.0 },
-  { x: 71.8, y: 53.8 },
-  { x: 39.0, y: 54.2 },
-  { x: 28.5, y: 56.4 },
-  { x: 63.6, y: 57.4 },
-  { x: 35.0, y: 61.6 },
-  { x: 66.7, y: 63.4 },
-  { x: 58.1, y: 67.2 },
-  { x: 39.9, y: 67.6 },
+  { x: 49.7, y: 26.1 },
+  { x: 53.6, y: 28.7 },
+  { x: 45.3, y: 29.4 },
+  { x: 42.4, y: 34.2 },
+  { x: 56.1, y: 34.6 },
+  { x: 47.9, y: 38.0 },
+  { x: 39.3, y: 40.4 },
+  { x: 60.1, y: 42.0 },
+  { x: 43.3, y: 43.4 },
+  { x: 46.1, y: 45.5 },
+  { x: 52.1, y: 45.5 },
+  { x: 61.7, y: 48.6 },
+  { x: 38.1, y: 48.7 },
+  { x: 56.3, y: 48.7 },
+  { x: 64.3, y: 54.1 },
+  { x: 42.8, y: 54.3 },
+  { x: 35.4, y: 55.4 },
+  { x: 59.4, y: 57.2 },
+  { x: 39.7, y: 59.1 },
+  { x: 61.2, y: 62.4 },
+  { x: 43.7, y: 65.8 },
+  { x: 56.2, y: 65.9 },
 ];
 
 // Canopy centroid the flower angles below are measured from (roughly the
 // middle of the BRANCH_POSITIONS above).
 const CANOPY_CX = 50;
-const CANOPY_CY = 45;
+const CANOPY_CY = 46;
 const TWO_PI = Math.PI * 2;
 
 type FlowerSlot = Pos & { angle: number };
