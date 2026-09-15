@@ -189,10 +189,30 @@ export default function Goals() {
     </div>
   );
 
-  const headingBlock = (
+  // `onPhoto`: the hero version (rendered directly on the tree art) gets a
+  // soft white glow behind the text -- the subtitle's normal muted-gray
+  // color was nearly unreadable against bright sky/leaves in light theme.
+  // The glow is a no-op against dark theme's already-white text, so this
+  // doesn't need an isLight branch; the plain in-flow header (solid page
+  // background) skips it since it has no contrast problem to begin with.
+  const headingBlock = (onPhoto: boolean) => (
     <div>
-      <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
-      <p className="text-muted-foreground mt-1">Everyone's goals, out in the open. Cheer each other on.</p>
+      <h1
+        className={cn(
+          "text-3xl md:text-4xl font-bold tracking-tight",
+          onPhoto && "[text-shadow:0_1px_10px_rgba(255,255,255,0.55)]"
+        )}
+      >
+        Goals
+      </h1>
+      <p
+        className={cn(
+          "text-muted-foreground mt-1",
+          onPhoto && "[text-shadow:0_1px_3px_rgba(255,255,255,0.9),0_0px_12px_rgba(255,255,255,0.7)]"
+        )}
+      >
+        Everyone's goals, out in the open. Cheer each other on.
+      </p>
     </div>
   );
 
@@ -357,7 +377,7 @@ export default function Goals() {
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-start justify-between gap-3 shrink-0">
-            {headingBlock}
+            {headingBlock(false)}
             <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> Add Goals
             </Button>
@@ -391,7 +411,7 @@ export default function Goals() {
             header={
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {headingBlock}
+                  {headingBlock(true)}
                   <div className="flex-1 flex justify-center w-full">{searchInput}</div>
                 </div>
                 {toggleButtons}
