@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { MoreVertical, ListChecks, Send, Leaf, Sprout, TreeDeciduous, ChevronDown, Trash2 } from "lucide-react";
+import { X, ListChecks, Send, Leaf, Sprout, TreeDeciduous, ChevronDown, Trash2, Pencil } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
-import { GOAL_TERM_META, GOAL_CATEGORY_META, type Goal, type GoalTerm } from "@/hooks/use-goals";
+import { GOAL_TERM_META, GOAL_CATEGORY_META, useDeleteGoal, useUpdateGoal, type Goal, type GoalTerm } from "@/hooks/use-goals";
+import { EditGoalDialog } from "@/components/goal-card";
 import { titleLabel } from "@/lib/titles";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,10 @@ export function TreeDetailPanel({
   const [commentText, setCommentText] = useState("");
   const completion = personCompletion(goals);
   const totalCompleted = goals.filter((g) => g.completed).length;
+  const isOwner = session?.user.id === person.id;
+  const deleteGoal = useDeleteGoal();
+  const updateGoal = useUpdateGoal();
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // "Position - Department" (e.g. "ATL - VIP RTN"), each shown only if set --
   // the unlocked title is its own separate badge alongside this, not folded
@@ -110,7 +115,7 @@ export function TreeDetailPanel({
           )}
         </div>
         <button onClick={onClose} title="Close" className="text-muted-foreground hover:text-foreground shrink-0">
-          <MoreVertical className="w-4 h-4" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
@@ -187,7 +192,28 @@ export function TreeDetailPanel({
                               >
                                 {GOAL_CATEGORY_META[goal.category].label}
                               </span>
-                              <span className="text-xs font-medium">{goal.title}</span>
+                              <span className="text-xs font-medium flex-1 min-w-0">{goal.title}</span>
+                              {isOwner && (
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingGoal(goal)}
+                                    title="Edit goal"
+                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => window.confirm("Delete this goal?") && deleteGoal.mutate(goal.id)}
+                                    disabled={deleteGoal.isPending}
+                                    title="Delete goal"
+                                    className="text-muted-foreground hover:text-destructive transition-colors"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                             {goal.description && <p className="text-[11px] text-muted-foreground">{goal.description}</p>}
                             <div className="flex items-center gap-2">
@@ -289,6 +315,15 @@ export function TreeDetailPanel({
             <Send className="w-3.5 h-3.5" />
           </button>
         </form>
+      )}
+
+      {editingGoal && (
+        <EditGoalDialog
+          goal={editingGoal}
+          open={!!editingGoal}
+          onOpenChange={(o) => !o && setEditingGoal(null)}
+          updateGoal={updateGoal}
+        />
       )}
     </div>
   );

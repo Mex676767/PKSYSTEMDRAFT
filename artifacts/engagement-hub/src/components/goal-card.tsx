@@ -163,7 +163,7 @@ export function GoalCard({
   );
 }
 
-function EditGoalDialog({
+export function EditGoalDialog({
   goal,
   open,
   onOpenChange,
