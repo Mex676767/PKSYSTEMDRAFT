@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/date-picker";
 import { motion } from "framer-motion";
-import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useChallengesList,
@@ -25,6 +25,8 @@ import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { ProgressPhotos } from "@/components/progress-photos";
+import { PasteImageBox } from "@/components/paste-image-box";
+import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 
@@ -304,6 +306,7 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
 }
 
 function NewChallengeDialog({ disabled }: { disabled: boolean }) {
+  const { session } = useAuth();
   const { data: directory = [] } = useDirectory();
   const createChallenge = useCreateChallenge();
   const [isOpen, setIsOpen] = useState(false);
@@ -313,7 +316,11 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   const [reward, setReward] = useState("");
   const [punishment, setPunishment] = useState("");
   const [endsAt, setEndsAt] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tomorrow = useMemo(() => {
     const d = new Date();
@@ -321,29 +328,54 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
     return format(d, "yyyy-MM-dd");
   }, []);
 
+  const setImage = (file: File | null) => {
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const reset = () => {
     setOpponentId(""); setTopic(""); setDescription("");
     setReward(""); setPunishment(""); setEndsAt(null); setError(null);
+    clearImage();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!opponentId || !topic.trim() || !endsAt) return;
     setError(null);
-    createChallenge.mutate(
-      {
+    setIsSubmitting(true);
+    try {
+      const created = await createChallenge.mutateAsync({
         opponentId,
         topic: topic.trim(),
         description: description.trim(),
         reward: reward.trim(),
         punishment: punishment.trim(),
         endsAt: new Date(endsAt + "T23:59:59").toISOString(),
-      },
-      {
-        onSuccess: () => { setIsOpen(false); reset(); },
-        onError: (err) => setError(getErrorMessage(err)),
+      });
+
+      if (imageFile && created?.id && session) {
+        try {
+          await uploadProgressPhoto({ targetType: "challenge", targetId: created.id, file: imageFile, userId: session.user.id });
+        } catch {
+          // The challenge itself was created fine -- a photo can still be
+          // added afterward from its card, so don't block on this.
+        }
       }
-    );
+
+      setIsOpen(false);
+      reset();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -413,9 +445,38 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
             <label className="text-sm font-medium">Ends</label>
             <DatePicker value={endsAt} onChange={setEndsAt} minDate={tomorrow} />
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Photo (optional)</label>
+            {imagePreview ? (
+              <div className="relative rounded-xl overflow-hidden border border-border">
+                <img src={imagePreview} alt="" className="w-full max-h-48 object-cover" />
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <ImageIcon className="w-4 h-4 mr-1.5" /> Photo
+                </Button>
+                <PasteImageBox onImage={setImage} className="h-9 flex-1" />
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+            />
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" variant="secondary" className="w-full mt-2" disabled={createChallenge.isPending}>
-            {createChallenge.isPending ? "Sending..." : "Throw Gauntlet"}
+          <Button type="submit" variant="secondary" className="w-full mt-2" disabled={isSubmitting}>
+            {isSubmitting ? "Sending..." : "Throw Gauntlet"}
           </Button>
         </form>
       </DialogContent>

@@ -41,25 +41,45 @@ export function useProgressPhotos(targetType: ProgressPhotoTargetType, targetId:
   });
 }
 
+// Plain (non-hook) upload, so callers that aren't bound to one fixed
+// target_id up front -- e.g. attaching a photo right when a goal/challenge is
+// first created, before its own ProgressPhotos instance ever mounts -- can
+// still reuse the exact same upload+insert logic as useAddProgressPhoto.
+export async function uploadProgressPhoto({
+  targetType,
+  targetId,
+  file,
+  userId,
+  caption,
+}: {
+  targetType: ProgressPhotoTargetType;
+  targetId: string;
+  file: File;
+  userId: string;
+  caption?: string;
+}) {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${userId}/progress-${targetType}-${targetId}-${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("post-images").upload(path, file);
+  if (uploadError) throw uploadError;
+
+  const { error } = await supabase.from("progress_photos").insert({
+    target_type: targetType,
+    target_id: targetId,
+    uploader_id: userId,
+    image_path: path,
+    caption: caption?.trim() || null,
+  });
+  if (error) throw error;
+}
+
 export function useAddProgressPhoto(targetType: ProgressPhotoTargetType, targetId: string) {
   const { session } = useAuth();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, caption }: { file: File; caption?: string }) => {
       if (!session) throw new Error("Not signed in");
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${session.user.id}/progress-${targetType}-${targetId}-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("post-images").upload(path, file);
-      if (uploadError) throw uploadError;
-
-      const { error } = await supabase.from("progress_photos").insert({
-        target_type: targetType,
-        target_id: targetId,
-        uploader_id: session.user.id,
-        image_path: path,
-        caption: caption?.trim() || null,
-      });
-      if (error) throw error;
+      await uploadProgressPhoto({ targetType, targetId, file, userId: session.user.id, caption });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["progress-photos", targetType, targetId] }),
   });
