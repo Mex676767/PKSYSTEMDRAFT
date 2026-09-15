@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,12 @@ function emptyDraft(): DraftGoal {
 
 export default function Goals() {
   const { session } = useAuth();
+  const { resolvedTheme } = useTheme();
+  // Same file-per-theme choice GoalsTreeView makes -- used here for a
+  // separate, purely decorative blurred backdrop behind the header/controls
+  // (see the "relative"-wrapped block below), not for the sharp canvas
+  // itself.
+  const treeBgFile = resolvedTheme === "light" ? "tree-bg-light.png" : "tree-bg.png";
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
@@ -174,6 +181,35 @@ export default function Goals() {
           clearance, so this un-does the big gap above the heading on desktop. */}
       <PageTransition className="p-4 md:p-8 md:-mt-16 max-w-[100rem] mx-auto space-y-8">
       <Confetti active={showConfetti} />
+
+      {/* Wraps the heading + toggle/search row only (not the tree canvas
+          below, which already shows the full sharp image) so the tree scene
+          can bleed up behind them instead of stopping in a hard box right
+          below this content. A blurred, faded copy of the same background
+          sits behind this region -- blurred so "Goals" and the buttons stay
+          easily readable over it, faded out toward its own bottom edge so it
+          dissolves into the sharp canvas beneath rather than double-showing
+          the image. Tree View only; Card View has no tree background.
+          The wrapper needs `z-0` (not just `relative`) -- `position:
+          relative` alone doesn't create a new stacking context, so the
+          backdrop's `-z-10` was escaping past this wrapper to the
+          document's root stacking context and rendering behind literally
+          everything (invisible under the page's own opaque background)
+          instead of just behind its siblings here. */}
+      <div className="relative z-0">
+        {view === "tree" && (
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 bg-cover bg-top pointer-events-none"
+            style={{
+              backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
+              filter: "blur(28px)",
+              transform: "scale(1.1)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 92%)",
+              maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 92%)",
+            }}
+          />
+        )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -332,6 +368,7 @@ export default function Goals() {
             visually centered in the row instead of drifting toward the
             toggle side. */}
         <div className="hidden md:block w-[196px] shrink-0" />
+      </div>
       </div>
 
       {sortedPeople.length === 0 ? (
