@@ -77,8 +77,12 @@ export function TreeDetailPanel({
         // (frosted, letting the art show through) rather than a flat white
         // box bolted on beside it. `z-40` clears the tree avatars' own
         // z-10/hover:z-20 (same stacking context -- both are children of the
-        // page's `relative z-0` tree wrapper).
-        "mt-4 lg:mt-0 lg:absolute lg:top-6 lg:right-6 lg:z-40 lg:max-h-[calc(100%-3rem)]",
+        // page's `relative z-0` tree wrapper). `lg:top-24` clears the fixed
+        // notification/theme/Add Goals icon row (top-4, ~44px tall) plus the
+        // tree hero's own overlaid heading row above it, now that the hero
+        // fills the full viewport height and that row sits at the very top
+        // of it instead of in separate page chrome above a shorter canvas.
+        "mt-4 lg:mt-0 lg:absolute lg:top-24 lg:right-6 lg:z-40 lg:max-h-[calc(100%-7rem)]",
         "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
         "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
         "overflow-hidden flex flex-col max-h-[480px]"

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useTheme } from "next-themes";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -44,13 +43,6 @@ function emptyDraft(): DraftGoal {
 
 export default function Goals() {
   const { session } = useAuth();
-  const { resolvedTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
-  // Same file-per-theme choice GoalsTreeView makes -- used here for a
-  // separate, purely decorative blurred backdrop behind the header/controls
-  // (see the "relative"-wrapped block below), not for the sharp canvas
-  // itself.
-  const treeBgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
@@ -151,6 +143,59 @@ export default function Goals() {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
   }
 
+  // Shared between the plain in-flow header (below lg, and Card View at any
+  // size) and the version overlaid directly on the tree art at lg+ (see
+  // GoalsTreeView's `header` prop) -- same controls, same bound state,
+  // rendered at two different places in the tree rather than duplicated by
+  // hand so they can't drift apart.
+  const toggleButtons = (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setView("tree")}
+        className={cn(
+          "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
+          view === "tree"
+            ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
+            : "border border-border text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <TreeDeciduous className="w-4 h-4" /> Tree View
+      </button>
+      <button
+        type="button"
+        onClick={() => setView("card")}
+        className={cn(
+          "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
+          view === "card"
+            ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
+            : "border border-border text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <LayoutGrid className="w-4 h-4" /> Card View
+      </button>
+    </div>
+  );
+
+  const searchInput = (
+    <div className="relative w-full sm:w-72">
+      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Find someone..."
+        className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background/90 backdrop-blur-sm text-sm"
+      />
+    </div>
+  );
+
+  const headingBlock = (
+    <div>
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
+      <p className="text-muted-foreground mt-1">Everyone's goals, out in the open. Cheer each other on.</p>
+    </div>
+  );
+
   return (
     <>
       {/* Rendered outside PageTransition on purpose: that wrapper animates
@@ -162,99 +207,46 @@ export default function Goals() {
           of those icons (top-4 right-4 / right-[68px]). Mobile keeps the
           plain in-flow button below instead -- there's no room to spare
           next to the icons on a narrow screen.
-          Inline `position: fixed` because the `.hover-elevate` utility class
-          sets `position: relative` at higher CSS specificity (a `:not()`
-          selector) than the plain `fixed` Tailwind class, silently winning
-          over it otherwise. The frosted pill wrapper exists purely for
-          contrast: Tree View's header backdrop now bleeds all the way up
-          behind this corner too, and a bright sky photo behind a flat
-          gradient button washed out its legibility -- this guarantees the
-          button reads clearly on top no matter what's behind it. */}
-      <div
-        style={{ position: "fixed" }}
-        className="hidden md:block top-2.5 right-[116px] z-50 p-1.5 rounded-full bg-background/60 backdrop-blur-md shadow-sm"
+          Inline `position: fixed, zIndex: 50` because the `.hover-elevate`
+          utility class (`.hover-elevate:not(.no-default-hover-elevate) {
+          position: relative; z-index: 0; }`) beats the plain `fixed`/`z-50`
+          Tailwind classes on BOTH properties at higher CSS specificity (a
+          `:not()` selector counts as an extra class), silently winning over
+          them otherwise -- without the zIndex override too, this button was
+          painting behind the tree hero's own z-30 header overlay despite
+          `z-50` in its className, since Tree View now overlays real content
+          directly on top of this same corner instead of leaving it as the
+          topmost fixed layer over a separate backdrop. Plain solid button,
+          no frosted backing needed -- the tree scene no longer has a blurred
+          backdrop bleeding up behind this corner, so nothing washes it out. */}
+      <Button
+        onClick={() => setIsDialogOpen(true)}
+        disabled={!session}
+        style={{ position: "fixed", zIndex: 50 }}
+        className="hidden md:inline-flex top-4 right-[124px] z-50 hover-elevate"
       >
-        <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="hover-elevate">
-          <Plus className="w-4 h-4 mr-2" /> Add Goals
-        </Button>
-      </div>
+        <Plus className="w-4 h-4 mr-2" /> Add Goals
+      </Button>
 
       {/* md:-mt-16 cancels Shell's pt-16 (there to clear the fixed
           notification/theme icons) -- now that Add Goals docks next to those
           icons instead of reaching for them from the page's own header, the
           Goals title has nothing left near that corner and doesn't need the
           clearance, so this un-does the big gap above the heading on desktop.
-          Light-theme Tree View drops max-w/mx-auto so the section can
-          stretch to the full width of <main> (no leftover page-background
-          gutters on wide screens) -- light theme only for now; dark keeps
-          its max-w-[100rem] exactly as before. */}
+          Tree View drops max-w/mx-auto (both themes) so the section can
+          stretch to the full width of <main> -- no leftover page-background
+          gutters on wide screens. */}
       <PageTransition
         className={cn(
           "p-4 md:p-8 md:-mt-16 space-y-8",
-          !(view === "tree" && isLight) && "max-w-[100rem] mx-auto"
+          view !== "tree" && "max-w-[100rem] mx-auto"
         )}
       >
       <Confetti active={showConfetti} />
 
-      {/* Wraps the heading + toggle/search row only (not the tree canvas
-          below, which already shows the full sharp image) so the tree scene
-          can bleed up behind them instead of stopping in a hard box right
-          below this content. A blurred, faded copy of the same background
-          sits behind this region -- blurred so "Goals" and the buttons stay
-          easily readable over it, faded out toward its own bottom edge so it
-          dissolves into the sharp canvas beneath rather than double-showing
-          the image. Tree View only; Card View has no tree background.
-          The wrapper needs `z-0` (not just `relative`) -- `position:
-          relative` alone doesn't create a new stacking context, so the
-          backdrop's `-z-10` was escaping past this wrapper to the
-          document's root stacking context and rendering behind literally
-          everything (invisible under the page's own opaque background)
-          instead of just behind its siblings here. */}
-      <div className="relative z-0">
-        {view === "tree" && (
-          <div
-            aria-hidden
-            className={cn(
-              "absolute bottom-0 -z-10 bg-cover bg-center pointer-events-none",
-              // Light theme: cancel PageTransition's own p-4/md:p-8 on every
-              // side (including top) so the backdrop reaches the section's
-              // true (now full-width) edges and bleeds up past the
-              // container's own top padding instead of leaving a strip of
-              // plain page background above "Goals" -- dark keeps the plain
-              // top-0/inset-x-0 it already had.
-              isLight ? "-inset-x-4 md:-inset-x-8 -top-4 md:-top-8" : "inset-x-0 top-0"
-            )}
-            style={{
-              backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
-              // This header strip is much wider than it is tall, so `cover`
-              // (via the `bg-cover` class) already crops it down to a thin
-              // horizontal slice -- `bg-center` (rather than the previous
-              // `bg-top`) samples that slice from the tree's actual canopy
-              // area instead of the decorative leaf sprigs painted in the
-              // art's corners, which blew up into odd blotchy shapes when
-              // stretched across this strip. A heavier blur (was 28px)
-              // smooths whatever detail remains into a soft color wash
-              // rather than a mini re-drawing of the scene.
-              filter: "blur(48px)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 94%)",
-              maskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 94%)",
-            }}
-          />
-        )}
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Goals</h1>
-          <p className="text-muted-foreground mt-1">
-            Everyone's goals, out in the open. Cheer each other on.
-          </p>
-        </div>
-
-        <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
-          <Plus className="w-4 h-4 mr-2" /> Add Goals
-        </Button>
-
-        <Dialog
+      {/* Mounted once regardless of view/breakpoint -- it's a modal overlay,
+          so where it lives in the tree doesn't affect where it appears. */}
+      <Dialog
           open={isDialogOpen}
           onOpenChange={(o) => {
             setIsDialogOpen(o);
@@ -347,7 +339,6 @@ export default function Goals() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
       {!session && (
         <div className="p-4 text-center bg-muted/30 border border-dashed rounded-2xl text-sm text-muted-foreground">
@@ -355,82 +346,57 @@ export default function Goals() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row items-center gap-3">
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setView("tree")}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
-              view === "tree"
-                ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
-                : "border border-border text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <TreeDeciduous className="w-4 h-4" /> Tree View
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("card")}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors",
-              view === "card"
-                ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
-                : "border border-border text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutGrid className="w-4 h-4" /> Card View
-          </button>
-        </div>
-
-        <div className="flex-1 flex justify-center w-full">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Find someone..."
-              className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
-            />
+      {/* Plain in-flow header, on the page's normal background -- shown
+          below lg always, and at lg+ for Card View. In Tree View at lg+ this
+          is replaced by the identical content overlaid directly on the tree
+          art itself (passed into GoalsTreeView as `header`, using the same
+          headingBlock/searchInput/toggleButtons so the two can't drift
+          apart) -- hidden here rather than removed so mobile/tablet Tree
+          View still gets a normal, readable header instead of cramming text
+          onto a short image. */}
+      <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-start justify-between gap-3 shrink-0">
+            {headingBlock}
+            <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
+              <Plus className="w-4 h-4 mr-2" /> Add Goals
+            </Button>
           </div>
+          <div className="flex-1 flex justify-center w-full">{searchInput}</div>
         </div>
-
-        {/* Balances the toggle group's width so the search bar above sits
-            visually centered in the row instead of drifting toward the
-            toggle side. */}
-        <div className="hidden md:block w-[196px] shrink-0" />
-      </div>
+        {toggleButtons}
       </div>
 
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        // Light theme: cancel the padding here too, so the sharp canvas
-        // reaches the same full-width edges as the blurred backdrop above
-        // it instead of leaving a gutter of its own. Dark theme unchanged.
-        // `relative z-0` (needs the explicit z-0, not just relative -- same
-        // stacking-context gotcha as the header backdrop above) both hosts
-        // the bottom fade-out backdrop below and gives the detail panel a
+        // `-mx-4 md:-mx-8` cancels PageTransition's own padding so the tree
+        // art reaches the true full width of <main> instead of leaving a
+        // gutter of its own (both themes). `lg:-mt-8` additionally cancels
+        // its top padding at lg+ so the overlaid header can start flush with
+        // the very top of the page instead of leaving a strip of plain page
+        // background above "Goals" -- below lg the header stays in normal
+        // flow above this box (see above) so no top cancel is needed there.
+        // `relative z-0` (needs the explicit z-0, not just relative -- a
+        // stacking-context gotcha: `position: relative` alone doesn't
+        // create one, so a plain z-index on a descendant can escape past
+        // this wrapper to the document root) gives the detail panel a
         // positioning root to float over at lg+ (see TreeDetailPanel).
-        <div className={cn("relative z-0", isLight && "-mx-4 md:-mx-8")}>
-          {isLight && (
-            <div
-              aria-hidden
-              className="absolute -z-10 left-0 right-0 top-full h-24 md:h-40 bg-cover bg-bottom pointer-events-none"
-              style={{
-                backgroundImage: `url(${import.meta.env.BASE_URL}${treeBgFile})`,
-                filter: "blur(28px)",
-                transform: "scale(1.1)",
-                WebkitMaskImage: "linear-gradient(to bottom, black 0%, transparent 88%)",
-                maskImage: "linear-gradient(to bottom, black 0%, transparent 88%)",
-              }}
-            />
-          )}
+        <div className="relative z-0 -mx-4 md:-mx-8 lg:-mt-8 lg:-mb-8">
           <GoalsTreeView
             people={sortedPeople}
             goalsByOwner={goalsByOwner}
             onSelect={setSelected}
             selectedId={selected?.id ?? null}
+            header={
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {headingBlock}
+                  <div className="flex-1 flex justify-center w-full">{searchInput}</div>
+                </div>
+                {toggleButtons}
+              </div>
+            }
           />
           {selected && (
             <TreeDetailPanel
