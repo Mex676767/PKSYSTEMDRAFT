@@ -1,15 +1,22 @@
 import { useState } from "react";
-import { X, ListChecks, Send } from "lucide-react";
+import { MoreVertical, ListChecks, Send, Leaf, Sprout, TreeDeciduous, ChevronDown } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment } from "@/hooks/use-social";
 import { GOAL_TERM_META, GOAL_CATEGORY_META, type Goal, type GoalTerm } from "@/hooks/use-goals";
+import { titleLabel } from "@/lib/titles";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
 
 // Mirrors the ordering in pages/goals.tsx -- kept local rather than shared
 // since it's a small display-order constant, not real app state.
-const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
+const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
+
+const TERM_ICON: Record<GoalTerm, { Icon: typeof Leaf; badge: string }> = {
+  short: { Icon: Leaf, badge: "bg-emerald-500/15 text-emerald-500" },
+  mid: { Icon: Sprout, badge: "bg-amber-500/15 text-amber-500" },
+  long: { Icon: TreeDeciduous, badge: "bg-teal-500/15 text-teal-500" },
+};
 
 type Tab = "goals" | "progress" | "comments";
 
@@ -20,8 +27,8 @@ function personCompletion(goals: Goal[]): number {
 
 // The right-side panel that opens when someone is picked on the tree --
 // replaces the old "open a goals dialog" click behavior for Tree View, with
-// Goals / Progress / Comments tabs matching the reference layout. Card View
-// keeps the plain dialog (pages/goals.tsx gates which one renders).
+// Goals / Progress / Comments tabs. Card View keeps the plain dialog
+// (pages/goals.tsx gates which one renders).
 export function TreeDetailPanel({
   person,
   goals,
@@ -33,10 +40,18 @@ export function TreeDetailPanel({
 }) {
   const { session } = useAuth();
   const [tab, setTab] = useState<Tab>("goals");
+  // Which term's card list is expanded -- the term rows start collapsed
+  // (just an icon + label + count) and open in place when tapped, rather
+  // than dumping every goal's full detail at once.
+  const [expandedTerm, setExpandedTerm] = useState<GoalTerm | null>(null);
   const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
   const [commentText, setCommentText] = useState("");
   const completion = personCompletion(goals);
+  const totalCompleted = goals.filter((g) => g.completed).length;
+
+  const subtitle = person.department ?? person.role ?? "No team";
+  const badgeLabel = person.active_title ? titleLabel(person.active_title) : person.role;
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,11 +60,8 @@ export function TreeDetailPanel({
   };
 
   return (
-    // A floating glass layer over the tree environment, not a boxed card --
-    // translucent + blurred instead of a bordered panel, per the "no visible
-    // border/outline/stroke" ask.
-    <div className="w-full lg:w-80 shrink-0 bg-background/70 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[640px]">
-      <div className="p-4 flex items-start gap-3 border-b border-white/10">
+    <div className="w-full lg:w-80 shrink-0 bg-card rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[640px]">
+      <div className="p-4 flex items-start gap-3 border-b border-border">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
@@ -58,22 +70,37 @@ export function TreeDetailPanel({
         />
         <div className="min-w-0 flex-1">
           <p className="font-bold truncate">@{person.username}</p>
-          <p className="text-xs text-muted-foreground truncate">{person.role ?? "No role"}</p>
-          <span
-            className={cn(
-              "inline-block mt-1.5 text-[10px] font-bold text-white rounded-full px-2 py-0.5",
-              colorForId(person.id)
-            )}
-          >
-            {completion}% complete
-          </span>
+          <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+          {badgeLabel && (
+            <span
+              className={cn(
+                "inline-block mt-1.5 text-[10px] font-bold text-white rounded-full px-2 py-0.5",
+                colorForId(person.id)
+              )}
+            >
+              {badgeLabel}
+            </span>
+          )}
         </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground shrink-0">
-          <X className="w-4 h-4" />
+        <button onClick={onClose} title="Close" className="text-muted-foreground hover:text-foreground shrink-0">
+          <MoreVertical className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex border-b border-white/10 shrink-0">
+      <div className="p-4 pb-0 grid grid-cols-2 gap-2 shrink-0">
+        <div className="rounded-xl bg-muted/50 px-3 py-2 text-center">
+          <div className="text-lg font-bold">{completion}%</div>
+          <div className="text-[10px] text-muted-foreground">Completion</div>
+        </div>
+        <div className="rounded-xl bg-muted/50 px-3 py-2 text-center">
+          <div className="text-lg font-bold">
+            {totalCompleted}/{goals.length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Goals</div>
+        </div>
+      </div>
+
+      <div className="flex border-b border-border shrink-0 mt-3">
         {(["goals", "progress", "comments"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -94,48 +121,75 @@ export function TreeDetailPanel({
           (goals.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No goals posted yet.</p>
           ) : (
-            TERM_ORDER.map((term) => {
-              const termGoals = goals.filter((g) => g.term === term);
-              if (termGoals.length === 0) return null;
-              return (
-                <div key={term} className="space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {GOAL_TERM_META[term].label}
-                  </h4>
-                  {termGoals.map((goal) => (
-                    <div key={goal.id} className="rounded-lg border border-border p-2.5 space-y-1.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={cn(
-                            "text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
-                            goal.category === "career" ? "bg-secondary/20 text-secondary" : "bg-primary/15 text-primary"
-                          )}
-                        >
-                          {GOAL_CATEGORY_META[goal.category].label}
-                        </span>
-                        <span className="text-xs font-medium">{goal.title}</span>
-                      </div>
-                      {goal.description && <p className="text-[11px] text-muted-foreground">{goal.description}</p>}
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{goal.progress}%</span>
-                      </div>
-                      {goal.accountability && (
-                        <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1">
-                          <ListChecks className="w-3 h-3 shrink-0 mt-0.5" />
-                          <span>{goal.accountability}</span>
-                        </div>
+            <>
+              {TERM_ORDER.map((term) => {
+                const termGoals = goals.filter((g) => g.term === term);
+                const termCompleted = termGoals.filter((g) => g.completed).length;
+                const { Icon, badge } = TERM_ICON[term];
+                const isOpen = expandedTerm === term;
+                return (
+                  <div key={term} className="rounded-lg border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedTerm(isOpen ? null : term)}
+                      disabled={termGoals.length === 0}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 disabled:opacity-50"
+                    >
+                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center shrink-0", badge)}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </span>
+                      <span className="text-xs font-semibold flex-1 text-left">{GOAL_TERM_META[term].label} Goals</span>
+                      <span className="text-xs text-muted-foreground">
+                        {termCompleted}/{termGoals.length}
+                      </span>
+                      {termGoals.length > 0 && (
+                        <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
                       )}
-                    </div>
-                  ))}
-                </div>
-              );
-            })
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-3 pb-3 space-y-2 border-t border-border pt-2.5">
+                        {termGoals.map((goal) => (
+                          <div key={goal.id} className="rounded-lg bg-muted/30 p-2.5 space-y-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={cn(
+                                  "text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
+                                  goal.category === "career" ? "bg-secondary/20 text-secondary" : "bg-primary/15 text-primary"
+                                )}
+                              >
+                                {GOAL_CATEGORY_META[goal.category].label}
+                              </span>
+                              <span className="text-xs font-medium">{goal.title}</span>
+                            </div>
+                            {goal.description && <p className="text-[11px] text-muted-foreground">{goal.description}</p>}
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-primary transition-all"
+                                  style={{ width: `${goal.progress}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{goal.progress}%</span>
+                            </div>
+                            {goal.accountability && (
+                              <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1">
+                                <ListChecks className="w-3 h-3 shrink-0 mt-0.5" />
+                                <span>{goal.accountability}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <p className="text-[11px] text-muted-foreground italic text-center pt-1">
+                "Small steps every day lead to big results."
+              </p>
+            </>
           ))}
 
         {tab === "progress" && (

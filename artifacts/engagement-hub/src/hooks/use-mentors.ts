@@ -36,6 +36,7 @@ export type DirectoryProfile = {
   role: string | null;
   avatar_url: string | null;
   active_border: string | null;
+  active_title: string | null;
 };
 
 export function useDirectory() {
@@ -44,7 +45,7 @@ export function useDirectory() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, department, role, avatar_url, active_border")
+        .select("id, username, department, role, avatar_url, active_border, active_title")
         .not("username", "is", null)
         .order("username");
       if (error) throw error;
