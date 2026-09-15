@@ -580,7 +580,9 @@ function PersonGoalCard({
         />
         <div className="min-w-0">
           <div className="font-bold text-base truncate">@{person.username}</div>
-          <div className="text-xs text-muted-foreground truncate">{person.role ?? "No role"}</div>
+          <div className="text-xs text-muted-foreground truncate">
+            {[person.role, person.department].filter(Boolean).join(" · ") || "No role"}
+          </div>
         </div>
       </button>
 
