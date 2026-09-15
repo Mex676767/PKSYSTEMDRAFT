@@ -50,8 +50,12 @@ export function TreeDetailPanel({
   const completion = personCompletion(goals);
   const totalCompleted = goals.filter((g) => g.completed).length;
 
-  const subtitle = person.department ?? person.role ?? "No team";
-  const badgeLabel = person.active_title ? titleLabel(person.active_title) : person.role;
+  // Position (role) takes the priority subtitle spot; the unlocked title is
+  // its own badge alongside it -- previously the title badge fell back to
+  // showing the role when no title was set, which meant anyone WITH a title
+  // silently lost their role/position from view entirely.
+  const position = person.role ?? person.department ?? "No team";
+  const badgeLabel = person.active_title ? titleLabel(person.active_title) : null;
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +74,7 @@ export function TreeDetailPanel({
         />
         <div className="min-w-0 flex-1">
           <p className="font-bold truncate">@{person.username}</p>
-          <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+          <p className="text-xs text-muted-foreground truncate">{position}</p>
           {badgeLabel && (
             <span
               className={cn(
