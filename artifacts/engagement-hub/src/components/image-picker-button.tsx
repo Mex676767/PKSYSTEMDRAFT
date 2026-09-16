@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ClipboardPaste, Plus } from "lucide-react";
+import { Camera, ClipboardPaste, Plus } from "lucide-react";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { cn } from "@/lib/utils";
 
@@ -13,16 +13,23 @@ import { cn } from "@/lib/utils";
 // Used the same everywhere an image can be attached -- goal/challenge
 // creation, progress photos, profile avatar, social posts, desk setups --
 // so the picker looks and behaves identically no matter where it shows up.
+//
+// `iconOnly` collapses both zones into one small round button (back to a
+// merged click-to-browse / focus-then-paste interaction) for tight spots
+// like a toolbar overlaid inside a textarea, where the full dropzone+pill
+// doesn't fit.
 export function ImagePickerButton({
   onImage,
   className,
   label = "Upload a photo",
   disabled = false,
+  iconOnly = false,
 }: {
   onImage: (file: File) => void;
   className?: string;
   label?: string;
   disabled?: boolean;
+  iconOnly?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -76,6 +83,28 @@ export function ImagePickerButton({
       onChange={handleFileChange}
     />
   );
+
+  if (iconOnly) {
+    return (
+      <div
+        {...pasteZone}
+        onClick={() => !disabled && fileInputRef.current?.click()}
+        title={armed ? "Ready — press Ctrl+V, or drop it" : `${label} (or paste with Ctrl+V)`}
+        className={cn(
+          "inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-dashed transition-colors select-none shrink-0",
+          disabled
+            ? "opacity-50 cursor-not-allowed border-border text-muted-foreground"
+            : armed
+              ? "cursor-pointer border-primary bg-gradient-to-br from-primary to-secondary text-white"
+              : "cursor-pointer border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-muted/40",
+          className
+        )}
+      >
+        {armed ? <ClipboardPaste className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
+        {input}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>

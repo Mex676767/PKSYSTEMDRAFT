@@ -75,13 +75,26 @@ export default function Social() {
                     {initialsForUsername(profile?.username ?? "?")}
                   </AvatarFallback>
                 </Avatar>
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  onPaste={handlePaste}
-                  placeholder="What's on your mind?"
-                  className="flex-1 min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
-                />
+                <div className="relative flex-1">
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    onPaste={handlePaste}
+                    placeholder="What's on your mind?"
+                    className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 pt-2 pb-11 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                  />
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="h-8 rounded-full px-4"
+                      disabled={createPost.isPending || (!body.trim() && !imageFile)}
+                    >
+                      {createPost.isPending ? "Posting..." : "Post"}
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {imagePreview && (
@@ -96,13 +109,6 @@ export default function Social() {
                   </button>
                 </div>
               )}
-
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <ImagePickerButton onImage={setImage} label="Photo" />
-                <Button type="submit" disabled={createPost.isPending || (!body.trim() && !imageFile)}>
-                  {createPost.isPending ? "Posting..." : "Post"}
-                </Button>
-              </div>
             </form>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-2">Sign in to post something.</p>
