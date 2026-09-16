@@ -3,34 +3,21 @@ import { Camera, ClipboardPaste, Plus } from "lucide-react";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { cn } from "@/lib/utils";
 
-// Two distinct zones instead of one dual-purpose control: a dashed dropzone
-// on top that's just for paste (click it, or focus it, then Ctrl+V -- also
-// accepts a real drag-and-drop) and a separate pill link below it for
-// browsing to a file. Modeled on the classic "Paste or drag files here / +
-// Upload local files" attachment widget, restyled with the app's own
-// primary/secondary gradient + pill language instead of a generic gray
-// dashed box, so it reads as part of this UI rather than a bolted-on widget.
-// Used the same everywhere an image can be attached -- goal/challenge
-// creation, progress photos, profile avatar, social posts, desk setups --
-// so the picker looks and behaves identically no matter where it shows up.
-//
-// `iconOnly` collapses both zones into one small round button (back to a
-// merged click-to-browse / focus-then-paste interaction) for tight spots
-// like a toolbar overlaid inside a textarea, where the full dropzone+pill
-// doesn't fit.
-export function ImagePickerButton({
-  onImage,
-  className,
-  label = "Upload a photo",
-  disabled = false,
-  iconOnly = false,
-}: {
-  onImage: (file: File) => void;
-  className?: string;
-  label?: string;
-  disabled?: boolean;
-  iconOnly?: boolean;
-}) {
+export function ImagePickerButton(
+  {
+    onImage,
+    className,
+    label = "Upload a photo",
+    disabled = false,
+    iconOnly = false,
+  }: {
+    onImage: (file: File) => void;
+    className?: string;
+    label?: string;
+    disabled?: boolean;
+    iconOnly?: boolean;
+  }
+) {
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

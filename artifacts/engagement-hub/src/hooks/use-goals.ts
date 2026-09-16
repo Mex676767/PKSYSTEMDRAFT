@@ -18,9 +18,6 @@ export const GOAL_CATEGORY_META: Record<GoalCategory, { label: string }> = {
   career: { label: "Career Goal" },
 };
 
-// Deadlines are fixed by term, not hand-picked -- computed once at creation
-// and stored like any other field. Long-term is framed to the team as
-// "3-5 years"; this uses the near end of that range as the actual date.
 export function computeTargetDate(term: GoalTerm): string {
   const now = new Date();
   if (term === "short") return endOfYear(now).toISOString();
@@ -43,8 +40,6 @@ export type Goal = {
   owner: { username: string | null; role: string | null } | null;
 };
 
-// !inner means a goal whose owner is hidden by RLS (e.g. deactivated) drops
-// out of the result entirely, instead of just showing up with a null owner.
 const GOAL_SELECT = "*, owner:profiles!inner(username, role)";
 
 export function useGoalsFeed() {
@@ -105,8 +100,6 @@ export function useCreateGoal() {
   });
 }
 
-// RLS allows this for the goal's own owner, or any admin -- see
-// admin-delete-goals-posts-setup.sql.
 export function useDeleteGoal() {
   const qc = useQueryClient();
   return useMutation({

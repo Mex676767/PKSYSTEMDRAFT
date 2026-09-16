@@ -4,9 +4,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
-// "target_type" identifies which feature a comment/reaction is attached to.
-// Add new values here as more features (birthdays, posts, ...) plug into
-// this same shared comment/reaction system.
 export type TargetType = "goal" | "birthday" | "post" | "hof_record" | "challenge" | "profile";
 
 export type Comment = {
@@ -28,7 +25,6 @@ export type Reaction = {
   user: { username: string | null } | null;
 };
 
-// The full picker (opened via the "+" button), Discord-style.
 export const EMOJI_PICKER_OPTIONS = [
   "👍", "👎", "❤️", "🔥", "🎉", "😂", "😍", "😮", "😢", "😡",
   "🙌", "👏", "🤔", "😅", "🥳", "💯", "🚀", "✨", "👌", "🙏",
@@ -40,14 +36,6 @@ export const EMOJI_PICKER_OPTIONS = [
   "🫠", "🫶", "🎊", "🍾", "📣", "🔔", "✅", "❌", "❓", "❗",
 ];
 
-// A goal card, challenge card, etc. each independently subscribing to its
-// own Realtime channel meant dozens of open sockets on a busy page (one per
-// visible card), which is almost certainly what made comments/reactions
-// intermittently error out. Instead, every hook below shares ONE
-// ref-counted channel per (table, target_type) pair -- opened on first use,
-// closed once the last subscriber unmounts -- and precisely invalidates
-// just the affected target's query (plus the bulk/summary query for that
-// type) from the realtime payload's own target_id.
 const realtimeRegistry = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
 function useRealtimeInvalidate(table: "comments" | "reactions", targetType: TargetType) {
@@ -120,8 +108,6 @@ export function useAddComment(targetType: TargetType, targetId: string) {
   });
 }
 
-// RLS allows this for the comment's own author, or any admin -- see
-// admin-delete-comments-setup.sql.
 export function useDeleteComment(targetType: TargetType, targetId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -149,10 +135,6 @@ export function useReactions(targetType: TargetType, targetId: string) {
   });
 }
 
-// Bulk variants for summary cards that need previews/totals across many
-// targets at once (e.g. one card per person, aggregating across all their
-// goals) without firing one query per target. Shares the same realtime
-// channel as the single-target hooks above (see useRealtimeInvalidate).
 export function useCommentsForTargets(targetType: TargetType, targetIds: string[]) {
   useRealtimeInvalidate("comments", targetType);
   return useQuery({

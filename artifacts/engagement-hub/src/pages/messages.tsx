@@ -48,7 +48,7 @@ export default function Messages() {
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ height: "min(70vh, 640px)" }}>
         <div className="flex h-full">
-          {/* Conversation list -- hidden on mobile once a thread is open */}
+          {}
           <div className={cn("w-full md:w-80 shrink-0 border-r border-border overflow-y-auto", selected && "hidden md:block")}>
             {isLoading ? (
               <div className="p-8 flex justify-center"><div className="animate-pulse w-6 h-6 rounded-full bg-primary/20" /></div>
@@ -96,7 +96,7 @@ export default function Messages() {
             )}
           </div>
 
-          {/* Thread */}
+          {}
           <div className={cn("flex-1 min-w-0 flex flex-col", !selected && "hidden md:flex")}>
             {selected ? (
               <ConversationThread conversation={selected} onBack={() => setSelectedId(null)} />
@@ -125,12 +125,10 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
   const markedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Once per opened conversation -- avoid re-firing the RPC on every
-    // realtime-triggered refetch of the same thread.
-    if (markedRef.current === conversation.id) return;
+    if (markedRef.current === conversation.id)
+      return;
     markedRef.current = conversation.id;
     markRead.mutate(conversation.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id]);
 
   useEffect(() => {

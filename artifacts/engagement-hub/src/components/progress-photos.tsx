@@ -11,20 +11,17 @@ import {
 import { getErrorMessage } from "@/lib/utils";
 import { ImagePickerButton } from "@/components/image-picker-button";
 
-// A small photo strip -- thumbnails plus an "add" tile when the viewer is
-// allowed to upload (the goal's owner, or either side of a challenge; the
-// caller decides via `canUpload`, RLS enforces it server-side too). Click a
-// thumbnail for a full-size lightbox; hover shows a delete button for the
-// photo's own uploader or an admin.
-export function ProgressPhotos({
-  targetType,
-  targetId,
-  canUpload,
-}: {
-  targetType: ProgressPhotoTargetType;
-  targetId: string;
-  canUpload: boolean;
-}) {
+export function ProgressPhotos(
+  {
+    targetType,
+    targetId,
+    canUpload,
+  }: {
+    targetType: ProgressPhotoTargetType;
+    targetId: string;
+    canUpload: boolean;
+  }
+) {
   const { session, isAdmin } = useAuth();
   const { data: photos = [] } = useProgressPhotos(targetType, targetId);
   const addPhoto = useAddProgressPhoto(targetType, targetId);

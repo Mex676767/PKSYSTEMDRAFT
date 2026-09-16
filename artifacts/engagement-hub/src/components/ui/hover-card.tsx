@@ -10,9 +10,6 @@ const HoverCardContent = React.forwardRef<
   React.ElementRef<typeof HoverCardPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
 >(({ className, align = 'center', sideOffset = 4, ...props }, ref) => (
-  // Portalled to document.body, like PopoverContent -- otherwise this
-  // renders in place in the DOM tree and gets clipped by any ancestor with
-  // overflow-hidden (e.g. an image card with rounded corners).
   <HoverCardPrimitive.Portal>
     <HoverCardPrimitive.Content
       ref={ref}

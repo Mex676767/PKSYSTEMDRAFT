@@ -28,9 +28,6 @@ export type GuessResponse = {
   target: string | null;
 };
 
-// Today's date as a stable query-key/filter value (recomputed on remount,
-// which is fine -- a stale "today" just means a refresh is needed after
-// midnight, same as real Wordle).
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }

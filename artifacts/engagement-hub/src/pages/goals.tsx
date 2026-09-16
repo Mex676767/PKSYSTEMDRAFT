@@ -115,9 +115,6 @@ export default function Goals() {
       )
     );
 
-    // Best-effort: a goal that saved but whose photo failed to attach still
-    // counts as created (it can always get a photo added afterward from its
-    // card) -- so this never turns a successful goal into a reported failure.
     if (session) {
       await Promise.allSettled(
         results.map((r, i) => {
@@ -160,9 +157,6 @@ export default function Goals() {
   const q = search.trim().toLowerCase();
   const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
 
-  // No more grouping by role -- just a stable, sensible order (rank, then
-  // name) so the grid fills side by side instead of fragmenting into
-  // mostly-single-card "rows" per role.
   const sortedPeople = useMemo(() => {
     const rankOf = (role: string | null) => {
       const idx = ROLES.indexOf(role as (typeof ROLES)[number]);
@@ -177,11 +171,6 @@ export default function Goals() {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
   }
 
-  // Shared between the plain in-flow header (below lg, and Card View at any
-  // size) and the version overlaid directly on the tree art at lg+ (see
-  // GoalsTreeView's `header` prop) -- same controls, same bound state,
-  // rendered at two different places in the tree rather than duplicated by
-  // hand so they can't drift apart.
   const toggleButtons = (
     <div className="flex items-center gap-2">
       <button
@@ -232,27 +221,7 @@ export default function Goals() {
 
   return (
     <>
-      {/* Rendered outside PageTransition on purpose: that wrapper animates
-          with framer-motion, and any transformed ancestor becomes the
-          containing block for `fixed` descendants -- nested inside it, this
-          button would position relative to PageTransition's own box instead
-          of the viewport, landing well below the notification/theme icons
-          instead of next to them. Docks at top-4 right-[124px], just left
-          of those icons (top-4 right-4 / right-[68px]). Mobile keeps the
-          plain in-flow button below instead -- there's no room to spare
-          next to the icons on a narrow screen.
-          Inline `position: fixed, zIndex: 50` because the `.hover-elevate`
-          utility class (`.hover-elevate:not(.no-default-hover-elevate) {
-          position: relative; z-index: 0; }`) beats the plain `fixed`/`z-50`
-          Tailwind classes on BOTH properties at higher CSS specificity (a
-          `:not()` selector counts as an extra class), silently winning over
-          them otherwise -- without the zIndex override too, this button was
-          painting behind the tree hero's own z-30 header overlay despite
-          `z-50` in its className, since Tree View now overlays real content
-          directly on top of this same corner instead of leaving it as the
-          topmost fixed layer over a separate backdrop. Plain solid button,
-          no frosted backing needed -- the tree scene no longer has a blurred
-          backdrop bleeding up behind this corner, so nothing washes it out. */}
+      {}
       <Button
         onClick={() => setIsDialogOpen(true)}
         disabled={!session}
@@ -262,14 +231,7 @@ export default function Goals() {
         <Plus className="w-4 h-4 mr-2" /> Add Goals
       </Button>
 
-      {/* md:-mt-16 cancels Shell's pt-16 (there to clear the fixed
-          notification/theme icons) -- now that Add Goals docks next to those
-          icons instead of reaching for them from the page's own header, the
-          Goals title has nothing left near that corner and doesn't need the
-          clearance, so this un-does the big gap above the heading on desktop.
-          Tree View drops max-w/mx-auto (both themes) so the section can
-          stretch to the full width of <main> -- no leftover page-background
-          gutters on wide screens. */}
+      {}
       <PageTransition
         className={cn(
           "p-4 md:p-8 md:-mt-16 space-y-8",
@@ -278,8 +240,7 @@ export default function Goals() {
       >
       <Confetti active={showConfetti} />
 
-      {/* Mounted once regardless of view/breakpoint -- it's a modal overlay,
-          so where it lives in the tree doesn't affect where it appears. */}
+      {}
       <Dialog
           open={isDialogOpen}
           onOpenChange={(o) => {
@@ -395,21 +356,9 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Plain in-flow header, on the page's normal background -- shown
-          below lg always, and at lg+ for Card View. In Tree View at lg+ this
-          is replaced by the identical content overlaid directly on the tree
-          art itself (passed into GoalsTreeView as `header`, using the same
-          headingBlock/searchInput/toggleButtons so the two can't drift
-          apart) -- hidden here rather than removed so mobile/tablet Tree
-          View still gets a normal, readable header instead of cramming text
-          onto a short image. */}
+      {}
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
-        {/* `relative` + the search wrapper's `sm:absolute sm:left-1/2
-            sm:-translate-x-1/2` centers it against the row's TRUE full
-            width, regardless of how wide the heading block ends up --
-            `flex-1 justify-center` (the previous approach) only centered it
-            within the space left over after the heading, which visibly
-            drifted right of center once the heading's own width varied. */}
+        {}
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-start justify-between gap-3 shrink-0">
             {headingBlock()}
@@ -425,18 +374,6 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        // `-mx-4 md:-mx-8` cancels PageTransition's own padding so the tree
-        // art reaches the true full width of <main> instead of leaving a
-        // gutter of its own (both themes). `lg:-mt-8` additionally cancels
-        // its top padding at lg+ so the overlaid header can start flush with
-        // the very top of the page instead of leaving a strip of plain page
-        // background above "Goals" -- below lg the header stays in normal
-        // flow above this box (see above) so no top cancel is needed there.
-        // `relative z-0` (needs the explicit z-0, not just relative -- a
-        // stacking-context gotcha: `position: relative` alone doesn't
-        // create one, so a plain z-index on a descendant can escape past
-        // this wrapper to the document root) gives the detail panel a
-        // positioning root to float over at lg+ (see TreeDetailPanel).
         <div className="relative z-0 -mx-4 md:-mx-8 lg:-mt-8 lg:-mb-8">
           <GoalsTreeView
             people={sortedPeople}
@@ -445,10 +382,7 @@ export default function Goals() {
             selectedId={selected?.id ?? null}
             header={
               <div className="space-y-4">
-                {/* Same true-center technique as the plain header above --
-                    absolutely positioned at the row's real midpoint instead
-                    of centered within whatever space the heading leaves
-                    over, which drifted right of center. */}
+                {}
                 <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
                   {headingBlock()}
                   <div className="w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2">{searchInput}</div>
@@ -520,24 +454,17 @@ export default function Goals() {
   );
 }
 
-// A general "wall" for the person, separate from any one goal -- react or
-// comment on them directly, the same way you'd leave something on their
-// profile, rather than being tied to a specific goal.
-// One card per person: name + a preview of their short/mid/long-term goal on
-// the left, and a real comment/reaction "wall" for them on the right/bottom
-// -- fully usable right there on the card, no need to open the dialog just
-// to say something. The two areas that open the full "all their goals"
-// dialog are separate buttons (avatar/name, and the goal list) so they
-// don't end up nesting inside the wall's own interactive buttons/inputs.
-function PersonGoalCard({
-  person,
-  goals,
-  onClick,
-}: {
-  person: DirectoryProfile;
-  goals: Goal[];
-  onClick: () => void;
-}) {
+function PersonGoalCard(
+  {
+    person,
+    goals,
+    onClick,
+  }: {
+    person: DirectoryProfile;
+    goals: Goal[];
+    onClick: () => void;
+  }
+) {
   const { session, isAdmin } = useAuth();
   const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
@@ -555,8 +482,6 @@ function PersonGoalCard({
     return map;
   }, [goals]);
 
-  // useComments returns oldest-first (chat-log order) -- take the last few
-  // and flip them for a newest-first preview.
   const recentComments = comments.slice(-2).reverse();
 
   const handleAddComment = (e: React.FormEvent) => {

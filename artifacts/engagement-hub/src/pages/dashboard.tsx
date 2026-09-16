@@ -31,8 +31,6 @@ export default function Dashboard() {
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const todayBirthdays = birthdays.filter((b) => b.isToday);
 
-  // Falls back to a generic greeting when there's no real logged-in profile
-  // (e.g. while login is temporarily disabled for testing).
   const displayName = profile?.username ?? "there";
   const displayPoints = profile?.points ?? 0;
   const displayStreak = profile?.current_streak ?? 0;
@@ -53,7 +51,7 @@ export default function Dashboard() {
 
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
 
-        {/* Goals - the main idea, so it gets the biggest, most prominent spot */}
+        {}
         <motion.div variants={slideUp}>
           <Card className="border-primary/20 shadow-md relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
@@ -104,7 +102,7 @@ export default function Dashboard() {
           </Card>
         </motion.div>
 
-        {/* Challenges - second priority */}
+        {}
         <motion.div variants={slideUp}>
           <Card className="border-secondary/20 shadow-sm relative overflow-hidden bg-gradient-to-br from-secondary/10 via-card to-card">
             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
@@ -146,12 +144,12 @@ export default function Dashboard() {
           </Card>
         </motion.div>
 
-        {/* Points - balance, recent activity, gift to others */}
+        {}
         <motion.div variants={slideUp}>
           <PointsCard />
         </motion.div>
 
-        {/* Hall of Fame + Birthdays - condensed, lowest priority row */}
+        {}
         <motion.div variants={slideUp} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="bg-gradient-to-br from-accent/25 to-transparent border-accent/20 shadow-sm hover:-translate-y-1 transition-transform duration-200">
             <CardContent className="p-4 flex items-center justify-between gap-3">

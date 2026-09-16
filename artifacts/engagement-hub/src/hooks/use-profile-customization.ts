@@ -98,10 +98,6 @@ export function useSetActiveBorder() {
   });
 }
 
-// Storage upload + profile row update, matching the trust level of
-// claimUsername (a direct update to the caller's own row) -- there's no
-// server-side validation this actually came through the upload flow, same
-// tradeoff as every other free-text profile field.
 export function useUploadAvatar() {
   const { session, refetchProfile } = useAuth();
   return useMutation({
@@ -116,8 +112,6 @@ export function useUploadAvatar() {
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      // Cache-bust so the new photo shows immediately instead of the
-      // browser (or a CDN) serving the previous upload at the same path.
       const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
       const { error: updateError } = await supabase
@@ -132,10 +126,6 @@ export function useUploadAvatar() {
   });
 }
 
-// Same "just set the column" trust level as useUploadAvatar -- a preset
-// icon is a generated data: URI (see lib/avatar-presets.ts), not a Storage
-// file, so this skips the upload step entirely. Passing null clears the
-// photo/icon back to the plain initials avatar.
 export function useSetAvatarUrl() {
   const { session, refetchProfile } = useAuth();
   return useMutation({

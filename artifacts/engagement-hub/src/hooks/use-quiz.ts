@@ -8,8 +8,6 @@ export type QuizQuestion = {
   options: string[];
 };
 
-// Only used by the admin/manage_quiz question-management UI -- includes
-// correct_index, which the player-facing get_quiz_questions() RPC omits.
 export type QuizQuestionFull = QuizQuestion & {
   correct_index: number;
   created_at: string;
@@ -28,7 +26,6 @@ export type QuizLeaderboardEntry = {
   total_answered: number;
 };
 
-// Player-facing: never exposes correct_index.
 export function useQuizQuestions() {
   return useQuery({
     queryKey: ["quiz-questions"],
@@ -86,8 +83,6 @@ export function useSubmitQuizAnswer() {
     },
   });
 }
-
-// ---- Question management (manage_quiz permission only, enforced by RLS) ----
 
 export function useAllQuizQuestions() {
   return useQuery({

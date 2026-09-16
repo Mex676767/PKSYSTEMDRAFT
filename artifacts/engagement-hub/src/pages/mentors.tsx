@@ -105,8 +105,6 @@ function OrganizationSection({
       if (!childrenOf.has(m.mentor_id)) childrenOf.set(m.mentor_id, []);
       childrenOf.get(m.mentor_id)!.push(m);
     }
-    // A "root" is a mentor who isn't themselves anyone's mentee -- the top
-    // of a chain. Dedupe since one mentor can appear across several rows.
     const seen = new Set<string>();
     const roots: { id: string; username: string | null | undefined }[] = [];
     for (const m of list) {
@@ -115,11 +113,6 @@ function OrganizationSection({
         roots.push({ id: m.mentor_id, username: m.mentor?.username });
       }
     }
-    // Two people can end up mentoring each other (or a longer cycle) --
-    // every mentor is then someone's mentee too, so the loop above finds no
-    // root at all even though real connections exist. Rather than silently
-    // showing "No connections yet", fall back to treating every distinct
-    // mentor as its own root so the cycle still renders (each side of it).
     if (roots.length === 0) {
       for (const m of list) {
         if (!seen.has(m.mentor_id)) {
@@ -131,10 +124,6 @@ function OrganizationSection({
     return { roots, childrenOf };
   }, [list]);
 
-  // Search filters the tree down to matching people plus their ancestor
-  // chain (so you can still see who they report up to), auto-expanding
-  // every branch along the way -- this is the main "easier to navigate"
-  // fix for a tree that can otherwise get deep fast.
   const { matchIds, forceExpandIds } = useMemo(() => {
     const q = search.trim().toLowerCase();
     const matchIds = new Set<string>();
@@ -208,14 +197,6 @@ function OrganizationSection({
       ) : hasSearch && forceExpandIds.size === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : (
-        // Each root is its own separate, self-contained tree -- boxed
-        // individually and centered as a group, rather than one continuous
-        // left-aligned stack, so unrelated mentor chains never read as
-        // connected to each other. The scroll-if-needed behavior lives on
-        // each box (not this row): flex-wrap only kicks in when the row
-        // itself is allowed to shrink, so a horizontal-scroll row would
-        // just keep everything on one line and can even clip content on
-        // both sides of the centered point instead of wrapping.
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-wrap justify-center gap-6">
           {roots.map((root) => (
             <motion.div
@@ -273,10 +254,11 @@ function TreeNode({
   hasSearch: boolean;
   directory: DirectoryProfile[];
 }) {
-  if (visited.has(personId)) return null; // guard against a bad cyclical pairing
+  if (visited.has(personId))
+    return null;
   const isMatch = matchIds.has(personId);
-  // While searching, hide branches that contain no match at all.
-  if (hasSearch && !forceExpandIds.has(personId) && !isMatch) return null;
+  if (hasSearch && !forceExpandIds.has(personId) && !isMatch)
+    return null;
 
   const nextVisited = new Set(visited).add(personId);
   const children = childrenOf.get(personId) ?? [];
@@ -336,10 +318,9 @@ function TreeNode({
   );
 }
 
-// One-click "add a mentee under this specific person" -- the mentor is
-// already implied by which node you clicked, so this only needs to ask for
-// the mentee, unlike the full New Pairing dialog (which picks both).
-function AddMenteeButton({ mentorId, directory }: { mentorId: string; directory: DirectoryProfile[] }) {
+function AddMenteeButton(
+  { mentorId, directory }: { mentorId: string; directory: DirectoryProfile[] }
+) {
   const createMentorship = useCreateMentorship();
   const [isOpen, setIsOpen] = useState(false);
   const [menteeId, setMenteeId] = useState("");

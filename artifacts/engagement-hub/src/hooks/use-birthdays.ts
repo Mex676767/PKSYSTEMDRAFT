@@ -6,13 +6,12 @@ export type BirthdayEntry = {
   id: string;
   username: string | null;
   department: string | null;
-  birthday: string; // YYYY-MM-DD
+  birthday: string
   isToday: boolean;
   daysUntil: number;
 };
 
 function monthDayOf(dateStr: string) {
-  // Parse as a plain calendar date, ignoring timezone shifts.
   const [, month, day] = dateStr.split("-").map(Number);
   return { month: month - 1, day };
 }

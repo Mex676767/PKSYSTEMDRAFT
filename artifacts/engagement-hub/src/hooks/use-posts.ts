@@ -14,8 +14,6 @@ export type Post = {
   author: { username: string | null } | null;
 };
 
-// !inner means a post from a hidden (e.g. deactivated) author drops out of
-// the feed entirely, instead of showing up with a blank author.
 const POST_SELECT = "*, author:profiles!inner(username)";
 
 export function usePostsFeed() {
@@ -93,9 +91,6 @@ export function useDeletePost() {
 
 export type DeskSetupEntry = Post & { vote_count: number };
 
-// The reactions table is a generic (target_type, target_id) pair with no
-// real foreign key to posts, so PostgREST can't embed/aggregate it for us --
-// fetch entries and their reaction counts separately and join client-side.
 export function useDeskSetupEntries() {
   return useQuery({
     queryKey: ["desk-setup-entries"],

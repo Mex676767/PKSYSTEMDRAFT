@@ -30,9 +30,8 @@ export default function Admin() {
   const { data: profiles = [], isLoading } = useAllProfiles();
   const [search, setSearch] = useState("");
 
-  // A non-admin who finds this URL just sees a normal 404 -- this panel
-  // isn't meant to be discoverable.
-  if (!isAdmin) return <NotFound />;
+  if (!isAdmin)
+    return <NotFound />;
 
   const filtered = profiles.filter(
     (p) =>

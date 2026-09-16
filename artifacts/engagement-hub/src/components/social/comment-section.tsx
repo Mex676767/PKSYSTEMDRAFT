@@ -13,12 +13,7 @@ export function CommentSection({
 }: {
   targetType: TargetType;
   targetId: string;
-  /**
-   * Set this when the section sits on a fixed, vividly-colored surface
-   * (e.g. the pink birthday highlight, a photo) rather than the normal
-   * page/card background -- see the matching prop on ReactionBar.
-   */
-  onDark?: boolean;
+  onDark?: boolean
 }) {
   const { session, isAdmin } = useAuth();
   const { data: comments = [] } = useComments(targetType, targetId);

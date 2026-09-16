@@ -18,21 +18,13 @@ export function ReactionBar({
 }: {
   targetType: TargetType;
   targetId: string;
-  /**
-   * Set this when the bar sits on a fixed, vividly-colored surface (e.g. the
-   * pink birthday highlight, a photo) rather than the normal page/card
-   * background -- that's a fixed-color contrast problem, independent of the
-   * light/dark theme toggle, so it needs its own always-light styling
-   * instead of the theme-aware muted/primary tokens.
-   */
-  onDark?: boolean;
+  onDark?: boolean
 }) {
   const { session } = useAuth();
   const { data: reactions = [] } = useReactions(targetType, targetId);
   const toggle = useToggleReaction(targetType, targetId);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Group into one pill per emoji actually used, in first-used order.
   const groups = useMemo(() => {
     const order: string[] = [];
     const map = new Map<string, typeof reactions>();

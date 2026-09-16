@@ -14,7 +14,6 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { useComments } from "@/hooks/use-social";
 
-// Displayed birthday date is month/day only, so any year works for formatting.
 function displayDate(birthday: string) {
   const [, month, day] = birthday.split("-").map(Number);
   return new Date(2000, month - 1, day);

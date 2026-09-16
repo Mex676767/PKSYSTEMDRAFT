@@ -1,9 +1,3 @@
-// Preset "icon" avatars -- no image assets or Storage needed, since each one
-// is just a small SVG (emoji centered on a gradient circle) encoded as a
-// data: URI and stored directly in profiles.avatar_url, the same column a
-// real uploaded photo goes in. UserAvatar/AvatarImage don't need to know the
-// difference -- it's still just an image URL to them.
-
 export type AvatarPreset = { id: string; emoji: string; colors: [string, string] };
 
 export const AVATAR_PRESETS: AvatarPreset[] = [
@@ -40,8 +34,6 @@ export function avatarPresetDataUri(preset: AvatarPreset): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-// So the app can tell a preset icon apart from a real uploaded photo (e.g.
-// to highlight which preset is currently active) without a separate column.
 export function presetIdFromAvatarUrl(avatarUrl: string | null): string | null {
   if (!avatarUrl?.startsWith("data:image/svg+xml,")) return null;
   const preset = AVATAR_PRESETS.find((p) => avatarUrl === avatarPresetDataUri(p));

@@ -4,13 +4,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
-// Both the sidebar (unread badge) and the Messages page itself call
-// useConversations() at the same time, and Supabase's realtime-js throws
-// ("cannot add postgres_changes callbacks ... after subscribe()") if two
-// separate channel objects are opened under the identical topic name and
-// both call .subscribe(). Share one ref-counted channel per topic instead --
-// the first caller creates and subscribes it, later callers just bump the
-// ref count, and it's only torn down once the last one unmounts.
 const channelRegistry = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
 function useSharedChannel(topic: string | null, register: (channel: RealtimeChannel) => void) {
@@ -35,7 +28,6 @@ function useSharedChannel(topic: string | null, register: (channel: RealtimeChan
         channelRegistry.delete(topic);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topic]);
 }
 
@@ -60,12 +52,9 @@ export type DirectMessage = {
   created_at: string;
 };
 
-// !inner so a conversation with a deactivated participant just drops out,
-// same pattern used for goals/challenges/posts.
 const CONVERSATION_SELECT =
   "*, userA:profiles!dm_conversations_user_a_fkey!inner(id, username, avatar_url, active_border), userB:profiles!dm_conversations_user_b_fkey!inner(id, username, avatar_url, active_border)";
 
-/** Whichever side of the conversation isn't me. */
 export function otherParticipant(c: Conversation, myId: string | undefined): DmProfile | null {
   if (!myId) return null;
   return c.user_a === myId ? c.userB : c.userA;
@@ -107,10 +96,6 @@ export function useConversations() {
     },
   });
 
-  // Live: new message, or one of mine getting marked read elsewhere, should
-  // refresh the inbox (ordering, unread badges) without a manual refresh.
-  // Shared channel -- see useSharedChannel above -- since the sidebar and
-  // this page's own list both call useConversations() at once.
   const myId = session?.user.id;
   useSharedChannel(myId ? `dm-inbox-${myId}` : null, (channel) => {
     channel.on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, () => {
@@ -151,8 +136,6 @@ export function useMessages(conversationId: string | null) {
   return query;
 }
 
-// RLS allows this for the message's own sender, or any admin -- see
-// dm-delete-message-setup.sql.
 export function useDeleteMessage(conversationId: string | null) {
   const qc = useQueryClient();
   return useMutation({

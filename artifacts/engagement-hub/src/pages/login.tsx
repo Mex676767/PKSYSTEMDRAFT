@@ -35,8 +35,6 @@ export default function Login() {
       setGoogleError(error);
       setGoogleLoading(false);
     }
-    // On success the page navigates away to Google, so there's nothing more
-    // to do here -- no local state to reset once we come back.
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -49,8 +47,6 @@ export default function Login() {
       setError(error);
       setStatus("error");
     }
-    // On success the auth listener picks up the new session automatically;
-    // no local "sent" state needed here since it's an instant sign-in.
   };
 
   return (

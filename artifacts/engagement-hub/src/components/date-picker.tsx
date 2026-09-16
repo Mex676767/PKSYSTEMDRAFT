@@ -2,12 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// A fully custom calendar popover, not <input type="date"> -- the native
-// picker's popup grid is OS/browser chrome with no CSS styling hook in any
-// browser, so it can never actually match the app's theme. Ported from the
-// Test-1 project's D.O.B. picker (same day-grid math, month/year nav, and
-// today/selected states), rebuilt in React + our design tokens.
-
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -15,12 +9,6 @@ const MONTH_NAMES = [
 const MONTH_ABBR = MONTH_NAMES.map((m) => m.slice(0, 3));
 const WEEKDAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-// Clicking the "{Month} {Year}" header drills up a level instead of forcing
-// one month/year at a time through the arrow buttons -- days -> months (pick
-// any month in the year) -> years (pick any year in a 12-year page). Picking
-// a cell at the months/years level drills back down one level rather than
-// straight to a day, so jumping straight from "years" to a specific day is
-// still just two clicks (year, then month) plus the day itself.
 type CalendarView = "days" | "months" | "years";
 const YEARS_PER_PAGE = 12;
 
@@ -38,11 +26,8 @@ function formatDisplay(value: string) {
   return `${d}/${m}/${y}`;
 }
 
-// Builds exactly 6 rows (42 cells) so the grid is always the same height --
-// leading/trailing cells spill into the adjacent month, shown dimmed but
-// still clickable.
 function buildDays(year: number, month: number) {
-  const firstWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7; // 0=Mon..6=Sun
+  const firstWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
   const daysInThisMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const daysInPrevMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const prevY = month === 0 ? year - 1 : year;
@@ -71,10 +56,8 @@ export function DatePicker({
   value: string | null;
   onChange: (date: string) => void;
   onClear?: () => void;
-  /** YYYY-MM-DD -- days after this are shown but not selectable. */
-  maxDate?: string;
-  /** YYYY-MM-DD -- days before this are shown but not selectable. */
-  minDate?: string;
+  maxDate?: string
+  minDate?: string
   placeholder?: string;
   className?: string;
 }) {

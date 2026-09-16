@@ -18,7 +18,6 @@ const TYPE_ICON: Record<AppNotification["type"], LucideIcon> = {
   dm: MessageSquare,
 };
 
-// Where clicking a notification should take you -- keyed by target_type.
 const TARGET_LINK: Record<string, string> = {
   goal: "/goals",
   birthday: "/birthdays",

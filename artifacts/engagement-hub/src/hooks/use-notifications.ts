@@ -34,14 +34,9 @@ export function useNotifications() {
       if (error) throw error;
       return data as AppNotification[];
     },
-    // Realtime below delivers new ones instantly -- this is just a safety
-    // net in case the socket ever drops without reconnecting.
     refetchInterval: 60000,
   });
 
-  // Live updates: a Postgres change on this user's own notification rows
-  // (new one inserted, or marked read from elsewhere) just refetches rather
-  // than trying to hand-merge the row, since the list is small (50 max).
   useEffect(() => {
     if (!session) return;
     const channel = supabase
@@ -55,7 +50,6 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user.id]);
 
   return query;

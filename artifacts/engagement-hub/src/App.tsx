@@ -13,7 +13,6 @@ import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ComingSoon } from '@/pages/coming-soon';
 
-// Pages
 import Login from '@/pages/login';
 import SetUsername from '@/pages/set-username';
 import Dashboard from '@/pages/dashboard';
@@ -24,16 +23,8 @@ import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
 
-// Launch scope is Social/Goals/Challenges only (see src/lib/feature-flags.ts)
-// -- everything below stays visible in the nav but renders ComingSoon
-// instead. Not imported as real page components at all right now, so
-// re-enabling one later is just: import it back and swap it in below.
-
 const queryClient = new QueryClient();
 
-// Re-enabled now that password-based test accounts exist as a workaround for
-// the still-unresolved Supabase magic-link email delivery (see Login page's
-// "sign in with a password instead" option).
 const REQUIRE_LOGIN = true;
 
 function Router() {

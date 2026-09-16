@@ -5,10 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 
-// Usernames only allow letters/numbers/underscore -- rather than let people
-// type something like "96 Mexha" and only find out it's invalid on submit,
-// sanitize as they type: spaces become underscores (keeps their intent
-// readable), anything else disallowed is just dropped.
 function sanitizeUsername(raw: string) {
   return raw.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
 }

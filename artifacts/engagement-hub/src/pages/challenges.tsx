@@ -361,10 +361,7 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
       if (imageFile && created?.id && session) {
         try {
           await uploadProgressPhoto({ targetType: "challenge", targetId: created.id, file: imageFile, userId: session.user.id });
-        } catch {
-          // The challenge itself was created fine -- a photo can still be
-          // added afterward from its card, so don't block on this.
-        }
+        } catch {}
       }
 
       setIsOpen(false);

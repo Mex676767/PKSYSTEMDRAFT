@@ -147,11 +147,6 @@ export default function Profile() {
                   type="button"
                   disabled={setAvatarUrl.isPending}
                   onClick={() => {
-                    // Close right away rather than in the mutation's
-                    // onSuccess -- this button unmounts itself the instant
-                    // avatar_url clears (its own visibility condition), and
-                    // racing that against Radix's close-focus handling was
-                    // leaving the dialog stuck open.
                     setIsAvatarDialogOpen(false);
                     setAvatarUrl.mutate(null, { onError: (err) => setAvatarError(getErrorMessage(err)) });
                   }}
@@ -175,7 +170,7 @@ export default function Profile() {
       </div>
 
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Streak */}
+        {}
         <motion.div variants={slideUp}>
           <Card className="border-secondary/20 shadow-sm bg-gradient-to-br from-secondary/10 via-card to-card h-full">
             <CardHeader className="pb-3">
@@ -197,7 +192,7 @@ export default function Profile() {
           </Card>
         </motion.div>
 
-        {/* Titles */}
+        {}
         <motion.div variants={slideUp}>
           <Card className="border-primary/20 shadow-sm bg-gradient-to-br from-primary/10 via-card to-card h-full">
             <CardHeader className="pb-3">
@@ -243,7 +238,7 @@ export default function Profile() {
         </motion.div>
       </motion.div>
 
-      {/* Accessory shop */}
+      {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-accent/20 shadow-sm bg-gradient-to-br from-accent/10 via-card to-card">
           <CardHeader className="pb-3">
@@ -303,7 +298,7 @@ export default function Profile() {
         </Card>
       </motion.div>
 
-      {/* Border shop */}
+      {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-secondary/20 shadow-sm bg-gradient-to-br from-secondary/10 via-card to-card">
           <CardHeader className="pb-3">
@@ -362,7 +357,7 @@ export default function Profile() {
         </Card>
       </motion.div>
 
-      {/* Birthday */}
+      {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-secondary/20 shadow-sm">
           <CardHeader className="pb-3">
@@ -381,7 +376,7 @@ export default function Profile() {
         </Card>
       </motion.div>
 
-      {/* Role & Department */}
+      {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-primary/20 shadow-sm">
           <CardHeader className="pb-3">

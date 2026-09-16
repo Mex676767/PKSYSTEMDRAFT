@@ -181,8 +181,6 @@ export function EditGoalDialog({
   const [accountability, setAccountability] = useState(goal.accountability ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  // Re-sync from the goal whenever the dialog is (re)opened, in case it was
-  // edited elsewhere (or reopened on a different goal instance) since last time.
   const resetFromGoal = () => {
     setTitle(goal.title);
     setDescription(goal.description ?? "");

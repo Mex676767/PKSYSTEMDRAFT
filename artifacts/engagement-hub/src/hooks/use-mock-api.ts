@@ -28,7 +28,7 @@ export type Challenge = {
   id: string;
   name: string;
   level: 'Personal' | 'Team' | 'Department';
-  sideA: string; // Employee ID or Team name
+  sideA: string
   sideB: string;
   metric: string;
   status: 'pending' | 'active' | 'completed';
@@ -50,7 +50,7 @@ export type MentorPairing = {
 export type Birthday = {
   id: string;
   employeeId: string;
-  date: string; // ISO date
+  date: string
 };
 
 export type LotteryEntry = {
@@ -67,7 +67,6 @@ export type LotteryWinner = {
   date: string;
 };
 
-// --- Mock Data Store ---
 const CURRENT_USER_ID = 'emp1';
 const today = new Date();
 
@@ -98,7 +97,11 @@ let mentorsData: MentorPairing[] = [
 ];
 
 let birthdaysData: Birthday[] = [
-  { id: 'b1', employeeId: 'emp3', date: today.toISOString() }, // Today!
+  {
+    id: 'b1',
+    employeeId: 'emp3',
+    date: today.toISOString()
+  },
   { id: 'b2', employeeId: 'emp5', date: addDays(today, 3).toISOString() },
   { id: 'b3', employeeId: 'emp4', date: addDays(today, 10).toISOString() },
 ];
@@ -114,7 +117,6 @@ let lotteryWinnersData: LotteryWinner[] = [
   { id: 'lw2', employeeId: 'emp2', prize: 'Extra PTO Day', date: subDays(today, 14).toISOString() },
 ];
 
-// --- Mock API Hooks ---
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export function useCurrentUser() {
@@ -259,10 +261,9 @@ export function useRunLottery() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      await delay(1500); // Suspense for spin
+      await delay(1500);
       if (lotteryEntriesData.length === 0) throw new Error("No entries");
       
-      // Weighted random choice
       const pool = lotteryEntriesData.flatMap(e => Array(e.entries).fill(e.employeeId));
       const winnerId = pool[Math.floor(Math.random() * pool.length)];
       const winnerEmp = employeesData.find(e => e.id === winnerId)!;
@@ -275,7 +276,7 @@ export function useRunLottery() {
       };
       
       lotteryWinnersData = [winner, ...lotteryWinnersData];
-      lotteryEntriesData = lotteryEntriesData.filter(e => e.employeeId !== winnerId); // Remove winner's entries
+      lotteryEntriesData = lotteryEntriesData.filter(e => e.employeeId !== winnerId);
       
       return winnerEmp;
     },

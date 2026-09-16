@@ -32,13 +32,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
-      {/* Sidebar (Desktop) / Bottom Nav (Mobile) */}
-      {/* md:sticky + md:h-screen (not md:relative + md:min-h-screen) so the
-          sidebar tracks the viewport instead of stretching to match the
-          page's full scroll height -- with a plain flex-stretch height, the
-          profile footer's mt-auto was pinning it to the bottom of the whole
-          (possibly very long) page instead of the visible sidebar, leaving a
-          huge dead gap between the nav links and the footer on tall pages. */}
+      {}
+      {}
       <nav className="fixed bottom-0 left-0 right-0 md:sticky md:top-0 md:w-64 bg-card border-t md:border-t-0 md:border-r border-border z-40 flex md:flex-col md:h-screen">
         <div className="hidden md:flex p-6 items-center gap-3">
           <div className="bg-primary text-primary-foreground p-2 rounded-xl shadow-sm">
@@ -47,10 +42,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="font-display font-bold text-xl tracking-tight">C9MYR</span>
         </div>
 
-        {/* md:flex-1 + md:overflow-y-auto: lets this list scroll on its own
-            when there are enough nav items to exceed the viewport, instead
-            of overflowing the now-fixed-height (md:h-screen) sidebar and
-            pushing the profile footer off-screen. */}
+        {}
         <div className="flex md:flex-col overflow-x-auto md:overflow-x-visible md:overflow-y-auto md:flex-1 w-full p-2 md:p-4 gap-1 md:gap-2">
           {items.map((item) => {
             const Icon = item.icon;
@@ -115,15 +107,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
       </nav>
 
-      {/* pt-16 clears the fixed notification bell + theme toggle (top-4,
-          ~44px tall) that float over the top-right corner on every page. This
-          used to be `md:pt-0` (skipped on desktop) on the assumption the
-          sidebar leaves the top-right corner clear -- but the sidebar only
-          occupies the left edge, so a page header whose own top-right content
-          (e.g. the Goals page's "Add Goals" button) reaches close to the
-          actual browser edge still lands underneath the icons on desktop
-          too. Keep the clearance on every breakpoint instead of guessing
-          which pages are "safe". */}
+      {}
       <main className="flex-1 w-full pt-16 pb-20 md:pb-0 overflow-x-hidden">
         {children}
       </main>

@@ -60,8 +60,7 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  /* Arcade Corporate Light Mode */
-  --background: 250 45% 97%;
+    --background: 250 45% 97%;
   --foreground: 240 10% 15%;
   --border: 240 15% 90%;
   
@@ -73,19 +72,16 @@
   --popover-foreground: 240 10% 15%;
   --popover-border: 240 15% 90%;
   
-  /* Electric Indigo */
-  --primary: 262 83% 58%;
+    --primary: 262 83% 58%;
   --primary-foreground: 0 0% 100%;
   
-  /* Hot Pink */
-  --secondary: 316 73% 52%;
+    --secondary: 316 73% 52%;
   --secondary-foreground: 0 0% 100%;
   
   --muted: 240 15% 94%;
   --muted-foreground: 240 10% 45%;
   
-  /* Golden Yellow Accent */
-  --accent: 43 100% 60%;
+    --accent: 43 100% 60%;
   --accent-foreground: 240 10% 15%;
   
   --destructive: 350 80% 60%;
@@ -189,11 +185,7 @@
     @apply border-border;
   }
 
-  /* Scrollbars stay functional everywhere (mouse wheel, touch, keyboard) --
-     this only hides the visible track/thumb so scrollable panels (sidebar,
-     dialogs, the tree detail panel, etc.) don't show a bar cluttering the
-     UI. */
-  * {
+    * {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -275,7 +267,6 @@
     radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 80% 30% / 0.2), transparent 55%);
 }
 
-/* Custom Confetti Animation */
 @keyframes fall {
   0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }

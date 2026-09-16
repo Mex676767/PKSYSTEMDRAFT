@@ -23,8 +23,6 @@ export type Challenge = {
   opponent: { username: string | null; role: string | null } | null;
 };
 
-// !inner means a challenge disappears entirely if either side is hidden by
-// RLS (e.g. deactivated), instead of showing up with a blank participant.
 const CHALLENGE_SELECT =
   "*, creator:profiles!challenges_creator_id_fkey!inner(username, role), opponent:profiles!challenges_opponent_id_fkey!inner(username, role)";
 
@@ -69,13 +67,6 @@ export function useCreateChallenge() {
       });
       if (error) throw error;
 
-      // The RPC itself doesn't hand back the new row, so if a caller needs
-      // the id right away (e.g. to attach a photo before this challenge's
-      // own ProgressPhotos instance ever mounts) look it up by the unique
-      // combination of who just created what, most-recent first. Retried a
-      // couple of times -- immediately after the RPC resolves, this select
-      // sometimes lands on a pooled connection that hasn't caught up yet and
-      // comes back empty even though the insert already committed.
       for (let attempt = 0; attempt < 3; attempt++) {
         const { data: created, error: lookupError } = await supabase
           .from("challenges")
@@ -143,8 +134,6 @@ export function useCompleteChallenge() {
   });
 }
 
-// Only a finished (declined/completed) challenge can be deleted -- an
-// active/pending one should go through cancel/complete instead.
 export function useDeleteChallenge() {
   const invalidate = useInvalidateChallenges();
   return useMutation({

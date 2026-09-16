@@ -1,6 +1,3 @@
-// Titles are unlocked server-side (see award_title() calls in the SQL
-// triggers/functions), keyed by these same strings. This is just the
-// display metadata for whatever's in a profile's unlocked_titles array.
 export const TITLE_CATALOG: Record<string, { label: string; description: string }> = {
   newcomer: { label: "Newcomer", description: "Joined the team" },
   goal_getter: { label: "Goal Getter", description: "Completed your first goal" },

@@ -41,7 +41,6 @@ export function initialsForUsername(username: string) {
   return username.slice(0, 2).toUpperCase() || "?";
 }
 
-// 3-20 chars, letters/numbers/underscore only.
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
 
 type AuthState = {
@@ -109,9 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchProfile(session.user.id).then((p) => {
       if (cancelled) return;
       if (p?.is_deleted) {
-        // Deactivated accounts can't meaningfully be blocked at the RLS
-        // level without touching every table's policies, so this is the
-        // primary enforcement: sign them straight back out client-side.
         setDeactivatedNotice(true);
         setProfile(null);
         setLoading(false);
@@ -125,10 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [session, fetchProfile]);
 
-  // Once per session, try to claim today's login bonus. The RPC itself is
-  // idempotent (safe to call repeatedly -- it just returns false if today's
-  // bonus is already claimed), but we still only bother calling it once
-  // per browser session rather than on every mount.
   useEffect(() => {
     if (!session || !profile?.username) return;
 
@@ -144,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user.id, !!profile?.username]);
 
   const refetchProfile = useCallback(async () => {
@@ -169,9 +160,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // This redirects the whole page away to Google, then back to the app --
-    // supabase-js picks the returned session up automatically on load, the
-    // same way the magic-link redirect already does.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -199,7 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (error) {
-      // Postgres unique_violation
       if (error.code === "23505") {
         return { error: "That username is already taken. Try another." };
       }

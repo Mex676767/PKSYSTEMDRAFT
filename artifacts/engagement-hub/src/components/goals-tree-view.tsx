@@ -13,17 +13,6 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// Both illustrations are 1884x835 (day/night pair, same composition/tree
-// position/scale in both). Real leaf-canopy positions -- NOT an ellipse
-// approximation, NOT individual flowers -- found by flood-filling the
-// canopy's actual green-pixel silhouette from a seed point in its center
-// (so it traces the real, slightly asymmetric leaf shape and stays
-// connected across the gap where trunk/sky show through, while excluding
-// disconnected background greenery like the far-off pine trees), then
-// picking ~30 points spread evenly through that mask (greedy farthest-point
-// sampling) and hand-checked against a marker overlay. Re-run the flood-fill
-// if the art changes again -- an ellipse is a poor fit for this canopy's
-// actual outline.
 const CANOPY_SLOTS: Pos[] = [
   { x: 52.07, y: 3.95 },
   { x: 47.51, y: 8.86 },
@@ -60,25 +49,12 @@ const CANOPY_SLOTS: Pos[] = [
 ];
 const CANOPY_CENTROID = { x: 51, y: 40 };
 const TREE_ZOOM = 1.08;
-// Shifts the visible crop window up within the source image (revealing more
-// sky) so the canopy sits lower in the container instead of its topmost
-// leaves landing right under the header controls. 0.5 = centered (the old
-// behavior); smaller = more sky revealed at the top, tree pushed down. The
-// header's own blurred backdrop (elsewhere in this file) already covers
-// whatever's newly visible up there -- it reads the same shifted position,
-// see its `backgroundPosition` below.
 const TREE_FOCAL_Y = 0;
 const TREE_BACKGROUND_POSITION = `center ${TREE_FOCAL_Y * 100}%`;
 const TWO_PI = Math.PI * 2;
 
 type FlowerSlot = Pos & { angle: number };
 
-// Re-projects a raw original-artwork-percent point onto the zoomed
-// `background-size` frame: at zoom Z, the visible window covers
-// original-percent range [topMargin, 100-bottomMargin] on the Y axis, where
-// topMargin/bottomMargin split the total crop (100*(1-1/Z)) according to
-// `focalY` (0.5 = centered, matching background-position's own Y percent
-// semantics) -- X always stays centered, only Y is ever shifted here.
 function applyZoom(pos: Pos, zoom: number, focalY: number): Pos {
   if (zoom === 1 && focalY === 0.5) return pos;
   const totalMarginPct = 100 * (1 - 1 / zoom);
@@ -92,9 +68,6 @@ function applyZoom(pos: Pos, zoom: number, focalY: number): Pos {
 }
 
 function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number, focalY: number): FlowerSlot[] {
-  // Centroid is given in original-artwork percent too, so it needs the same
-  // zoom projection as the points before angles are measured against it --
-  // otherwise the angle math mixes zoomed and unzoomed coordinate spaces.
   const zoomedCentroid = applyZoom(centroid, zoom, focalY);
   return raw
     .map((p) => applyZoom(p, zoom, focalY))
@@ -102,36 +75,14 @@ function buildFlowerSlots(raw: Pos[], centroid: Pos, zoom: number, focalY: numbe
     .sort((a, b) => a.angle - b.angle);
 }
 
-// Both illustrations are 1884x835 -- same ratio used below regardless of
-// theme.
 const IMAGE_RATIO = 1884 / 835;
 
-// Plain `cover` only crops whichever ONE axis the container's ratio
-// disagrees with the art's own ratio on -- at container ratios close to
-// IMAGE_RATIO that's still true, but at ratios on the OTHER side of it
-// (narrower/taller containers, common once the sidebar eats into a modest
-// window width), `cover` crops the WIDTH instead, leaving the height
-// completely uncropped, making TREE_FOCAL_Y a no-op there. EXTRA_ZOOM just
-// needs to clear 1.0 so SOME vertical crop margin always exists to
-// redistribute -- the actual guarantee against header overlap is
-// `minTopPx` on TreePersonNode below (a hard pixel floor via CSS `max()`),
-// since which canopy slot a given person lands on can jump around as the
-// department-angle assignment reshuffles, which made tuning this value
-// alone an unreliable way to guarantee clearance. Keep this small -- a
-// bigger value visibly enlarges the whole tree, not just its position.
 const EXTRA_ZOOM = 1.15;
 
-// The `cover` scale, in the same normalized units used below (image height
-// = 1, image width = IMAGE_RATIO) -- i.e. how much bigger than the
-// container the image must render to fully cover it, before EXTRA_ZOOM.
 function coverScale(containerRatio: number): number {
   return Math.max(containerRatio / IMAGE_RATIO, 1) * EXTRA_ZOOM;
 }
 
-// CSS `background-size` percentages (relative to the CONTAINER, per the
-// spec) that reproduce `coverScale` exactly -- used as an explicit inline
-// style in place of the bare `cover` keyword, so the actual rendered image
-// and this file's own coordinate math can never drift apart.
 function coverBackgroundSize(containerRatio: number): string {
   const s = coverScale(containerRatio);
   const sizeXPct = ((IMAGE_RATIO * s) / containerRatio) * 100;
@@ -139,10 +90,6 @@ function coverBackgroundSize(containerRatio: number): string {
   return `${sizeXPct}% ${sizeYPct}%`;
 }
 
-// Re-projects a raw original-artwork-percent point through `coverScale`,
-// same margin/focalY math as applyZoom but driven by the real measured
-// container ratio instead of a fixed author-time zoom constant. X always
-// stays centered (its margin is split evenly); only Y is ever shifted.
 function applyCoverCrop(pos: Pos, containerRatio: number, focalY: number): Pos {
   const s = coverScale(containerRatio);
   const marginPctX = 50 * (1 - containerRatio / (IMAGE_RATIO * s));
@@ -164,14 +111,6 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
     .sort((a, b) => a.angle - b.angle);
 }
 
-// Groups people by department (not role) so teammates from the same
-// department land on a contiguous slice of the canopy instead of scattered
-// randomly -- per "space it out ... separate by department". Each
-// department gets a slice of the full loop proportional to its headcount
-// (so a handful of people still spread across the *whole* tree instead of
-// bunching into the first few slots), with a small gap between slices.
-// Each person's target angle within their slice snaps to whichever
-// still-unused canopy slot is angularly closest.
 function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlot[]): Map<string, Pos> {
   const positions = new Map<string, Pos>();
   const n = people.length;
@@ -211,9 +150,6 @@ function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlo
       });
 
       if (bestIdx === -1) {
-        // Every slot is already taken (more people than slots) -- reuse
-        // spots in order, nudged down a little per lap so a repeat doesn't
-        // sit exactly on top of the earlier person's spot.
         const idx = overflow % flowerSlots.length;
         const lap = Math.floor(overflow / flowerSlots.length) + 1;
         const slot = flowerSlots[idx];
@@ -231,34 +167,25 @@ function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlo
   return positions;
 }
 
-// A plain photo circle in the canopy -- no decorative frame, nothing
-// drawn on top of the art itself.
-function TreePersonNode({
-  person,
-  goals,
-  x,
-  y,
-  minTopPx,
-  selected,
-  onClick,
-}: {
-  person: DirectoryProfile;
-  goals: Goal[];
-  x: number;
-  y: number;
-  // Floor for the rendered top position, in real pixels -- separate from
-  // `y` (a percentage) because a percentage-only guarantee can't reliably
-  // clear a fixed-height header: the projection math that produces `y`
-  // assumes a clean, continuous relationship between its inputs and the
-  // rendered position, but WHICH canopy slot a given person lands on can
-  // jump between slots as the department-angle assignment reshuffles, so
-  // tuning the projection's own parameters to "leave enough room" turned
-  // out not to be reliable. CSS `max()` mixes units directly, so this
-  // simply can't be violated regardless of what `y` comes out to.
-  minTopPx?: number;
-  selected: boolean;
-  onClick: () => void;
-}) {
+function TreePersonNode(
+  {
+    person,
+    goals,
+    x,
+    y,
+    minTopPx,
+    selected,
+    onClick,
+  }: {
+    person: DirectoryProfile;
+    goals: Goal[];
+    x: number;
+    y: number;
+    minTopPx?: number
+    selected: boolean;
+    onClick: () => void;
+  }
+) {
   const completion = personCompletion(goals);
   const pillColor = colorForId(person.id);
   const avatarSize = selected ? 52 : 36;
@@ -314,31 +241,12 @@ export function GoalsTreeView({
   goalsByOwner: Map<string, Goal[]>;
   onSelect: (person: DirectoryProfile) => void;
   selectedId: string | null;
-  // The page heading/search/toggle row, at lg+ only -- rendered as an
-  // overlay INSIDE this same box (see the reference mockups) so it sits
-  // directly on the sharp art with no seam, instead of on a separate blurred
-  // strip above a distinct canvas. Below lg the page renders its own plain
-  // in-flow header instead (not enough room to overlay it legibly on a
-  // short, full-bleed-width mobile image) -- this prop is simply not shown
-  // there (`hidden lg:block` below).
-  header?: React.ReactNode;
+  header?: React.ReactNode
 }) {
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
-  // Two separate illustrations (a moonlit tree, a sunlit one) rather than
-  // trying to fade/tint one image into both themes.
   const bgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
 
-  // Below lg the canvas keeps its original aspect-ratio-locked sizing
-  // (height follows width, growing however tall a full-bleed image demands
-  // -- fine there since the page already scrolls on mobile). At lg+ it
-  // switches to a viewport-capped fixed height with `background-size: cover`
-  // instead, specifically so the Tree View section fits on screen without
-  // forcing a scroll on a section that's meant to read as a static scene.
-  // `containerRatio` is the box's REAL measured aspect ratio (unlike the
-  // aspect-locked path, it isn't known until layout -- it shifts with every
-  // viewport size at lg+), used to project flower coordinates through the
-  // matching single-axis crop `background-size: cover` will apply.
   const [isLgUp, setIsLgUp] = useState(false);
   const [containerRatio, setContainerRatio] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -369,54 +277,18 @@ export function GoalsTreeView({
   const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
 
   return (
-    // This *is* the environment, not a picture placed in one: no border,
-    // shadow, rounded corners, card background, or margin box. Below lg the
-    // canvas is locked to the artwork's own ratio (via aspect-ratio); at
-    // lg+ it's a fixed, viewport-capped height with `cover` instead (see
-    // the containerRatio comment above) so the whole Tree View section --
-    // heading, search, toggle and all, now that `header` overlays directly
-    // on it -- fits on screen without scrolling. Below lg, both themes zoom
-    // in slightly past 100% (TREE_ZOOM) so the art's own edges and corner
-    // leaf sprigs never show -- canopy slot percentages already account for it.
-    // No `role="img"` here anymore: once real interactive controls (search,
-    // toggle, Add Goals) live inside this box at lg+, that role would tell
-    // assistive tech to treat the whole thing as a single opaque image and
-    // hide them -- the sr-only span below keeps a description without doing
-    // that.
     <div
       ref={containerRef}
       className="relative w-full aspect-[1884/835] lg:aspect-auto lg:h-screen bg-[length:108%_108%] lg:bg-cover bg-no-repeat"
       style={{
         backgroundImage: `url(${import.meta.env.BASE_URL}${bgFile})`,
         backgroundPosition: TREE_BACKGROUND_POSITION,
-        // Explicit size (in place of the `lg:bg-cover` class, kept only as
-        // a pre-measurement fallback) so the real render always matches
-        // coverScale/applyCoverCrop's own math -- see EXTRA_ZOOM above for
-        // why plain `cover` isn't used here.
         ...(isLgUp && containerRatio ? { backgroundSize: coverBackgroundSize(containerRatio) } : {}),
       }}
     >
       <span className="sr-only">A glowing illustrated tree, each teammate growing somewhere in its canopy</span>
 
       {header && (
-        // A blurred duplicate of the SAME crop the sharp layer above shows
-        // (same background-size/position, sized to the identical box via
-        // `inset-0`), faded out after its top ~30% by the mask -- softens
-        // whatever's directly behind the heading/search/toggle text (busy
-        // leaves, bright clouds) into a smoother, lower-contrast wash so the
-        // text stays readable, without covering it with a flat tint (tried
-        // first, looked like a pasted-on box) or relying on a text-shadow
-        // glow alone (failed against the art's own bright white clouds,
-        // where a white glow is no contrast at all). Reusing the sharp
-        // layer's exact sizing matters: an earlier version gave this its
-        // own fixed height, which sampled a DIFFERENT (much more
-        // aggressively cropped) slice of the art than what the sharp layer
-        // shows there, so the blur showed unrelated content (the tree's own
-        // canopy smeared into a green blob) instead of a softened version of
-        // the same sky it's meant to sit in front of. No z-index needed --
-        // it has none, so it stacks below the header (z-30) and avatars
-        // (z-10+) regardless of DOM order, and above nothing except this
-        // same element's own sharp background-image sibling.
         <div
           aria-hidden
           className="hidden lg:block absolute inset-0 bg-cover bg-no-repeat pointer-events-none"
@@ -432,18 +304,6 @@ export function GoalsTreeView({
       )}
 
       {header && (
-        // `lg:pr-[22rem]` reserves room for the detail panel's ~20rem width
-        // plus its own right gap -- without it, the header's centered search
-        // bar collides with the panel at the narrow end of the lg range
-        // (just above 1024px, before `xl:pr-8` gives the header its normal
-        // padding back once there's enough room for both side by side).
-        // `pointer-events-none` on the wrapper + `pointer-events-auto` back
-        // on just the actual controls: without this, the header's own
-        // padding/whitespace (there's a lot of it, since the row spans the
-        // full width to keep the search bar centered) sat on top of and
-        // blocked clicks on any canopy slot underneath it -- including the
-        // topmost one, which made that person's avatar completely
-        // unclickable even though it was clearly visible.
         <div
           className="hidden lg:block absolute inset-x-0 top-0 z-30 p-6 lg:pr-[22rem] xl:p-8 xl:pr-8 pointer-events-none [&_input]:pointer-events-auto [&_button]:pointer-events-auto"
         >
@@ -461,9 +321,6 @@ export function GoalsTreeView({
             goals={goalsByOwner.get(person.id) ?? []}
             x={pos.x}
             y={pos.y}
-            // Only at lg+, where the header overlays directly on the canvas
-            // (see `header` above) -- below lg the header is a normal
-            // in-flow element above a separate canvas, nothing to clear.
             minTopPx={isLgUp ? 230 : undefined}
             selected={person.id === selectedId}
             onClick={() => onSelect(person)}

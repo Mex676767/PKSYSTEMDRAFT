@@ -40,7 +40,7 @@ export default function Lottery() {
   return (
     <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-12">
       <Confetti active={!!winner && !spinning} />
-      
+
       <div className="text-center max-w-2xl mx-auto space-y-4">
         <div className="w-20 h-20 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4 relative">
           <Gift className="w-10 h-10" />
@@ -52,10 +52,10 @@ export default function Lottery() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Main Draw Area */}
+        {}
         <div className="lg:col-span-7 space-y-6">
           <Card className="bg-gradient-to-br from-indigo-900 to-purple-900 text-white border-none shadow-xl overflow-hidden relative min-h-[400px] flex flex-col items-center justify-center p-8">
-            {/* Background elements */}
+            {}
             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
               <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl mix-blend-overlay"></div>
               <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-secondary blur-3xl mix-blend-overlay"></div>
@@ -123,7 +123,7 @@ export default function Lottery() {
           </Card>
         </div>
 
-        {/* Side Panels */}
+        {}
         <div className="lg:col-span-5 space-y-6">
           
           <Card>

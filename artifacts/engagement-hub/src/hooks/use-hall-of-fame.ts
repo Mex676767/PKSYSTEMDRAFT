@@ -97,8 +97,6 @@ export function useSubmitHofRecord(categoryId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ achievement, holderId }: { achievement: string; holderId: string }) => {
-      // Retire whatever's currently the record for this category before
-      // inserting the new one as the current champion.
       const { error: retireError } = await supabase
         .from("hof_records")
         .update({ is_current: false })

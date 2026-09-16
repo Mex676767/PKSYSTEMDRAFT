@@ -10,8 +10,6 @@ export type Mentorship = {
   mentee: { username: string | null } | null;
 };
 
-// !inner means a mentorship disappears if either side is hidden by RLS
-// (e.g. deactivated), instead of showing up with a blank name.
 const MENTORSHIP_SELECT =
   "*, mentor:profiles!mentorships_mentor_id_fkey!inner(username), mentee:profiles!mentorships_mentee_id_fkey!inner(username)";
 

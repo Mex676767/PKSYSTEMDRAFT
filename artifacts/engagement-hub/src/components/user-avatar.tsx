@@ -6,14 +6,10 @@ import { cn } from "@/lib/utils";
 interface UserAvatarProps {
   user: { initials: string; color: string; name: string };
   className?: string;
-  /** Extra inline styles for the avatar circle itself, e.g. a context-colored ring. */
-  style?: CSSProperties;
-  /** Emoji shown as a small badge overlay, e.g. a purchased profile accessory. */
-  accessory?: string | null;
-  /** Uploaded profile photo -- falls back to the initials avatar when absent. */
-  photoUrl?: string | null;
-  /** Key into BorderDecoration's themes, e.g. a purchased Discord-style profile border. */
-  border?: string | null;
+  style?: CSSProperties
+  accessory?: string | null
+  photoUrl?: string | null
+  border?: string | null
 }
 
 export function UserAvatar({ user, className, style, accessory, photoUrl, border }: UserAvatarProps) {

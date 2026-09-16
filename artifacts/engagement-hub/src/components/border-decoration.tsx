@@ -1,8 +1,3 @@
-// A scalloped/spiky frame that sits behind the avatar and peeks out around
-// its edges -- like Discord's avatar decorations, not just a flat colored
-// ring. One shared path generator, themed per border key via gradient
-// colors and spike count so each catalog entry doesn't need hand-drawn art.
-
 type BorderTheme = { colors: string[]; spikes: number; outerR: number; innerR: number };
 
 const BORDER_THEMES: Record<string, BorderTheme> = {

@@ -9,7 +9,7 @@ export function Confetti({ active }: { active: boolean }) {
       const colors = ['#6366f1', '#ec4899', '#eab308', '#14b8a6', '#f43f5e'];
       const newPieces = Array.from({ length: 60 }).map((_, i) => ({
         id: i,
-        x: Math.random() * 100, // percentage
+        x: Math.random() * 100,
         color: colors[Math.floor(Math.random() * colors.length)],
         delay: Math.random() * 0.5,
         duration: 2 + Math.random() * 2,

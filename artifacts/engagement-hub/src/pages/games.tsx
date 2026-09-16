@@ -6,9 +6,6 @@ import { Link } from "wouter";
 import { Type, Monitor, Swords, Brain, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Tailwind's build-time scanner needs full literal class strings -- a
-// template like `bg-${color}/10` never gets generated into the compiled
-// CSS, so each color combo is spelled out here instead.
 const COLOR_STYLES = {
   primary: { card: "from-primary/10", icon: "bg-primary/15 text-primary" },
   secondary: { card: "from-secondary/10", icon: "bg-secondary/15 text-secondary" },

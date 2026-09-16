@@ -15,10 +15,6 @@ export type AdminProfileRow = {
   birthday: string | null;
 };
 
-// Goes through a security-definer RPC rather than a plain table select --
-// the regular RLS policy hides deactivated accounts from everyone
-// (including admins) on every other page, so this is the one place that
-// still needs to see them, for the reactivate flow.
 export function useAllProfiles() {
   return useQuery({
     queryKey: ["all-profiles-admin"],

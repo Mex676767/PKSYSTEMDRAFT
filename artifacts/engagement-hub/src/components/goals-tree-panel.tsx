@@ -9,8 +9,6 @@ import { titleLabel } from "@/lib/titles";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
 
-// Mirrors the ordering in pages/goals.tsx -- kept local rather than shared
-// since it's a small display-order constant, not real app state.
 const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
 
 const TERM_ICON: Record<GoalTerm, { Icon: typeof Leaf; badge: string }> = {
@@ -26,24 +24,19 @@ function personCompletion(goals: Goal[]): number {
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
 }
 
-// The right-side panel that opens when someone is picked on the tree --
-// replaces the old "open a goals dialog" click behavior for Tree View, with
-// Goals / Progress / Comments tabs. Card View keeps the plain dialog
-// (pages/goals.tsx gates which one renders).
-export function TreeDetailPanel({
-  person,
-  goals,
-  onClose,
-}: {
-  person: DirectoryProfile;
-  goals: Goal[];
-  onClose: () => void;
-}) {
+export function TreeDetailPanel(
+  {
+    person,
+    goals,
+    onClose,
+  }: {
+    person: DirectoryProfile;
+    goals: Goal[];
+    onClose: () => void;
+  }
+) {
   const { session, isAdmin } = useAuth();
   const [tab, setTab] = useState<Tab>("goals");
-  // Which term's card list is expanded -- the term rows start collapsed
-  // (just an icon + label + count) and open in place when tapped, rather
-  // than dumping every goal's full detail at once.
   const [expandedTerm, setExpandedTerm] = useState<GoalTerm | null>(null);
   const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
@@ -56,11 +49,6 @@ export function TreeDetailPanel({
   const updateGoal = useUpdateGoal();
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  // "Position - Department" (e.g. "ATL - VIP RTN"), each shown only if set --
-  // the unlocked title is its own separate badge alongside this, not folded
-  // in here (previously the title badge fell back to the role when no title
-  // was set, which meant anyone WITH a title silently lost their role from
-  // view entirely).
   const position = [person.role, person.department].filter(Boolean).join(" - ") || "No team";
   const badgeLabel = person.active_title ? titleLabel(person.active_title) : null;
 
@@ -73,20 +61,6 @@ export function TreeDetailPanel({
   return (
     <div
       className={cn(
-        // Below lg: a plain in-flow card stacked under the tree (not enough
-        // room to float it over art that's often shorter than the panel
-        // itself there). At lg+: floats as a translucent glass card over the
-        // tree's own top-right sky instead of pushing the canvas over and
-        // shrinking it -- the canvas stays full-size/full-bleed whether or
-        // not someone's selected, and the card reads as part of the scene
-        // (frosted, letting the art show through) rather than a flat white
-        // box bolted on beside it. `z-40` clears the tree avatars' own
-        // z-10/hover:z-20 (same stacking context -- both are children of the
-        // page's `relative z-0` tree wrapper). `lg:top-24` clears the fixed
-        // notification/theme/Add Goals icon row (top-4, ~44px tall) plus the
-        // tree hero's own overlaid heading row above it, now that the hero
-        // fills the full viewport height and that row sits at the very top
-        // of it instead of in separate page chrome above a shorter canvas.
         "mt-4 lg:mt-0 lg:absolute lg:top-24 lg:right-6 lg:z-40 lg:max-h-[calc(100%-7rem)]",
         "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
         "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
