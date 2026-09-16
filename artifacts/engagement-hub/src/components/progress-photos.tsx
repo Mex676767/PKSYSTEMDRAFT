@@ -41,39 +41,41 @@ export function ProgressPhotos({
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2 flex-wrap">
-        {photos.map((p) => (
-          <div key={p.id} className="relative group shrink-0">
-            <button
-              type="button"
-              onClick={() => setPreview(getProgressPhotoUrl(p.image_path))}
-              title={`Progress photo by @${p.uploader?.username ?? "unknown"}`}
-            >
-              <img
-                src={getProgressPhotoUrl(p.image_path)}
-                alt={`Progress photo by @${p.uploader?.username ?? "unknown"}`}
-                className="w-14 h-14 rounded-lg object-cover border border-border"
-              />
-            </button>
-            {(p.uploader_id === session?.user.id || isAdmin) && (
+    <div className="space-y-2">
+      {photos.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {photos.map((p) => (
+            <div key={p.id} className="relative group shrink-0">
               <button
                 type="button"
-                onClick={() => window.confirm("Delete this progress photo?") && deletePhoto.mutate(p.id)}
-                disabled={deletePhoto.isPending}
-                title="Delete photo"
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                onClick={() => setPreview(getProgressPhotoUrl(p.image_path))}
+                title={`Progress photo by @${p.uploader?.username ?? "unknown"}`}
               >
-                <Trash2 className="w-3 h-3" />
+                <img
+                  src={getProgressPhotoUrl(p.image_path)}
+                  alt={`Progress photo by @${p.uploader?.username ?? "unknown"}`}
+                  className="w-14 h-14 rounded-lg object-cover border border-border"
+                />
               </button>
-            )}
-          </div>
-        ))}
+              {(p.uploader_id === session?.user.id || isAdmin) && (
+                <button
+                  type="button"
+                  onClick={() => window.confirm("Delete this progress photo?") && deletePhoto.mutate(p.id)}
+                  disabled={deletePhoto.isPending}
+                  title="Delete photo"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-        {canUpload && (
-          <ImagePickerButton onImage={handleFile} disabled={addPhoto.isPending} compact label="Add progress photo" />
-        )}
-      </div>
+      {canUpload && (
+        <ImagePickerButton onImage={handleFile} disabled={addPhoto.isPending} label="Add progress photo" />
+      )}
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       {preview && (
