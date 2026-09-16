@@ -84,7 +84,9 @@ export default function Birthdays() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">@{b.username ?? "unknown"}</p>
-                      <p className="text-sm text-muted-foreground truncate">{b.department ?? ""}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {[b.role, b.department].filter(Boolean).join(" · ")}
+                      </p>
                     </div>
                   </div>
                   <div className="pt-1 border-t border-border/50">
@@ -130,7 +132,11 @@ function TodayBirthdayCard({
           <div className="flex-1">
             <p className="text-white/80 font-medium uppercase tracking-widest text-sm mb-1">Happy Birthday</p>
             <h3 className="text-3xl font-bold mb-2">@{username}</h3>
-            {birthday.department && <p className="text-white/90">{birthday.department}</p>}
+            {(birthday.role || birthday.department) && (
+              <p className="text-white/90">
+                {[birthday.role, birthday.department].filter(Boolean).join(" · ")}
+              </p>
+            )}
           </div>
           {!isMe && (
             <Button onClick={() => onCelebrate(username)} size="lg" className="bg-white text-pink-600 hover:bg-white/90 rounded-full w-full md:w-auto mt-4 md:mt-0 shadow-xl">
