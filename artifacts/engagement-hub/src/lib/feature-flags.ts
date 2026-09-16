@@ -1,7 +1,6 @@
 export const LOCKED_ROUTES = new Set<string>([
   "/hall-of-fame",
   "/mentors",
-  "/birthdays",
   "/lottery",
   "/games",
   "/games/wordle",

@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/notification-bell';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import { Trophy, Users, Cake, Gift, Gamepad2, Dices } from 'lucide-react';
+import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ComingSoon } from '@/pages/coming-soon';
@@ -22,6 +22,7 @@ import Challenges from '@/pages/challenges';
 import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
+import Birthdays from '@/pages/birthdays';
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,7 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/hall-of-fame" component={() => <ComingSoon label="Hall of Fame" icon={Trophy} />} />
           <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
-          <Route path="/birthdays" component={() => <ComingSoon label="Birthdays" icon={Cake} />} />
+          <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />
           <Route path="/profile" component={Profile} />
           <Route path="/games" component={() => <ComingSoon label="Games" icon={Gamepad2} />} />
