@@ -11,12 +11,12 @@ import { UserAvatar } from "./user-avatar";
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/mentors", label: "Mentors", icon: Users },
-  { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
   { href: "/games", label: "Games", icon: Gamepad2 },
   { href: "/betting", label: "Betting", icon: Dices },

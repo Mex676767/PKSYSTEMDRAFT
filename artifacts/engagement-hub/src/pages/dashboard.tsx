@@ -51,7 +51,40 @@ export default function Dashboard() {
 
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
 
-        {}
+        <motion.div variants={slideUp}>
+          {todayBirthdays.length > 0 ? (
+            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-md overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
+              <CardContent className="p-4 flex items-center justify-between gap-3 relative z-10">
+                <div className="min-w-0">
+                  <h3 className="font-bold flex items-center gap-2 text-sm">
+                    <Cake className="w-4 h-4 shrink-0" /> It's @{todayBirthdays[0].username ?? "someone"}'s Birthday!
+                  </h3>
+                  <p className="text-white/80 text-xs mt-0.5">Send them a message</p>
+                </div>
+                <Link href="/birthdays" className="shrink-0">
+                  <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white">
+                    Celebrate
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold flex items-center gap-2 text-sm text-muted-foreground">
+                    <Cake className="w-4 h-4 shrink-0" /> No birthdays today
+                  </h3>
+                </div>
+                <Link href="/birthdays" className="shrink-0">
+                  <Button size="sm" variant="outline">View all</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+
         <motion.div variants={slideUp}>
           <Card className="border-primary/20 shadow-md relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
@@ -149,8 +182,7 @@ export default function Dashboard() {
           <PointsCard />
         </motion.div>
 
-        {}
-        <motion.div variants={slideUp} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <motion.div variants={slideUp}>
           <Card className="bg-gradient-to-br from-accent/25 to-transparent border-accent/20 shadow-sm hover:-translate-y-1 transition-transform duration-200">
             <CardContent className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -170,38 +202,6 @@ export default function Dashboard() {
               </Link>
             </CardContent>
           </Card>
-
-          {todayBirthdays.length > 0 ? (
-            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-md overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
-              <CardContent className="p-4 flex items-center justify-between gap-3 relative z-10">
-                <div className="min-w-0">
-                  <h3 className="font-bold flex items-center gap-2 text-sm">
-                    <Cake className="w-4 h-4 shrink-0" /> It's @{todayBirthdays[0].username ?? "someone"}'s Birthday!
-                  </h3>
-                  <p className="text-white/80 text-xs mt-0.5">Send them a message</p>
-                </div>
-                <Link href="/birthdays" className="shrink-0">
-                  <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white">
-                    Celebrate
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-semibold flex items-center gap-2 text-sm text-muted-foreground">
-                    <Cake className="w-4 h-4 shrink-0" /> No birthdays today
-                  </h3>
-                </div>
-                <Link href="/birthdays" className="shrink-0">
-                  <Button size="sm" variant="outline">View all</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
         </motion.div>
 
       </motion.div>
