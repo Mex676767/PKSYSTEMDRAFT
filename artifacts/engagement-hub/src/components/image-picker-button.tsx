@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, ClipboardPaste, Plus } from "lucide-react";
+import { ClipboardPaste, Plus } from "lucide-react";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { cn } from "@/lib/utils";
 
@@ -10,16 +10,17 @@ import { cn } from "@/lib/utils";
 // Upload local files" attachment widget, restyled with the app's own
 // primary/secondary gradient + pill language instead of a generic gray
 // dashed box, so it reads as part of this UI rather than a bolted-on widget.
+// Used the same everywhere an image can be attached -- goal/challenge
+// creation, progress photos, profile avatar, social posts, desk setups --
+// so the picker looks and behaves identically no matter where it shows up.
 export function ImagePickerButton({
   onImage,
   className,
-  compact = false,
   label = "Upload a photo",
   disabled = false,
 }: {
   onImage: (file: File) => void;
   className?: string;
-  compact?: boolean;
   label?: string;
   disabled?: boolean;
 }) {
@@ -75,47 +76,6 @@ export function ImagePickerButton({
       onChange={handleFileChange}
     />
   );
-
-  if (compact) {
-    return (
-      <div
-        className={cn(
-          "flex flex-col shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 border-dashed transition-colors outline-none",
-          disabled ? "opacity-50 border-border" : armed ? "border-primary" : "border-border/60",
-          className
-        )}
-      >
-        <div
-          {...pasteZone}
-          title={armed ? "Ready — press Ctrl+V, or drop an image" : "Paste an image (Ctrl+V), or drag one here"}
-          className={cn(
-            "flex-1 flex items-center justify-center transition-colors select-none",
-            disabled
-              ? "cursor-not-allowed text-muted-foreground"
-              : armed
-                ? "cursor-pointer bg-gradient-to-br from-primary/20 to-secondary/15 text-primary"
-                : "cursor-pointer text-muted-foreground hover:text-primary hover:bg-muted/40"
-          )}
-        >
-          <ClipboardPaste className="w-4 h-4" />
-        </div>
-        <div className="h-px bg-border/60 shrink-0" />
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => fileInputRef.current?.click()}
-          title={label}
-          className={cn(
-            "flex-1 flex items-center justify-center transition-colors",
-            disabled ? "cursor-not-allowed opacity-50 text-muted-foreground" : "cursor-pointer text-muted-foreground hover:text-secondary hover:bg-muted/40"
-          )}
-        >
-          <Camera className="w-4 h-4" />
-        </button>
-        {input}
-      </div>
-    );
-  }
 
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
