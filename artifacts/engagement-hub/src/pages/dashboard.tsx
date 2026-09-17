@@ -67,7 +67,7 @@ export default function Dashboard() {
 
         <motion.div variants={slideUp}>
           {featuredBirthday ? (
-            <Card className="bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-white border-2 border-white/40 shadow-xl shadow-pink-500/30 overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
+            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-lg overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
               <CardContent className="p-5 relative z-10">
                 <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
