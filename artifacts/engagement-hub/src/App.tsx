@@ -14,7 +14,8 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ComingSoon } from '@/pages/coming-soon';
 
 import Login from '@/pages/login';
-import SetUsername from '@/pages/set-username';
+import Onboarding from '@/pages/onboarding';
+import DiscordCallback from '@/pages/discord-callback';
 import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Social from '@/pages/social';
@@ -61,8 +62,13 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
+  return !!(profile?.username && profile?.birthday && profile?.role && profile?.department && profile?.discord_id);
+}
+
 function AuthGate() {
   const { session, profile, loading } = useAuth();
+  const [location] = useLocation();
 
   if (!REQUIRE_LOGIN) {
     return <Router />;
@@ -80,8 +86,12 @@ function AuthGate() {
     return <Login />;
   }
 
-  if (!profile?.username) {
-    return <SetUsername />;
+  if (location === '/discord-callback') {
+    return <DiscordCallback />;
+  }
+
+  if (!isOnboarded(profile)) {
+    return <Onboarding />;
   }
 
   return <Router />;

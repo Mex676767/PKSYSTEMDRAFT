@@ -24,6 +24,8 @@ export type Profile = {
   avatar_url: string | null;
   unlocked_borders: string[];
   active_border: string | null;
+  discord_id: string | null;
+  discord_username: string | null;
 };
 
 const AVATAR_COLORS = [

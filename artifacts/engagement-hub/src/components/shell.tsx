@@ -7,7 +7,9 @@ import { getAccessoryEmoji } from "@/lib/accessories";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
 import { isBirthdayToday } from "@/hooks/use-birthdays";
+import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { BirthdayCelebration } from "./birthday-celebration";
+import { DiscordStatusDot } from "./discord-status-dot";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -32,6 +34,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
+  const { data: presenceMap } = useDiscordPresenceMap();
 
   return (
     <div className={cn("min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg", isMyBirthdayToday && "birthday-mode")}>
@@ -84,16 +87,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
         {profile && (
           <div className="hidden md:flex p-4 border-t border-border mt-auto items-center gap-3">
-            <UserAvatar
-              user={{
-                name: profile.username ?? profile.email,
-                initials: initialsForUsername(profile.username ?? profile.email),
-                color: colorForId(profile.id),
-              }}
-              accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
-              photoUrl={profile.avatar_url}
-              border={profile.active_border}
-            />
+            <div className="relative shrink-0">
+              <UserAvatar
+                user={{
+                  name: profile.username ?? profile.email,
+                  initials: initialsForUsername(profile.username ?? profile.email),
+                  color: colorForId(profile.id),
+                }}
+                accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+                photoUrl={profile.avatar_url}
+                border={profile.active_border}
+              />
+              <DiscordStatusDot presence={presenceMap?.get(profile.id)} className="w-3 h-3 absolute bottom-0 right-0" />
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
               {isMyBirthdayToday ? (
