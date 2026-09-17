@@ -34,6 +34,11 @@ function burst(x: number, y: number) {
   }
 }
 
+function shakeScreen() {
+  document.body.classList.add("shaking");
+  setTimeout(() => document.body.classList.remove("shaking"), 350);
+}
+
 export function ConfettiBurstOnClick() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -41,6 +46,7 @@ export function ConfettiBurstOnClick() {
       const btn = target.closest("button");
       if (!btn || !btn.classList.contains("bg-gradient-flame")) return;
       burst(e.clientX, e.clientY);
+      shakeScreen();
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);

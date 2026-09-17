@@ -287,6 +287,41 @@
   animation: btn-shine-sweep 3.2s ease-in-out infinite;
 }
 
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -2px); }
+  80% { transform: translate(3px, 2px); }
+}
+body.shaking {
+  animation: screen-shake 0.35s ease-in-out;
+}
+
+@keyframes atmosphere-hue-cycle {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.atmosphere-hue {
+  animation: atmosphere-hue-cycle 20s linear infinite;
+}
+
+@keyframes firefly-float-up {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+}
+.firefly {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation-name: firefly-float-up;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 @keyframes progress-shimmer-sweep {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
@@ -335,14 +370,14 @@
   --ring: 292 91% 58%;
 }
 
-.app-gradient-bg.birthday-mode {
+.birthday-mode .app-gradient-bg {
   background-image:
     radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 91% 85% / 0.6), transparent 60%),
     radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 81% 85% / 0.55), transparent 55%),
     radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 96% 80% / 0.45), transparent 55%);
 }
 
-.dark .app-gradient-bg.birthday-mode {
+.dark .birthday-mode .app-gradient-bg {
   background-image:
     radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 80% 35% / 0.45), transparent 60%),
     radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 75% 35% / 0.4), transparent 55%),

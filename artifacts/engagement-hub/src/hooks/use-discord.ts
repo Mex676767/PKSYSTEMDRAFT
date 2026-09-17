@@ -8,7 +8,7 @@ export function useDiscordPresenceMap() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("rt-discord-presence")
+      .channel(`rt-discord-presence-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "discord_presence" }, () => {
         qc.invalidateQueries({ queryKey: ["discord-presence"] });
       })
