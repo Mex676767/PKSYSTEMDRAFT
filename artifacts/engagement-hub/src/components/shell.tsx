@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
   const { data: presenceMap } = useDiscordPresenceMap();
   const myPresence = profile ? presenceMap?.get(profile.id) : undefined;
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   return (
     <div className={cn("min-h-[100dvh] app-gradient-bg relative", isMyBirthdayToday && "birthday-mode")}>
@@ -53,7 +67,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="fixed top-4 inset-x-4 z-40 h-14">
         <div className="absolute inset-y-0 left-[144px] right-[144px] sm:left-[200px] sm:right-[200px] flex items-center justify-center">
-        <nav className="max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
+        <nav ref={navRef} className="max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
               <Trophy className="w-3.5 h-3.5" />
