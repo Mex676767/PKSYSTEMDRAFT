@@ -1,7 +1,6 @@
 import { Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
-import { DiscordStatusDot } from "@/components/discord-status-dot";
 import { useDirectory } from "@/hooks/use-mentors";
 import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -34,27 +33,18 @@ export function TeamStatusCard() {
                   title={discordStatusLabel(presence)}
                   className="flex items-center gap-2 p-2 rounded-lg bg-muted/40"
                 >
-                  <div className="relative shrink-0">
-                    <UserAvatar
-                      user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
-                      photoUrl={p.avatar_url}
-                      border={p.active_border}
-                      className="w-8 h-8 text-[10px]"
-                    />
-                    <DiscordStatusDot presence={presence} className="w-2.5 h-2.5 absolute bottom-0 right-0" />
-                  </div>
-                  <span className="text-xs font-medium truncate">@{p.username}</span>
+                  <UserAvatar
+                    user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
+                    photoUrl={p.avatar_url}
+                    border={p.active_border}
+                    className="w-8 h-8 text-[10px] shrink-0"
+                  />
+                  <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
                 </div>
               );
             })}
           </div>
         )}
-        <div className="flex items-center flex-wrap gap-3 text-[11px] text-muted-foreground pt-2 border-t border-border/50">
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Active</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-sky-500" /> Break</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-200 dark:bg-zinc-400" /> Online</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-400/50" /> Offline</span>
-        </div>
       </CardContent>
     </Card>
   );

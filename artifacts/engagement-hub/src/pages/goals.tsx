@@ -224,7 +224,7 @@ export default function Goals() {
       {}
       <PageTransition
         className={cn(
-          "p-4 md:p-8 md:-mt-16 space-y-8",
+          "p-4 md:p-8 md:-mt-16 space-y-4",
           view !== "tree" && "max-w-[100rem] mx-auto"
         )}
       >
