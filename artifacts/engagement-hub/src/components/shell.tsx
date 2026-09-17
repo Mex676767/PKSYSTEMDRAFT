@@ -52,7 +52,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <BirthdayCelebration active={isMyBirthdayToday} />
 
       <div className="fixed top-4 inset-x-4 z-40 h-14">
-        <div className="absolute inset-y-0 left-0 right-[144px] sm:right-[200px] flex items-center justify-center">
+        <div className="absolute inset-y-0 left-[144px] right-[144px] sm:left-[200px] sm:right-[200px] flex items-center justify-center">
         <nav className="max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
