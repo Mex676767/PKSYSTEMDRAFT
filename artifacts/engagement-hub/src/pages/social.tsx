@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,6 +19,14 @@ export default function Social() {
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [body]);
 
   const setImage = (file: File | null) => {
     setImageFile(file);
@@ -75,15 +83,17 @@ export default function Social() {
                     {initialsForUsername(profile?.username ?? "?")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="relative flex-1">
+                <div className="flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                   <textarea
+                    ref={textareaRef}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     onPaste={handlePaste}
+                    rows={1}
                     placeholder="What's on your mind? (you can paste a picture in here too)"
-                    className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 pt-2 pb-14 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                    className="w-full bg-transparent px-3 pt-2 pb-1 text-sm outline-none resize-none overflow-hidden"
                   />
-                  <div className="absolute bottom-2.5 right-2.5 flex items-center gap-2">
+                  <div className="flex items-center justify-end gap-2 px-2 pb-2">
                     <ImagePickerButton onImage={setImage} label="Photo" iconOnly />
                     <Button
                       type="submit"
