@@ -1,4 +1,4 @@
-export const DISCORD_CLIENT_ID = "";
+export const DISCORD_CLIENT_ID = "1550219573771636746";
 
 export function discordRedirectUri() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "") + "/discord-callback";

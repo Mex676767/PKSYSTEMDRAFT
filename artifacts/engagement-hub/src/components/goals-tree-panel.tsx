@@ -193,7 +193,7 @@ export function TreeDetailPanel(
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-primary transition-all"
+                                  className="h-full rounded-full bg-primary transition-all progress-shimmer"
                                   style={{ width: `${goal.progress}%` }}
                                 />
                               </div>
@@ -237,7 +237,7 @@ export function TreeDetailPanel(
                     <span className="text-muted-foreground">{termGoals.length ? `${avg}%` : "No goals"}</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${avg}%` }} />
+                    <div className="h-full rounded-full bg-primary transition-all progress-shimmer" style={{ width: `${avg}%` }} />
                   </div>
                 </div>
               );

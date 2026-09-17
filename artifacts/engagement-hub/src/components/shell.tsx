@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -48,18 +48,38 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { data: presenceMap } = useDiscordPresenceMap();
   const myPresence = profile ? presenceMap?.get(profile.id) : undefined;
   const navRef = useRef<HTMLElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     const el = navRef.current;
     if (!el) return;
+
+    const updateScrollState = () => {
+      setCanScrollRight(el.scrollWidth - el.scrollLeft - el.clientWidth > 4);
+    };
+
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
       e.preventDefault();
       el.scrollLeft += e.deltaY;
     };
+
+    updateScrollState();
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+    el.addEventListener("scroll", updateScrollState);
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [items.length]);
+
+  const scrollNavRight = () => {
+    navRef.current?.scrollBy({ left: 200, behavior: "smooth" });
+  };
 
   return (
     <div className={cn("min-h-[100dvh] app-gradient-bg relative", isMyBirthdayToday && "birthday-mode")}>
@@ -67,7 +87,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="fixed top-4 inset-x-4 z-40 h-14">
         <div className="absolute inset-y-0 left-[144px] right-[144px] sm:left-[200px] sm:right-[200px] flex items-center justify-center">
-        <nav ref={navRef} className="max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
+        <nav ref={navRef} className="relative max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
               <Trophy className="w-3.5 h-3.5" />
@@ -107,6 +127,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {canScrollRight && (
+            <div className="sticky right-0 flex items-center pl-6 shrink-0 pointer-events-none bg-gradient-to-l from-card via-card to-transparent">
+              <button
+                type="button"
+                onClick={scrollNavRight}
+                title="Scroll for more"
+                className="pointer-events-auto w-7 h-7 rounded-full bg-gradient-flame text-primary-foreground shadow-glow-primary flex items-center justify-center shrink-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </nav>
         </div>
 
