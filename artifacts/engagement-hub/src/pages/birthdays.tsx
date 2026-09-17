@@ -1,18 +1,17 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useBirthdays, type BirthdayEntry } from "@/hooks/use-birthdays";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { Cake, CalendarHeart, Gift, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Cake, CalendarHeart, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Confetti } from "@/components/confetti";
-import { useToast } from "@/hooks/use-toast";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { useComments } from "@/hooks/use-social";
+import { SendBirthdayWish } from "@/components/send-birthday-wish";
 
 function displayDate(birthday: string) {
   const [, month, day] = birthday.split("-").map(Number);
@@ -22,7 +21,6 @@ function displayDate(birthday: string) {
 export default function Birthdays() {
   const { data: birthdays = [], isLoading } = useBirthdays();
   const { profile } = useAuth();
-  const { toast } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
 
   if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-pink-500/20" /></div>;
@@ -30,13 +28,9 @@ export default function Birthdays() {
   const todayBdays = birthdays.filter((b) => b.isToday);
   const upcomingBdays = birthdays.filter((b) => !b.isToday);
 
-  const handleCelebrate = (name: string) => {
+  const celebrate = () => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
-    toast({
-      title: "Wishes sent!",
-      description: `You sent birthday wishes to @${name}.`,
-    });
   };
 
   return (
@@ -61,7 +55,7 @@ export default function Birthdays() {
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
             {todayBdays.map((b) => (
               <motion.div variants={slideUp} key={b.id}>
-                <TodayBirthdayCard birthday={b} isMe={b.id === profile?.id} onCelebrate={handleCelebrate} />
+                <TodayBirthdayCard birthday={b} isMe={b.id === profile?.id} onSent={celebrate} />
               </motion.div>
             ))}
           </motion.div>
@@ -82,6 +76,12 @@ export default function Birthdays() {
                       <span className="text-xs font-bold uppercase opacity-90">{format(displayDate(b.birthday), "MMM")}</span>
                       <span className="text-lg font-black leading-none">{format(displayDate(b.birthday), "d")}</span>
                     </div>
+                    <UserAvatar
+                      user={{ name: b.username ?? "unknown", initials: initialsForUsername(b.username ?? "?"), color: colorForId(b.id) }}
+                      photoUrl={b.avatar_url}
+                      border={b.active_border}
+                      className="w-10 h-10 shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">@{b.username ?? "unknown"}</p>
                       <p className="text-sm text-muted-foreground truncate">
@@ -110,11 +110,11 @@ export default function Birthdays() {
 function TodayBirthdayCard({
   birthday,
   isMe,
-  onCelebrate,
+  onSent,
 }: {
   birthday: BirthdayEntry;
   isMe: boolean;
-  onCelebrate: (username: string) => void;
+  onSent: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const { data: comments = [] } = useComments("birthday", birthday.id);
@@ -127,6 +127,8 @@ function TodayBirthdayCard({
         <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
           <UserAvatar
             user={{ name: username, initials: initialsForUsername(username), color: colorForId(birthday.id) }}
+            photoUrl={birthday.avatar_url}
+            border={birthday.active_border}
             className="w-24 h-24 text-3xl border-4 border-white/20 shadow-xl"
           />
           <div className="flex-1">
@@ -139,9 +141,9 @@ function TodayBirthdayCard({
             )}
           </div>
           {!isMe && (
-            <Button onClick={() => onCelebrate(username)} size="lg" className="bg-white text-pink-600 hover:bg-white/90 rounded-full w-full md:w-auto mt-4 md:mt-0 shadow-xl">
-              <Gift className="w-5 h-5 mr-2" /> Send Wishes
-            </Button>
+            <div className="mt-4 md:mt-0">
+              <SendBirthdayWish birthdayId={birthday.id} username={username} dark onSent={onSent} />
+            </div>
           )}
         </div>
 

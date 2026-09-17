@@ -1,17 +1,21 @@
+import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { useChallengesList } from "@/hooks/use-challenges";
 import { useBirthdays } from "@/hooks/use-birthdays";
 import { useGoalsFeed, GOAL_TERM_META, type GoalTerm } from "@/hooks/use-goals";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, Flame, Target, Trophy, Cake } from "lucide-react";
+import { ArrowRight, Flame, Target, Trophy, Cake, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PointsCard } from "@/components/points-card";
+import { SendBirthdayWish } from "@/components/send-birthday-wish";
+import { Confetti } from "@/components/confetti";
 
 const TERM_BADGE_CLASS: Record<GoalTerm, string> = {
   long: "bg-accent/20 text-accent border-accent/30",
@@ -26,10 +30,18 @@ export default function Dashboard() {
   const { data: goalsFeed = [] } = useGoalsFeed();
   const { data: challenges = [] } = useChallengesList();
   const { data: birthdays = [] } = useBirthdays();
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const recentGoals = goalsFeed.slice(0, DASHBOARD_GOAL_PREVIEW_COUNT);
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const todayBirthdays = birthdays.filter((b) => b.isToday);
+  const featuredBirthday = todayBirthdays[0];
+  const isMyBirthday = featuredBirthday?.id === profile?.id;
+
+  const celebrate = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
+  };
 
   const displayName = profile?.username ?? "there";
   const displayPoints = profile?.points ?? 0;
@@ -49,24 +61,50 @@ export default function Dashboard() {
         </p>
       </motion.div>
 
+      <Confetti active={showConfetti} />
+
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
 
         <motion.div variants={slideUp}>
-          {todayBirthdays.length > 0 ? (
-            <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-md overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
+          {featuredBirthday ? (
+            <Card className="bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-white border-2 border-white/40 shadow-xl shadow-pink-500/30 overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
-              <CardContent className="p-4 flex items-center justify-between gap-3 relative z-10">
-                <div className="min-w-0">
-                  <h3 className="font-bold flex items-center gap-2 text-sm">
-                    <Cake className="w-4 h-4 shrink-0" /> It's @{todayBirthdays[0].username ?? "someone"}'s Birthday!
-                  </h3>
-                  <p className="text-white/80 text-xs mt-0.5">Send them a message</p>
+              <CardContent className="p-5 relative z-10">
+                <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                  <UserAvatar
+                    user={{
+                      name: featuredBirthday.username ?? "someone",
+                      initials: initialsForUsername(featuredBirthday.username ?? "?"),
+                      color: colorForId(featuredBirthday.id),
+                    }}
+                    photoUrl={featuredBirthday.avatar_url}
+                    border={featuredBirthday.active_border}
+                    className="w-16 h-16 text-xl border-4 border-white/30 shadow-lg shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold flex items-center gap-2 text-lg">
+                      <PartyPopper className="w-5 h-5 shrink-0" /> It's @{featuredBirthday.username ?? "someone"}'s Birthday!
+                    </h3>
+                    <p className="text-white/85 text-sm mt-0.5">
+                      {isMyBirthday ? "Happy birthday to you! 🎉" : "Send a quick wish below"}
+                    </p>
+                  </div>
+                  <Link href="/birthdays" className="shrink-0">
+                    <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white">
+                      View all
+                    </Button>
+                  </Link>
                 </div>
-                <Link href="/birthdays" className="shrink-0">
-                  <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white">
-                    Celebrate
-                  </Button>
-                </Link>
+                {!isMyBirthday && (
+                  <div className="mt-4 pt-4 border-t border-white/20">
+                    <SendBirthdayWish
+                      birthdayId={featuredBirthday.id}
+                      username={featuredBirthday.username ?? "someone"}
+                      dark
+                      onSent={celebrate}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

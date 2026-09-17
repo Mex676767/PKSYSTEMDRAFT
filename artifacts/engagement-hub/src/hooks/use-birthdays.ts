@@ -8,6 +8,8 @@ export type BirthdayEntry = {
   department: string | null;
   role: string | null;
   birthday: string
+  avatar_url: string | null;
+  active_border: string | null;
   isToday: boolean;
   daysUntil: number;
 };
@@ -23,7 +25,7 @@ export function useBirthdays() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, department, role, birthday")
+        .select("id, username, department, role, birthday, avatar_url, active_border")
         .not("birthday", "is", null);
       if (error) throw error;
 
@@ -33,7 +35,7 @@ export function useBirthdays() {
       const todayMidnight = new Date(today.getFullYear(), todayM, todayD).getTime();
       const dayMs = 24 * 60 * 60 * 1000;
 
-      return (data as { id: string; username: string | null; department: string | null; role: string | null; birthday: string }[])
+      return (data as Omit<BirthdayEntry, "isToday" | "daysUntil">[])
         .map((p): BirthdayEntry => {
           const { month, day } = monthDayOf(p.birthday);
           const isToday = month === todayM && day === todayD;
