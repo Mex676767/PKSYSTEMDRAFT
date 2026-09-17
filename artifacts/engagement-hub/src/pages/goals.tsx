@@ -349,14 +349,14 @@ export default function Goals() {
       {}
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
         {}
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-start justify-between gap-3 shrink-0">
-            {headingBlock()}
-            <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="shrink-0 hover-elevate">
+        <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
+          {headingBlock()}
+          <div className="w-full sm:w-72 sm:ml-auto space-y-2">
+            {searchInput}
+            <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> Add Goals
             </Button>
           </div>
-          <div className="w-full sm:w-72 sm:ml-auto">{searchInput}</div>
         </div>
         {toggleButtons}
       </div>
@@ -364,7 +364,7 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        <div className="relative z-0 left-1/2 -translate-x-1/2 w-screen lg:-mt-8 lg:-mb-8">
+        <div className="relative z-0 left-1/2 -translate-x-1/2 w-screen lg:fixed lg:inset-0 lg:left-0 lg:translate-x-0 lg:w-auto lg:z-0">
           <GoalsTreeView
             people={sortedPeople}
             goalsByOwner={goalsByOwner}
@@ -373,14 +373,14 @@ export default function Goals() {
             header={
               <div className="space-y-4">
                 {}
-                <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex items-start justify-between gap-3 shrink-0">
-                    {headingBlock()}
-                    <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="shrink-0 hover-elevate">
+                <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
+                  {headingBlock()}
+                  <div className="w-full sm:w-72 sm:ml-auto space-y-2">
+                    {searchInput}
+                    <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
                       <Plus className="w-4 h-4 mr-2" /> Add Goals
                     </Button>
                   </div>
-                  <div className="w-full sm:w-72 sm:ml-auto">{searchInput}</div>
                 </div>
                 {toggleButtons}
               </div>

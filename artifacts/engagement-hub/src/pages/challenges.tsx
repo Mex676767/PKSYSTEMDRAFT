@@ -389,7 +389,7 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   return (
     <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        <Button variant="secondary" className="shrink-0" disabled={disabled}>
+        <Button className="shrink-0 hover-elevate" disabled={disabled}>
           <Plus className="w-4 h-4 mr-2" /> Issue Challenge
         </Button>
       </DialogTrigger>
