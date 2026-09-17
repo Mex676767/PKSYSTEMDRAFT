@@ -14,7 +14,7 @@ interface UserAvatarProps {
 
 export function UserAvatar({ user, className, style, accessory, photoUrl, border }: UserAvatarProps) {
   return (
-    <div className="relative inline-block shrink-0">
+    <div className="relative inline-block shrink-0 self-start">
       <BorderDecoration border={border} />
       <Avatar className={cn("border-2 border-background relative z-10", className)} style={style}>
         {photoUrl && <AvatarImage src={photoUrl} alt={user.name} />}

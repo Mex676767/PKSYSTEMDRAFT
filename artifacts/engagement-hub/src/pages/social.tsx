@@ -87,10 +87,10 @@ export default function Social() {
                     />
                   </div>
                   <div className="flex flex-col gap-2 w-20 shrink-0">
-                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly className="flex-1" />
+                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly className="h-[calc(50%-4px)] shrink-0" />
                     <Button
                       type="submit"
-                      className="flex-1 rounded-xl px-2 text-sm"
+                      className="h-[calc(50%-4px)] shrink-0 rounded-xl px-2 text-sm"
                       disabled={createPost.isPending || (!body.trim() && !imageFile)}
                     >
                       {createPost.isPending ? "Posting..." : "Post"}
