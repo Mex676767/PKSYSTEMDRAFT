@@ -21,7 +21,6 @@ for (const [key, value] of Object.entries({ DISCORD_BOT_TOKEN, DISCORD_GUILD_ID,
 const breakKeywords = BREAK_KEYWORDS.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// discord_id -> profiles.id, refreshed periodically so newly-connected accounts pick up fast
 let linkedProfiles = new Map();
 
 async function refreshLinkedProfiles() {
@@ -42,7 +41,7 @@ function classifyChannel(channelName) {
 
 async function syncMember(member) {
   const userId = linkedProfiles.get(member.id);
-  if (!userId) return; // this Discord account isn't linked to anyone on the site
+  if (!userId) return;
 
   const channel = member.voice?.channel ?? null;
   const status = member.presence?.status ?? "offline";

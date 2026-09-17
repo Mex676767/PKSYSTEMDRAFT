@@ -1,12 +1,3 @@
-// Supabase Edge Function: exchanges a Discord OAuth "code" for the caller's
-// Discord identity and links it to their profile row. The Discord client
-// secret never reaches the browser -- it only lives in this function's
-// secrets (set with `supabase secrets set`).
-//
-// Deploy: supabase functions deploy discord-oauth
-// Secrets needed: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI
-// (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.)
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DISCORD_CLIENT_ID = Deno.env.get("DISCORD_CLIENT_ID")!;

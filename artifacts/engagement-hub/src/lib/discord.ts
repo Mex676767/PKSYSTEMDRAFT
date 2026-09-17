@@ -1,7 +1,3 @@
-// Fill this in with your Discord application's Client ID (Discord Developer Portal >
-// your app > OAuth2 > Client ID). This is public information, safe to commit -- the
-// Client Secret must never appear in frontend code; it lives only in the
-// discord-oauth edge function's secrets.
 export const DISCORD_CLIENT_ID = "";
 
 export function discordRedirectUri() {
