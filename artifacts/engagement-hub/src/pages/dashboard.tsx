@@ -95,14 +95,16 @@ export default function Dashboard() {
                     </Button>
                   </Link>
                 </div>
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <SendBirthdayWish
-                    birthdayId={featuredBirthday.id}
-                    username={featuredBirthday.username ?? "someone"}
-                    dark
-                    onSent={celebrate}
-                  />
-                </div>
+                {!isMyBirthday && (
+                  <div className="mt-4 pt-4 border-t border-white/20">
+                    <SendBirthdayWish
+                      birthdayId={featuredBirthday.id}
+                      username={featuredBirthday.username ?? "someone"}
+                      dark
+                      onSent={celebrate}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

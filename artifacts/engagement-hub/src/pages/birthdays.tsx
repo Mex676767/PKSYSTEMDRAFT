@@ -1,7 +1,7 @@
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
-import { colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useBirthdays, type BirthdayEntry } from "@/hooks/use-birthdays";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -20,6 +20,7 @@ function displayDate(birthday: string) {
 
 export default function Birthdays() {
   const { data: birthdays = [], isLoading } = useBirthdays();
+  const { profile } = useAuth();
   const [showConfetti, setShowConfetti] = useState(false);
 
   if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-pink-500/20" /></div>;
@@ -54,7 +55,7 @@ export default function Birthdays() {
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
             {todayBdays.map((b) => (
               <motion.div variants={slideUp} key={b.id}>
-                <TodayBirthdayCard birthday={b} onSent={celebrate} />
+                <TodayBirthdayCard birthday={b} isMe={b.id === profile?.id} onSent={celebrate} />
               </motion.div>
             ))}
           </motion.div>
@@ -108,9 +109,11 @@ export default function Birthdays() {
 
 function TodayBirthdayCard({
   birthday,
+  isMe,
   onSent,
 }: {
   birthday: BirthdayEntry;
+  isMe: boolean;
   onSent: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
@@ -137,9 +140,11 @@ function TodayBirthdayCard({
               </p>
             )}
           </div>
-          <div className="mt-4 md:mt-0">
-            <SendBirthdayWish birthdayId={birthday.id} username={username} dark onSent={onSent} />
-          </div>
+          {!isMe && (
+            <div className="mt-4 md:mt-0">
+              <SendBirthdayWish birthdayId={birthday.id} username={username} dark onSent={onSent} />
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t border-white/20 space-y-3">
