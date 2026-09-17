@@ -81,14 +81,13 @@ export default function Social() {
                     onChange={(e) => setBody(e.target.value)}
                     onPaste={handlePaste}
                     placeholder="What's on your mind?"
-                    className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 pt-2 pb-11 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                    className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 pt-2 pb-14 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
-                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  <div className="absolute bottom-2.5 right-2.5 flex items-center gap-2">
                     <ImagePickerButton onImage={setImage} label="Photo" iconOnly />
                     <Button
                       type="submit"
-                      size="sm"
-                      className="h-8 rounded-full px-4"
+                      className="h-10 rounded-full px-5"
                       disabled={createPost.isPending || (!body.trim() && !imageFile)}
                     >
                       {createPost.isPending ? "Posting..." : "Post"}

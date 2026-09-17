@@ -74,20 +74,39 @@ export function ImagePickerButton(
   if (iconOnly) {
     return (
       <div
-        {...pasteZone}
-        onClick={() => !disabled && fileInputRef.current?.click()}
-        title={armed ? "Ready — press Ctrl+V, or drop it" : `${label} (or paste with Ctrl+V)`}
         className={cn(
-          "inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-dashed transition-colors select-none shrink-0",
-          disabled
-            ? "opacity-50 cursor-not-allowed border-border text-muted-foreground"
-            : armed
-              ? "cursor-pointer border-primary bg-gradient-to-br from-primary to-secondary text-white"
-              : "cursor-pointer border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-muted/40",
+          "flex flex-col w-10 h-10 rounded-xl overflow-hidden border-2 border-dashed transition-colors shrink-0",
+          disabled ? "opacity-50 border-border" : armed ? "border-primary" : "border-border/60",
           className
         )}
       >
-        {armed ? <ClipboardPaste className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
+        <div
+          {...pasteZone}
+          title={armed ? "Ready — press Ctrl+V, or drop an image" : "Paste an image (Ctrl+V), or drag one here"}
+          className={cn(
+            "flex-1 flex items-center justify-center transition-colors select-none",
+            disabled
+              ? "cursor-not-allowed text-muted-foreground"
+              : armed
+                ? "cursor-pointer bg-gradient-to-br from-primary/20 to-secondary/15 text-primary"
+                : "cursor-pointer text-muted-foreground hover:text-primary hover:bg-muted/40"
+          )}
+        >
+          <ClipboardPaste className="w-3.5 h-3.5" />
+        </div>
+        <div className="h-px bg-border/60 shrink-0" />
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => fileInputRef.current?.click()}
+          title={label}
+          className={cn(
+            "flex-1 flex items-center justify-center transition-colors",
+            disabled ? "cursor-not-allowed opacity-50 text-muted-foreground" : "cursor-pointer text-muted-foreground hover:text-secondary hover:bg-muted/40"
+          )}
+        >
+          <Camera className="w-3.5 h-3.5" />
+        </button>
         {input}
       </div>
     );

@@ -121,7 +121,7 @@ function TodayBirthdayCard({
   const username = birthday.username ?? "unknown";
 
   return (
-    <Card className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-none shadow-lg overflow-hidden relative">
+    <Card className="bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-white border-2 border-white/40 shadow-xl shadow-pink-500/30 overflow-hidden relative">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-30" />
       <CardContent className="p-6 md:p-8 relative z-10 space-y-5">
         <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
