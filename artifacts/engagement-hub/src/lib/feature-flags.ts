@@ -12,3 +12,6 @@ export const LOCKED_ROUTES = new Set<string>([
 export function isRouteLocked(path: string) {
   return LOCKED_ROUTES.has(path);
 }
+
+// Flip to true once the Discord bot, OAuth app, and DB migration are set up.
+export const DISCORD_INTEGRATION_ENABLED = false;

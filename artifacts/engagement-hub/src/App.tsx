@@ -10,6 +10,7 @@ import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ComingSoon } from '@/pages/coming-soon';
+import { DISCORD_INTEGRATION_ENABLED } from '@/lib/feature-flags';
 
 import Login from '@/pages/login';
 import Onboarding from '@/pages/onboarding';
@@ -61,7 +62,13 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
-  return !!(profile?.username && profile?.birthday && profile?.role && profile?.department && profile?.discord_id);
+  return !!(
+    profile?.username &&
+    profile?.birthday &&
+    profile?.role &&
+    profile?.department &&
+    (!DISCORD_INTEGRATION_ENABLED || profile?.discord_id)
+  );
 }
 
 function AuthGate() {

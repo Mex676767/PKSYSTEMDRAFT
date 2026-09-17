@@ -10,6 +10,7 @@ import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { connectDiscord } from "@/hooks/use-discord";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
+import { DISCORD_INTEGRATION_ENABLED } from "@/lib/feature-flags";
 import { getErrorMessage } from "@/lib/utils";
 
 function sanitizeUsername(raw: string) {
@@ -18,11 +19,15 @@ function sanitizeUsername(raw: string) {
 
 type Step = "username" | "birthday" | "role" | "discord";
 
+const STEPS: Step[] = DISCORD_INTEGRATION_ENABLED
+  ? ["username", "birthday", "role", "discord"]
+  : ["username", "birthday", "role"];
+
 function stepFor(profile: ReturnType<typeof useAuth>["profile"]): Step | null {
   if (!profile?.username) return "username";
   if (!profile?.birthday) return "birthday";
   if (!profile?.role || !profile?.department) return "role";
-  if (!profile?.discord_id) return "discord";
+  if (DISCORD_INTEGRATION_ENABLED && !profile?.discord_id) return "discord";
   return null;
 }
 
@@ -55,12 +60,12 @@ export default function Onboarding() {
           <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-1">{subtitle}</p>
           <div className="flex items-center justify-center gap-1.5 mt-4">
-            {(["username", "birthday", "role", "discord"] as Step[]).map((s, i) => (
+            {STEPS.map((s, i) => (
               <span
                 key={s}
                 className={
                   "w-2 h-2 rounded-full " +
-                  (s === step ? "bg-primary" : i < (["username", "birthday", "role", "discord"] as Step[]).indexOf(step) ? "bg-primary/40" : "bg-muted")
+                  (s === step ? "bg-primary" : i < STEPS.indexOf(step) ? "bg-primary/40" : "bg-muted")
                 }
               />
             ))}
