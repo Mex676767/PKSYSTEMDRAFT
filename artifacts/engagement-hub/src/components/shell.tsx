@@ -11,6 +11,7 @@ import { isBirthdayToday } from "@/hooks/use-birthdays";
 import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { discordStatusLabel } from "@/lib/discord";
 import { BirthdayCelebration } from "./birthday-celebration";
+import { ConfettiBurstOnClick } from "./confetti-burst";
 import { DiscordStatusDot } from "./discord-status-dot";
 import { UserAvatar } from "./user-avatar";
 import { ThemeToggle } from "./theme-toggle";
@@ -30,7 +31,6 @@ const navItems = [
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/mentors", label: "Mentors", icon: Users },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
@@ -84,6 +84,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn("min-h-[100dvh] app-gradient-bg relative", isMyBirthdayToday && "birthday-mode")}>
       <BirthdayCelebration active={isMyBirthdayToday} />
+      <ConfettiBurstOnClick />
 
       <div className="fixed top-4 inset-x-4 z-40 h-14">
         <div className="absolute inset-y-0 left-[144px] right-[144px] sm:left-[200px] sm:right-[200px] flex items-center justify-center">
@@ -114,11 +115,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
               >
                 <span className="relative">
                   <Icon className="w-4 h-4" />
-                  {item.href === "/messages" && totalUnread > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-destructive text-white text-[8px] font-bold flex items-center justify-center">
-                      {totalUnread > 9 ? "9+" : totalUnread}
-                    </span>
-                  )}
                 </span>
                 <span className="hidden sm:flex items-center gap-1">
                   {item.label}
@@ -144,6 +140,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="absolute right-0 top-0 flex items-center gap-2">
+        <Link
+          href="/messages"
+          title="Messages"
+          className={cn(
+            "relative shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+            location.startsWith("/messages")
+              ? "bg-gradient-flame text-primary-foreground shadow-glow-primary"
+              : "bg-card/70 backdrop-blur-xl border border-border shadow-lg text-foreground hover:scale-110"
+          )}
+        >
+          <MessageSquare className="w-4 h-4" />
+          {totalUnread > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-destructive text-white text-[9px] font-bold flex items-center justify-center">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
+          )}
+        </Link>
         <NotificationBell />
         <ThemeToggle />
 

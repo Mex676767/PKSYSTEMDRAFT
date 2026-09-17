@@ -266,6 +266,27 @@
   .shadow-glow-secondary { box-shadow: var(--glow-secondary); }
 }
 
+@keyframes btn-shine-sweep {
+  0% { left: -60%; }
+  35% { left: 130%; }
+  100% { left: 130%; }
+}
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  height: 100%;
+  width: 40%;
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  animation: btn-shine-sweep 3.2s ease-in-out infinite;
+}
+
 @keyframes progress-shimmer-sweep {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
