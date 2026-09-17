@@ -4,8 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { NotificationBell } from '@/components/notification-bell';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
@@ -99,12 +97,10 @@ function AuthGate() {
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="engagement-hub-theme">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="engagement-hub-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <TooltipProvider>
-            <ThemeToggle />
-            <NotificationBell />
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
               <AuthGate />
             </WouterRouter>

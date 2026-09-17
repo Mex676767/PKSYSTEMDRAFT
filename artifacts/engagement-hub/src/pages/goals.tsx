@@ -222,16 +222,6 @@ export default function Goals() {
   return (
     <>
       {}
-      <Button
-        onClick={() => setIsDialogOpen(true)}
-        disabled={!session}
-        style={{ position: "fixed", zIndex: 50 }}
-        className="hidden md:inline-flex top-4 right-[124px] z-50 hover-elevate"
-      >
-        <Plus className="w-4 h-4 mr-2" /> Add Goals
-      </Button>
-
-      {}
       <PageTransition
         className={cn(
           "p-4 md:p-8 md:-mt-16 space-y-8",
@@ -362,11 +352,11 @@ export default function Goals() {
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-start justify-between gap-3 shrink-0">
             {headingBlock()}
-            <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="md:hidden shrink-0 hover-elevate">
+            <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="shrink-0 hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> Add Goals
             </Button>
           </div>
-          <div className="w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2">{searchInput}</div>
+          <div className="w-full sm:w-72 sm:ml-auto">{searchInput}</div>
         </div>
         {toggleButtons}
       </div>
@@ -384,8 +374,13 @@ export default function Goals() {
               <div className="space-y-4">
                 {}
                 <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-                  {headingBlock()}
-                  <div className="w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2">{searchInput}</div>
+                  <div className="flex items-start justify-between gap-3 shrink-0">
+                    {headingBlock()}
+                    <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="shrink-0 hover-elevate">
+                      <Plus className="w-4 h-4 mr-2" /> Add Goals
+                    </Button>
+                  </div>
+                  <div className="w-full sm:w-72 sm:ml-auto">{searchInput}</div>
                 </div>
                 {toggleButtons}
               </div>

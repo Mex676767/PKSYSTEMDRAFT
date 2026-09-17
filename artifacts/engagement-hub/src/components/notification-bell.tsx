@@ -54,11 +54,11 @@ export function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div ref={rootRef} className="fixed top-4 right-[68px] z-50">
+    <div ref={rootRef} className="relative shrink-0">
       <button
         onClick={() => setIsOpen((o) => !o)}
         title="Notifications"
-        className="relative w-11 h-11 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform"
+        className="relative w-10 h-10 rounded-full bg-card/70 backdrop-blur-xl border border-border shadow-lg flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -69,7 +69,7 @@ export function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute right-0 mt-2 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-border bg-card shadow-lg z-50">
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-border sticky top-0 bg-card">
             <span className="text-sm font-semibold">Notifications</span>
             {unreadCount > 0 && (

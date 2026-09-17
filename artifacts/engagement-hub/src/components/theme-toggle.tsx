@@ -10,7 +10,7 @@ export function ThemeToggle() {
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="fixed top-4 right-4 z-50 w-11 h-11 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+      className="shrink-0 w-10 h-10 rounded-full bg-card/70 backdrop-blur-xl border border-border shadow-lg flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform overflow-hidden"
     >
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
