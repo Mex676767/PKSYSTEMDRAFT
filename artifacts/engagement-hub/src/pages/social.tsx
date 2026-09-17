@@ -80,7 +80,7 @@ export default function Social() {
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     onPaste={handlePaste}
-                    placeholder="What's on your mind?"
+                    placeholder="What's on your mind? (you can paste a picture in here too)"
                     className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 pt-2 pb-14 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
                   <div className="absolute bottom-2.5 right-2.5 flex items-center gap-2">
