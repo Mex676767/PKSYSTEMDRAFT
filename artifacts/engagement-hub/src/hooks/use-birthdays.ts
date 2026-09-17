@@ -19,6 +19,13 @@ function monthDayOf(dateStr: string) {
   return { month: month - 1, day };
 }
 
+export function isBirthdayToday(birthday: string | null | undefined) {
+  if (!birthday) return false;
+  const { month, day } = monthDayOf(birthday);
+  const today = new Date();
+  return month === today.getMonth() && day === today.getDate();
+}
+
 export function useBirthdays() {
   return useQuery({
     queryKey: ["birthdays"],

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { ArrowLeft, Monitor, Image as ImageIcon, X, Trophy } from "lucide-react";
@@ -134,11 +134,12 @@ export default function DeskSetup() {
                 </div>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Avatar className="w-7 h-7 shrink-0">
-                      <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(entry.author_id))}>
-                        {initialsForUsername(entry.author?.username ?? "?")}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      user={{ name: entry.author?.username ?? "unknown", initials: initialsForUsername(entry.author?.username ?? "?"), color: colorForId(entry.author_id) }}
+                      photoUrl={entry.author?.avatar_url ?? null}
+                      border={entry.author?.active_border ?? null}
+                      className="w-7 h-7 text-[10px] shrink-0"
+                    />
                     <span className="text-sm font-medium">@{entry.author?.username ?? "unknown"}</span>
                   </div>
                   {entry.body && <p className="text-sm text-muted-foreground">{entry.body}</p>}

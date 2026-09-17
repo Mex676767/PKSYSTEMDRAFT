@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post-card";
 import { motion } from "framer-motion";
@@ -70,24 +70,27 @@ export default function Social() {
           {session ? (
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="flex gap-3">
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarFallback className={`text-white font-bold ${colorForId(session.user.id)}`}>
-                    {initialsForUsername(profile?.username ?? "?")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
-                  <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    onPaste={handlePaste}
-                    placeholder="What's on your mind? (you can paste a picture in here too)"
-                    className="h-11 w-full px-3 pt-2 text-sm bg-transparent focus-visible:outline-none resize-none overflow-y-auto block"
-                  />
-                  <div className="flex items-center justify-end gap-2 px-2 pb-2">
-                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly />
+                <UserAvatar
+                  user={{ name: profile?.username ?? "unknown", initials: initialsForUsername(profile?.username ?? "?"), color: colorForId(session.user.id) }}
+                  photoUrl={profile?.avatar_url}
+                  border={profile?.active_border}
+                  className="w-10 h-10 shrink-0"
+                />
+                <div className="flex-1 flex gap-2 items-stretch">
+                  <div className="flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
+                    <textarea
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      onPaste={handlePaste}
+                      placeholder="What's on your mind? (you can paste a picture in here too)"
+                      className="h-24 w-full px-3 pt-2 text-sm bg-transparent focus-visible:outline-none resize-none overflow-y-auto block"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 w-20 shrink-0">
+                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly className="flex-1" />
                     <Button
                       type="submit"
-                      className="h-10 rounded-full px-5"
+                      className="flex-1 rounded-xl px-2 text-sm"
                       disabled={createPost.isPending || (!body.trim() && !imageFile)}
                     >
                       {createPost.isPending ? "Posting..." : "Post"}

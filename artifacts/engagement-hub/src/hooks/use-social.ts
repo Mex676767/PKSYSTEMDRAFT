@@ -13,7 +13,7 @@ export type Comment = {
   author_id: string;
   body: string;
   created_at: string;
-  author: { username: string | null } | null;
+  author: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
 };
 
 export type Reaction = {
@@ -80,7 +80,7 @@ export function useComments(targetType: TargetType, targetId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("*, author:profiles(username)")
+        .select("*, author:profiles(username, avatar_url, active_border)")
         .eq("target_type", targetType)
         .eq("target_id", targetId)
         .order("created_at", { ascending: true });
@@ -143,7 +143,7 @@ export function useCommentsForTargets(targetType: TargetType, targetIds: string[
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("*, author:profiles(username)")
+        .select("*, author:profiles(username, avatar_url, active_border)")
         .eq("target_type", targetType)
         .in("target_id", targetIds)
         .order("created_at", { ascending: false });

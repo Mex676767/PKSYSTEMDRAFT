@@ -37,10 +37,10 @@ export type Goal = {
   progress: number;
   completed: boolean;
   created_at: string;
-  owner: { username: string | null; role: string | null } | null;
+  owner: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null } | null;
 };
 
-const GOAL_SELECT = "*, owner:profiles!inner(username, role)";
+const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border)";
 
 export function useGoalsFeed() {
   return useQuery({

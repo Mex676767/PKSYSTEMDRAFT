@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, isPast } from "date-fns";
 import { Circle, Clock, MessageCircle, ChevronDown, ChevronUp, ListChecks, Trash2, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,11 +72,12 @@ export function GoalCard({
 
           <div className="flex-1 space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Avatar className="w-5 h-5">
-                <AvatarFallback className={cn("text-white text-[9px] font-bold", colorForId(goal.owner_id))}>
-                  {initialsForUsername(goal.owner?.username ?? "?")}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
+                photoUrl={goal.owner?.avatar_url ?? null}
+                border={goal.owner?.active_border ?? null}
+                className="w-5 h-5 text-[9px]"
+              />
               <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>
               {goal.owner?.role && <Badge variant="outline" className="text-[9px]">{goal.owner.role}</Badge>}
               <Badge variant="outline" className="text-[9px]">{GOAL_CATEGORY_META[goal.category ?? "personal"].label}</Badge>

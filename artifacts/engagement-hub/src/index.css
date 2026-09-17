@@ -267,6 +267,51 @@
     radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 80% 30% / 0.2), transparent 55%);
 }
 
+.birthday-mode {
+  --primary: 292 91% 58%;
+  --primary-foreground: 0 0% 100%;
+  --primary-border: hsl(292 91% 40%);
+
+  --secondary: 330 81% 55%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-border: hsl(330 81% 38%);
+
+  --accent: 43 96% 56%;
+  --accent-foreground: 240 10% 15%;
+  --accent-border: hsl(43 96% 38%);
+
+  --ring: 292 91% 58%;
+}
+
+.app-gradient-bg.birthday-mode {
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 91% 85% / 0.75), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 81% 85% / 0.7), transparent 55%),
+    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 96% 80% / 0.6), transparent 55%);
+}
+
+.dark .app-gradient-bg.birthday-mode {
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 80% 35% / 0.45), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 75% 35% / 0.4), transparent 55%),
+    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 90% 35% / 0.3), transparent 55%);
+}
+
+@keyframes sparkle-float {
+  0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateY(-70vh) scale(1.15) rotate(25deg); opacity: 0; }
+}
+.birthday-sparkle {
+  position: fixed;
+  bottom: -20px;
+  animation-name: sparkle-float;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+}
+
 @keyframes fall {
   0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }

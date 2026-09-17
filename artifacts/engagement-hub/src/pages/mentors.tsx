@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,14 +23,25 @@ import {
 import { DEPARTMENTS, type Department } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
-function PersonChip({ id, username }: { id: string; username: string | null | undefined }) {
+function PersonChip({
+  id,
+  username,
+  photoUrl,
+  border,
+}: {
+  id: string;
+  username: string | null | undefined;
+  photoUrl?: string | null;
+  border?: string | null;
+}) {
   return (
     <div className="flex items-center gap-2">
-      <Avatar className="w-8 h-8 shrink-0">
-        <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(id))}>
-          {initialsForUsername(username ?? "?")}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        user={{ name: username ?? "unknown", initials: initialsForUsername(username ?? "?"), color: colorForId(id) }}
+        photoUrl={photoUrl}
+        border={border}
+        className="w-8 h-8 text-[10px] shrink-0"
+      />
       <span className="text-sm font-medium truncate">@{username ?? "unknown"}</span>
     </div>
   );
@@ -283,7 +294,12 @@ function TreeNode({
             {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </button>
         )}
-        <PersonChip id={personId} username={username} />
+        <PersonChip
+          id={personId}
+          username={username}
+          photoUrl={directory.find((p) => p.id === personId)?.avatar_url}
+          border={directory.find((p) => p.id === personId)?.active_border}
+        />
         {status && (
           <Badge variant={status === "active" ? "default" : "secondary"} className="text-[9px] uppercase shrink-0">
             {status}
@@ -381,6 +397,7 @@ function MentorMenteeSection({
   directory: ReturnType<typeof useDirectory>["data"];
 }) {
   const list = mentorships ?? [];
+  const directoryById = useMemo(() => new Map((directory ?? []).map((p) => [p.id, p])), [directory]);
 
   const byMentor = useMemo(() => {
     const map = new Map<string, { username: string | null | undefined; mentees: typeof list }>();
@@ -406,7 +423,12 @@ function MentorMenteeSection({
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <GraduationCap className="w-4 h-4 text-primary" />
-                    <PersonChip id={mentorId} username={username} />
+                    <PersonChip
+                      id={mentorId}
+                      username={username}
+                      photoUrl={directoryById.get(mentorId)?.avatar_url}
+                      border={directoryById.get(mentorId)?.active_border}
+                    />
                     <Badge variant="outline" className="text-[9px] ml-auto shrink-0">
                       {mentees.length} mentee{mentees.length === 1 ? "" : "s"}
                     </Badge>
@@ -414,7 +436,12 @@ function MentorMenteeSection({
                   <div className="pl-6 space-y-2">
                     {mentees.map((m) => (
                       <div key={m.id} className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg p-2">
-                        <PersonChip id={m.mentee_id} username={m.mentee?.username} />
+                        <PersonChip
+                          id={m.mentee_id}
+                          username={m.mentee?.username}
+                          photoUrl={directoryById.get(m.mentee_id)?.avatar_url}
+                          border={directoryById.get(m.mentee_id)?.active_border}
+                        />
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge variant={m.status === "active" ? "default" : "secondary"} className="text-[9px] uppercase">
                             {m.status}
@@ -477,7 +504,7 @@ function DepartmentSection({
             {people.map((p) => (
               <Card key={p.id} className="shadow-sm">
                 <CardContent className="p-3 flex items-center justify-between gap-2">
-                  <PersonChip id={p.id} username={p.username} />
+                  <PersonChip id={p.id} username={p.username} photoUrl={p.avatar_url} border={p.active_border} />
                   {canManage && (
                     editingId === p.id ? (
                       <div className="flex items-center gap-1 shrink-0">

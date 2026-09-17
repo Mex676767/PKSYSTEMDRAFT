@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -110,14 +110,27 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-function PersonBadge({ id, username, role }: { id: string; username: string | null | undefined; role: string | null | undefined }) {
+function PersonBadge({
+  id,
+  username,
+  role,
+  photoUrl,
+  border,
+}: {
+  id: string;
+  username: string | null | undefined;
+  role: string | null | undefined;
+  photoUrl?: string | null;
+  border?: string | null;
+}) {
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar className="w-8 h-8 shrink-0">
-        <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(id))}>
-          {initialsForUsername(username ?? "?")}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        user={{ name: username ?? "unknown", initials: initialsForUsername(username ?? "?"), color: colorForId(id) }}
+        photoUrl={photoUrl}
+        border={border}
+        className="w-8 h-8 text-[10px] shrink-0"
+      />
       <div className="min-w-0">
         <div className="text-sm font-medium truncate">@{username ?? "unknown"}</div>
         {role && <div className="text-[10px] text-muted-foreground">{role}</div>}
@@ -186,13 +199,13 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <PersonBadge id={c.creator_id} username={c.creator?.username} role={c.creator?.role} />
+          <PersonBadge id={c.creator_id} username={c.creator?.username} role={c.creator?.role} photoUrl={c.creator?.avatar_url} border={c.creator?.active_border} />
           <div className="flex items-center gap-2 shrink-0 text-sm font-bold tabular-nums">
             <span className={cn(c.winner_id === c.creator_id && "text-emerald-500")}>{c.score_creator}</span>
             <span className="text-muted-foreground text-xs font-normal">vs</span>
             <span className={cn(c.winner_id === c.opponent_id && "text-emerald-500")}>{c.score_opponent}</span>
           </div>
-          <PersonBadge id={c.opponent_id} username={c.opponent?.username} role={c.opponent?.role} />
+          <PersonBadge id={c.opponent_id} username={c.opponent?.username} role={c.opponent?.role} photoUrl={c.opponent?.avatar_url} border={c.opponent?.active_border} />
         </div>
 
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">

@@ -1,11 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
+import { isBirthdayToday } from "@/hooks/use-birthdays";
+import { BirthdayCelebration } from "./birthday-celebration";
 import { UserAvatar } from "./user-avatar";
 
 const navItems = [
@@ -29,9 +31,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const items = isAdmin ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldAlert }] : navItems;
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
+  const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg">
+    <div className={cn("min-h-[100dvh] flex flex-col md:flex-row app-gradient-bg", isMyBirthdayToday && "birthday-mode")}>
+      <BirthdayCelebration active={isMyBirthdayToday} />
       {}
       {}
       <nav className="fixed bottom-0 left-0 right-0 md:sticky md:top-0 md:w-64 bg-card border-t md:border-t-0 md:border-r border-border z-40 flex md:flex-col md:h-screen">
@@ -92,9 +96,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {profile.active_title ? `${titleLabel(profile.active_title)} · ` : ""}{profile.points} pts
-              </p>
+              {isMyBirthdayToday ? (
+                <p className="text-xs font-semibold text-secondary truncate flex items-center gap-1">
+                  <PartyPopper className="w-3 h-3" /> It's your birthday!
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground truncate">
+                  {profile.active_title ? `${titleLabel(profile.active_title)} · ` : ""}{profile.points} pts
+                </p>
+              )}
             </div>
             <button
               onClick={() => signOut()}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { History, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -67,11 +67,12 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
 
         {current ? (
           <div className="flex items-center gap-3 bg-muted/40 rounded-xl p-3">
-            <Avatar className="w-11 h-11 border-2 border-accent shrink-0">
-              <AvatarFallback className={`text-white font-bold ${colorForId(current.holder_id)}`}>
-                {initialsForUsername(current.holder?.username ?? "?")}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              user={{ name: current.holder?.username ?? "unknown", initials: initialsForUsername(current.holder?.username ?? "?"), color: colorForId(current.holder_id) }}
+              photoUrl={current.holder?.avatar_url ?? null}
+              border={current.holder?.active_border ?? null}
+              className="w-11 h-11 border-2 border-accent shrink-0"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <Badge className="bg-accent text-accent-foreground text-[10px] px-1.5">Current</Badge>
@@ -151,11 +152,12 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
           <div className="space-y-2 pt-1 border-t border-border/50">
             {pastRecords.map((r) => (
               <div key={r.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Avatar className="w-5 h-5 shrink-0">
-                  <AvatarFallback className={`text-white text-[8px] font-bold ${colorForId(r.holder_id)}`}>
-                    {initialsForUsername(r.holder?.username ?? "?")}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  user={{ name: r.holder?.username ?? "unknown", initials: initialsForUsername(r.holder?.username ?? "?"), color: colorForId(r.holder_id) }}
+                  photoUrl={r.holder?.avatar_url ?? null}
+                  border={r.holder?.active_border ?? null}
+                  className="w-5 h-5 text-[8px] shrink-0"
+                />
                 <span className="font-medium">@{r.holder?.username ?? "unknown"}</span>
                 <span className="truncate">{r.achievement}</span>
                 <span className="ml-auto shrink-0">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>

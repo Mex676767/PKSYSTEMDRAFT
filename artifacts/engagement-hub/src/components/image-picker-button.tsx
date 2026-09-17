@@ -78,7 +78,7 @@ export function ImagePickerButton(
         onClick={() => !disabled && fileInputRef.current?.click()}
         title={armed ? "Ready — press Ctrl+V, or drop it" : `${label} (or paste with Ctrl+V)`}
         className={cn(
-          "inline-flex items-center justify-center w-10 h-10 rounded-full border-2 border-dashed transition-colors select-none shrink-0",
+          "inline-flex items-center justify-center w-full h-full rounded-xl border-2 border-dashed transition-colors select-none shrink-0",
           disabled
             ? "opacity-50 cursor-not-allowed border-border text-muted-foreground"
             : armed
@@ -87,7 +87,7 @@ export function ImagePickerButton(
           className
         )}
       >
-        {armed ? <ClipboardPaste className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+        {armed ? <ClipboardPaste className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
         {input}
       </div>
     );

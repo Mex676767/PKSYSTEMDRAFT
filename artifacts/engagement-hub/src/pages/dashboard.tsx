@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/user-avatar";
 import { useChallengesList } from "@/hooks/use-challenges";
 import { useBirthdays } from "@/hooks/use-birthdays";
@@ -150,11 +149,12 @@ export default function Dashboard() {
                       key={goal.id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
                     >
-                      <Avatar className="w-9 h-9 shrink-0">
-                        <AvatarFallback className={`text-white text-xs font-bold ${colorForId(goal.owner_id)}`}>
-                          {initialsForUsername(goal.owner?.username ?? "?")}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
+                        photoUrl={goal.owner?.avatar_url ?? null}
+                        border={goal.owner?.active_border ?? null}
+                        className="w-9 h-9 text-xs shrink-0"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>

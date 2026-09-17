@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Send, Trash2 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment, type TargetType } from "@/hooks/use-social";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,12 @@ export function CommentSection({
     <div className="space-y-3">
       {comments.map((c) => (
         <div key={c.id} className="flex items-start gap-2 text-sm">
-          <Avatar className="w-7 h-7 shrink-0">
-            <AvatarFallback className={cn("text-white text-[10px] font-bold", colorForId(c.author_id))}>
-              {initialsForUsername(c.author?.username ?? "?")}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            user={{ name: c.author?.username ?? "unknown", initials: initialsForUsername(c.author?.username ?? "?"), color: colorForId(c.author_id) }}
+            photoUrl={c.author?.avatar_url ?? null}
+            border={c.author?.active_border ?? null}
+            className="w-7 h-7 text-[10px] shrink-0"
+          />
           <div className={cn("flex-1 min-w-0 rounded-xl px-3 py-2", onDark ? "bg-white/15" : "bg-muted/40")}>
             <div className="flex items-baseline gap-2">
               <span className={cn("font-semibold text-xs", onDark && "text-white")}>

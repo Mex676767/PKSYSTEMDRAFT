@@ -11,10 +11,10 @@ export type Post = {
   image_path: string | null;
   category: PostCategory;
   created_at: string;
-  author: { username: string | null } | null;
+  author: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
 };
 
-const POST_SELECT = "*, author:profiles!inner(username)";
+const POST_SELECT = "*, author:profiles!inner(username, avatar_url, active_border)";
 
 export function usePostsFeed() {
   return useQuery({
