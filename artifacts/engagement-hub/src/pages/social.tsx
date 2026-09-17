@@ -75,15 +75,15 @@ export default function Social() {
                     {initialsForUsername(profile?.username ?? "?")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="relative flex-1">
+                <div className="flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
                   <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     onPaste={handlePaste}
                     placeholder="What's on your mind? (you can paste a picture in here too)"
-                    className="h-[76px] w-full rounded-md border border-input bg-background px-3 pt-2 pb-12 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none overflow-y-auto"
+                    className="h-11 w-full px-3 pt-2 text-sm bg-transparent focus-visible:outline-none resize-none overflow-y-auto block"
                   />
-                  <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                  <div className="flex items-center justify-end gap-2 px-2 pb-2">
                     <ImagePickerButton onImage={setImage} label="Photo" iconOnly />
                     <Button
                       type="submit"
