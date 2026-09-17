@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PointsCard } from "@/components/points-card";
+import { TeamStatusCard } from "@/components/team-status-card";
 import { SendBirthdayWish } from "@/components/send-birthday-wish";
 import { Confetti } from "@/components/confetti";
 
@@ -120,6 +121,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+        </motion.div>
+
+        <motion.div variants={slideUp}>
+          <TeamStatusCard />
         </motion.div>
 
         <motion.div variants={slideUp}>
