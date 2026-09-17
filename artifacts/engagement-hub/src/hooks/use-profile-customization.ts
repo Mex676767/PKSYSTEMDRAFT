@@ -107,11 +107,11 @@ export function useUploadAvatar() {
       const path = `${session.user.id}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
+        .from("post-images")
         .upload(path, file, { upsert: true, cacheControl: "3600" });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(path);
       const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
       const { error: updateError } = await supabase
