@@ -52,43 +52,43 @@
 }
 
 :root {
-  --button-outline: rgba(255, 255, 255, 0.1);
-  --badge-outline: rgba(255, 255, 255, 0.05);
+  --button-outline: rgba(0, 0, 0, 0.1);
+  --badge-outline: rgba(0, 0, 0, 0.05);
 
-  --opaque-button-border-intensity: 9;
+  --opaque-button-border-intensity: -8;
 
-  --elevate-1: rgba(255, 255, 255, 0.04);
-  --elevate-2: rgba(255, 255, 255, 0.09);
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 258 42% 5%;
-  --foreground: 252 55% 97%;
-  --border: 255 25% 20%;
+  --background: 260 45% 98%;
+  --foreground: 258 35% 12%;
+  --border: 258 25% 88%;
 
-  --card: 249 38% 11%;
-  --card-foreground: 252 55% 97%;
-  --card-border: 255 25% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 258 35% 12%;
+  --card-border: 258 25% 88%;
 
-  --popover: 249 38% 15%;
-  --popover-foreground: 252 55% 97%;
-  --popover-border: 255 25% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 258 35% 12%;
+  --popover-border: 258 25% 88%;
 
-  --primary: 340 100% 65%;
+  --primary: 340 90% 55%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 249 100% 69%;
+  --secondary: 249 85% 60%;
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 249 30% 16%;
-  --muted-foreground: 258 20% 65%;
+  --muted: 258 30% 95%;
+  --muted-foreground: 258 15% 42%;
 
-  --accent: 24 100% 63%;
-  --accent-foreground: 258 45% 8%;
+  --accent: 24 95% 54%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 350 90% 60%;
+  --destructive: 350 85% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 255 25% 20%;
-  --ring: 340 100% 65%;
+  --input: 258 25% 88%;
+  --ring: 340 90% 55%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-display: 'Space Grotesk', sans-serif;
@@ -97,34 +97,34 @@
 
   --radius: 1.125rem;
 
-  --flame-1: 340 100% 65%;
-  --flame-2: 24 100% 63%;
-  --electric-1: 249 100% 69%;
-  --electric-2: 191 100% 60%;
+  --flame-1: 340 100% 60%;
+  --flame-2: 24 100% 58%;
+  --electric-1: 249 95% 64%;
+  --electric-2: 191 100% 50%;
 
-  --glow-primary: 0 0 0 1px hsl(var(--flame-1) / 0.35), 0 10px 28px -10px hsl(var(--flame-1) / 0.5);
-  --glow-secondary: 0 0 0 1px hsl(var(--electric-1) / 0.3), 0 10px 28px -10px hsl(var(--electric-1) / 0.45);
+  --glow-primary: 0 0 0 1px hsl(var(--flame-1) / 0.3), 0 10px 28px -10px hsl(var(--flame-1) / 0.45);
+  --glow-secondary: 0 0 0 1px hsl(var(--electric-1) / 0.25), 0 10px 28px -10px hsl(var(--electric-1) / 0.4);
 
-  --shadow-2xs: 0px 2px 6px 0px rgba(0, 0, 0, 0.25);
-  --shadow-xs: 0px 2px 6px 0px rgba(0, 0, 0, 0.25);
+  --shadow-2xs: 0px 1px 4px 0px rgba(88, 28, 135, 0.06);
+  --shadow-xs: 0px 1px 4px 0px rgba(88, 28, 135, 0.06);
   --shadow-sm:
-    0px 2px 8px 0px rgba(0, 0, 0, 0.3),
-    0px 1px 2px -1px rgba(0, 0, 0, 0.3);
+    0px 2px 8px 0px rgba(88, 28, 135, 0.08),
+    0px 1px 2px -1px rgba(88, 28, 135, 0.06);
   --shadow:
-    0px 6px 16px -4px rgba(0, 0, 0, 0.4),
-    0px 2px 4px -1px rgba(0, 0, 0, 0.3);
+    0px 4px 14px -4px rgba(88, 28, 135, 0.12),
+    0px 2px 4px -1px rgba(88, 28, 135, 0.08);
   --shadow-md:
-    0px 10px 24px -6px rgba(0, 0, 0, 0.45),
-    0px 4px 6px -1px rgba(0, 0, 0, 0.3);
+    0px 8px 20px -6px rgba(88, 28, 135, 0.14),
+    0px 4px 6px -1px rgba(88, 28, 135, 0.08);
   --shadow-lg:
-    0px 16px 40px -10px rgba(0, 0, 0, 0.55),
-    0px 8px 10px -1px rgba(0, 0, 0, 0.3);
+    0px 14px 32px -10px rgba(88, 28, 135, 0.18),
+    0px 8px 10px -1px rgba(88, 28, 135, 0.1);
 
-  --primary-border: hsl(340 100% 50%);
-  --secondary-border: hsl(249 100% 55%);
-  --muted-border: hsl(249 25% 24%);
-  --accent-border: hsl(24 100% 48%);
-  --destructive-border: hsl(350 90% 45%);
+  --primary-border: hsl(340 90% 42%);
+  --secondary-border: hsl(249 85% 48%);
+  --muted-border: hsl(258 20% 82%);
+  --accent-border: hsl(24 95% 42%);
+  --destructive-border: hsl(350 85% 42%);
 }
 
 .dark {
@@ -157,6 +157,14 @@
 
   --input: 255 25% 18%;
   --ring: 340 100% 68%;
+
+  --flame-1: 340 100% 65%;
+  --flame-2: 24 100% 63%;
+  --electric-1: 249 100% 69%;
+  --electric-2: 191 100% 60%;
+
+  --glow-primary: 0 0 0 1px hsl(var(--flame-1) / 0.35), 0 10px 28px -10px hsl(var(--flame-1) / 0.5);
+  --glow-secondary: 0 0 0 1px hsl(var(--electric-1) / 0.3), 0 10px 28px -10px hsl(var(--electric-1) / 0.45);
 
   --primary-border: hsl(340 100% 55%);
   --secondary-border: hsl(249 100% 60%);
@@ -261,9 +269,9 @@
 .app-gradient-bg {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(var(--flame-1) / 0.22), transparent 60%),
-    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(var(--electric-1) / 0.2), transparent 55%),
-    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(var(--flame-2) / 0.14), transparent 55%);
+    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(var(--flame-1) / 0.16), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(var(--electric-1) / 0.14), transparent 55%),
+    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(var(--flame-2) / 0.1), transparent 55%);
   background-attachment: fixed;
 }
 
@@ -292,9 +300,9 @@
 
 .app-gradient-bg.birthday-mode {
   background-image:
-    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 80% 35% / 0.45), transparent 60%),
-    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 75% 35% / 0.4), transparent 55%),
-    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 90% 35% / 0.3), transparent 55%);
+    radial-gradient(ellipse 900px 600px at 8% -10%, hsl(292 91% 85% / 0.6), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 0%, hsl(330 81% 85% / 0.55), transparent 55%),
+    radial-gradient(ellipse 700px 600px at 50% 100%, hsl(43 96% 80% / 0.45), transparent 55%);
 }
 
 .dark .app-gradient-bg.birthday-mode {

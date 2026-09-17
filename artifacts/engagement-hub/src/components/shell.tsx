@@ -52,7 +52,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <BirthdayCelebration active={isMyBirthdayToday} />
 
       <div className="fixed top-4 inset-x-4 z-40 flex items-center gap-3">
-        <nav className="flex-1 min-w-0 flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
+        <nav className="min-w-0 flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
               <Trophy className="w-3.5 h-3.5" />
@@ -94,6 +94,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        <div className="ml-auto flex items-center gap-2 shrink-0">
         <NotificationBell />
         <ThemeToggle />
 
@@ -154,6 +155,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        </div>
       </div>
 
       <main className="w-full pt-24 md:pt-28 pb-10 px-4 md:px-8 overflow-x-hidden">

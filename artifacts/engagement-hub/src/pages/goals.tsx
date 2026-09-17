@@ -364,7 +364,7 @@ export default function Goals() {
       {sortedPeople.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
       ) : view === "tree" ? (
-        <div className="relative z-0 -mx-4 md:-mx-8 lg:-mt-8 lg:-mb-8">
+        <div className="relative z-0 left-1/2 -translate-x-1/2 w-screen lg:-mt-8 lg:-mb-8">
           <GoalsTreeView
             people={sortedPeople}
             goalsByOwner={goalsByOwner}
