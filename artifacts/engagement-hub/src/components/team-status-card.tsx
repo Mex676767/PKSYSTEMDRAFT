@@ -5,7 +5,8 @@ import { DiscordStatusDot } from "@/components/discord-status-dot";
 import { useDirectory } from "@/hooks/use-mentors";
 import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { discordStatusLabel, discordShortStatusLabel } from "@/lib/discord";
+import { discordStatusLabel, discordShortStatusLabel, discordDotColor, DISCORD_BADGE_CLASS } from "@/lib/discord";
+import { cn } from "@/lib/utils";
 
 export function TeamStatusCard() {
   const { data: directory = [] } = useDirectory();
@@ -41,8 +42,13 @@ export function TeamStatusCard() {
                     className="w-8 h-8 text-[10px] shrink-0"
                   />
                   <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
-                  <span className="flex items-center gap-1 shrink-0 text-[10px] text-muted-foreground">
-                    <DiscordStatusDot presence={presence} className="w-2 h-2 shrink-0" />
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 shrink-0 ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+                      DISCORD_BADGE_CLASS[discordDotColor(presence)]
+                    )}
+                  >
+                    <DiscordStatusDot presence={presence} className="w-1.5 h-1.5 shrink-0 border-0" />
                     {discordShortStatusLabel(presence)}
                   </span>
                 </div>

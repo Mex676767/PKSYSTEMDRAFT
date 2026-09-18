@@ -54,6 +54,16 @@ export const DISCORD_DOT_CLASS: Record<DiscordDotColor, string> = {
   gray: "bg-zinc-400/50",
 };
 
+export const DISCORD_BADGE_CLASS: Record<DiscordDotColor, string> = {
+  green: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  cyan: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  violet: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  blue: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  white: "bg-zinc-400/15 text-zinc-600 dark:text-zinc-300",
+  gray: "bg-zinc-400/10 text-muted-foreground",
+};
+
 const CATEGORY_LABEL: Record<DiscordCategory, string> = {
   active: "Active",
   training: "In training",
