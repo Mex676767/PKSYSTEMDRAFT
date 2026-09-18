@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
@@ -29,6 +29,22 @@ import { ImagePickerButton } from "@/components/image-picker-button";
 import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
+import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
+
+const NEW_CHALLENGE_DRAFT_KEY = "c9myr:new-challenge-draft";
+
+type NewChallengeDraft = {
+  opponentId: string;
+  topic: string;
+  description: string;
+  reward: string;
+  punishment: string;
+  endsAt: string | null;
+};
+
+function hasChallengeDraftContent(d: NewChallengeDraft) {
+  return d.topic.trim() || d.description.trim() || d.reward.trim() || d.punishment.trim();
+}
 
 export default function Challenges() {
   const { session } = useAuth();
@@ -334,6 +350,24 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const stored = loadDraft<NewChallengeDraft>(NEW_CHALLENGE_DRAFT_KEY);
+    if (stored && hasChallengeDraftContent(stored)) {
+      setOpponentId(stored.opponentId);
+      setTopic(stored.topic);
+      setDescription(stored.description);
+      setReward(stored.reward);
+      setPunishment(stored.punishment);
+      setEndsAt(stored.endsAt);
+      setIsOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    saveDraft(NEW_CHALLENGE_DRAFT_KEY, { opponentId, topic, description, reward, punishment, endsAt });
+  }, [isOpen, opponentId, topic, description, reward, punishment, endsAt]);
+
   const tomorrow = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -379,6 +413,7 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
 
       setIsOpen(false);
       reset();
+      clearDraft(NEW_CHALLENGE_DRAFT_KEY);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -387,7 +422,7 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) reset(); }}>
+    <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) reset(); clearDraft(NEW_CHALLENGE_DRAFT_KEY); }}>
       <DialogTrigger asChild>
         <Button className="shrink-0 hover-elevate" disabled={disabled}>
           <Plus className="w-4 h-4 mr-2" /> Issue Challenge

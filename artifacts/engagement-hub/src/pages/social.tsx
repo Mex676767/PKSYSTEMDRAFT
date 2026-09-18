@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
@@ -10,15 +10,23 @@ import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { ImagePickerButton } from "@/components/image-picker-button";
+import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
+
+const NEW_POST_DRAFT_KEY = "c9myr:new-post-draft";
 
 export default function Social() {
   const { session, profile } = useAuth();
   const { data: posts = [], isLoading } = usePostsFeed();
   const createPost = useCreatePost();
 
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(() => loadDraft<string>(NEW_POST_DRAFT_KEY) ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (body.trim()) saveDraft(NEW_POST_DRAFT_KEY, body);
+    else clearDraft(NEW_POST_DRAFT_KEY);
+  }, [body]);
 
   const setImage = (file: File | null) => {
     setImageFile(file);
@@ -47,6 +55,7 @@ export default function Social() {
         onSuccess: () => {
           setBody("");
           clearImage();
+          clearDraft(NEW_POST_DRAFT_KEY);
         },
       }
     );

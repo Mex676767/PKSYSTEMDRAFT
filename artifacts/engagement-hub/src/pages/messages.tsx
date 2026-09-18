@@ -18,6 +18,9 @@ import {
 } from "@/hooks/use-dm";
 import { useDirectory } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
+import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
+
+const dmDraftKey = (conversationId: string) => `c9myr:dm-draft:${conversationId}`;
 
 export default function Messages() {
   const { session } = useAuth();
@@ -120,7 +123,7 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
   const sendMessage = useSendMessage(conversation.id);
   const deleteMessage = useDeleteMessage(conversation.id);
   const markRead = useMarkConversationRead();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => loadDraft<string>(dmDraftKey(conversation.id)) ?? "");
   const bottomRef = useRef<HTMLDivElement>(null);
   const markedRef = useRef<string | null>(null);
 
@@ -132,13 +135,22 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
   }, [conversation.id]);
 
   useEffect(() => {
+    setText(loadDraft<string>(dmDraftKey(conversation.id)) ?? "");
+  }, [conversation.id]);
+
+  useEffect(() => {
+    if (text.trim()) saveDraft(dmDraftKey(conversation.id), text);
+    else clearDraft(dmDraftKey(conversation.id));
+  }, [text, conversation.id]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    sendMessage.mutate(text.trim(), { onSuccess: () => setText("") });
+    sendMessage.mutate(text.trim(), { onSuccess: () => { setText(""); clearDraft(dmDraftKey(conversation.id)); } });
   };
 
   return (

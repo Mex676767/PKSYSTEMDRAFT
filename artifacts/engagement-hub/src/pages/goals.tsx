@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,43 @@ function emptyDraft(): DraftGoal {
   };
 }
 
+const GOAL_DRAFT_STORAGE_KEY = "c9myr:goal-drafts";
+
+type StorableDraft = Omit<DraftGoal, "imageFile" | "imagePreview">;
+
+function hasDraftContent(drafts: StorableDraft[]) {
+  return drafts.some((d) => d.title.trim() || d.description.trim() || d.accountability.trim());
+}
+
+function loadStoredDrafts(): DraftGoal[] | null {
+  try {
+    const raw = localStorage.getItem(GOAL_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StorableDraft[];
+    if (!Array.isArray(parsed) || !hasDraftContent(parsed)) return null;
+    return parsed.map((d) => ({ ...d, imageFile: null, imagePreview: null }));
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredDrafts(drafts: DraftGoal[]) {
+  try {
+    const storable: StorableDraft[] = drafts.map(({ imageFile: _imageFile, imagePreview: _imagePreview, ...rest }) => rest);
+    localStorage.setItem(GOAL_DRAFT_STORAGE_KEY, JSON.stringify(storable));
+  } catch {
+    // ignore (private browsing, storage full, etc.)
+  }
+}
+
+function clearStoredDrafts() {
+  try {
+    localStorage.removeItem(GOAL_DRAFT_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function Goals() {
   const { session } = useAuth();
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
@@ -70,6 +107,18 @@ export default function Goals() {
   const [drafts, setDrafts] = useState<DraftGoal[]>([emptyDraft()]);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const stored = loadStoredDrafts();
+    if (stored) {
+      setDrafts(stored);
+      setIsDialogOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDialogOpen) saveStoredDrafts(drafts);
+  }, [drafts, isDialogOpen]);
 
   const handleAdvance = (id: string, currentProgress: number) => {
     const newProgress = Math.min(100, currentProgress + 25);
@@ -143,6 +192,7 @@ export default function Goals() {
 
     setIsDialogOpen(false);
     setDrafts([emptyDraft()]);
+    clearStoredDrafts();
   };
 
   const goalsByOwner = useMemo(() => {
@@ -239,6 +289,7 @@ export default function Goals() {
               setCreateError(null);
               setDrafts([emptyDraft()]);
             }
+            clearStoredDrafts();
           }}
         >
           <DialogContent className="max-w-lg">

@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Send, Trash2 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment, type TargetType } from "@/hooks/use-social";
 import { cn } from "@/lib/utils";
+import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
+
+const commentDraftKey = (targetType: TargetType, targetId: string) => `c9myr:comment-draft:${targetType}:${targetId}`;
 
 export function CommentSection({
   targetType,
@@ -19,12 +22,26 @@ export function CommentSection({
   const { data: comments = [] } = useComments(targetType, targetId);
   const addComment = useAddComment(targetType, targetId);
   const deleteComment = useDeleteComment(targetType, targetId);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => loadDraft<string>(commentDraftKey(targetType, targetId)) ?? "");
+
+  useEffect(() => {
+    setText(loadDraft<string>(commentDraftKey(targetType, targetId)) ?? "");
+  }, [targetType, targetId]);
+
+  useEffect(() => {
+    if (text.trim()) saveDraft(commentDraftKey(targetType, targetId), text);
+    else clearDraft(commentDraftKey(targetType, targetId));
+  }, [text, targetType, targetId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addComment.mutate(text.trim(), { onSuccess: () => setText("") });
+    addComment.mutate(text.trim(), {
+      onSuccess: () => {
+        setText("");
+        clearDraft(commentDraftKey(targetType, targetId));
+      },
+    });
   };
 
   return (
