@@ -73,3 +73,13 @@ export function discordStatusLabel(presence: DiscordPresence | null | undefined)
   if (presence.presence_status === "idle") return "Idle";
   return "Online";
 }
+
+export function discordShortStatusLabel(presence: DiscordPresence | null | undefined): string {
+  if (!presence) return "Not connected";
+  if (presence.voice_channel_id) {
+    return presence.category ? CATEGORY_LABEL[presence.category] : "In a voice channel";
+  }
+  if (presence.presence_status === "offline") return "Offline";
+  if (presence.presence_status === "idle") return "Idle";
+  return "Online";
+}

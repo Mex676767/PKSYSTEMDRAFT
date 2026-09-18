@@ -1,10 +1,11 @@
 import { Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
+import { DiscordStatusDot } from "@/components/discord-status-dot";
 import { useDirectory } from "@/hooks/use-mentors";
 import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { discordStatusLabel } from "@/lib/discord";
+import { discordStatusLabel, discordShortStatusLabel } from "@/lib/discord";
 
 export function TeamStatusCard() {
   const { data: directory = [] } = useDirectory();
@@ -40,6 +41,10 @@ export function TeamStatusCard() {
                     className="w-8 h-8 text-[10px] shrink-0"
                   />
                   <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
+                  <span className="flex items-center gap-1 shrink-0 text-[10px] text-muted-foreground">
+                    <DiscordStatusDot presence={presence} className="w-2 h-2 shrink-0" />
+                    {discordShortStatusLabel(presence)}
+                  </span>
                 </div>
               );
             })}
