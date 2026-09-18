@@ -348,9 +348,9 @@ export default function Goals() {
 
       {}
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
-        {}
+        {headingBlock()}
         <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
-          {headingBlock()}
+          {toggleButtons}
           <div className="w-full sm:w-72 sm:ml-auto space-y-2">
             {searchInput}
             <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
@@ -358,7 +358,6 @@ export default function Goals() {
             </Button>
           </div>
         </div>
-        {toggleButtons}
       </div>
 
       {sortedPeople.length === 0 ? (
@@ -372,9 +371,9 @@ export default function Goals() {
             selectedId={selected?.id ?? null}
             header={
               <div className="space-y-4">
-                {}
+                {headingBlock()}
                 <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
-                  {headingBlock()}
+                  {toggleButtons}
                   <div className="w-full sm:w-72 sm:ml-auto space-y-2">
                     {searchInput}
                     <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
@@ -382,7 +381,6 @@ export default function Goals() {
                     </Button>
                   </div>
                 </div>
-                {toggleButtons}
               </div>
             }
           />
