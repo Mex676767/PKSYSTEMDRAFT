@@ -272,12 +272,7 @@ export default function Goals() {
   return (
     <>
       {}
-      <PageTransition
-        className={cn(
-          "p-4 md:p-8 md:-mt-16 space-y-4",
-          view !== "tree" && "max-w-[100rem] mx-auto"
-        )}
-      >
+      <PageTransition className="p-4 md:p-8 md:-mt-16 space-y-4">
       <Confetti active={showConfetti} />
 
       {}
@@ -443,7 +438,7 @@ export default function Goals() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-[100rem] mx-auto">
           {sortedPeople.map((p) => (
             <PersonGoalCard
               key={p.id}
