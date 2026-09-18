@@ -7,7 +7,6 @@ const {
   DISCORD_GUILD_ID,
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
-  BREAK_KEYWORDS = "afk,lunch,break,dinner",
   RESYNC_INTERVAL_MINUTES = "5",
 } = process.env;
 
@@ -18,8 +17,16 @@ for (const [key, value] of Object.entries({ DISCORD_BOT_TOKEN, DISCORD_GUILD_ID,
   }
 }
 
-const breakKeywords = BREAK_KEYWORDS.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+const CATEGORY_KEYWORDS = [
+  ["afk", "afk"],
+  ["training", "training"],
+  ["meeting", "meeting"],
+  ["lunch", "break"],
+  ["dinner", "break"],
+  ["break", "break"],
+];
 
 let linkedProfiles = new Map();
 
@@ -36,7 +43,10 @@ async function refreshLinkedProfiles() {
 function classifyChannel(channelName) {
   if (!channelName) return null;
   const lower = channelName.toLowerCase();
-  return breakKeywords.some((k) => lower.includes(k)) ? "break" : "active";
+  for (const [keyword, category] of CATEGORY_KEYWORDS) {
+    if (lower.includes(keyword)) return category;
+  }
+  return "active";
 }
 
 async function syncMember(member) {

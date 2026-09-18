@@ -1,9 +1,9 @@
 # C9MYR Discord presence bot
 
 Watches your Discord server's voice channels and presence, and writes each
-linked teammate's live status into Supabase so the web app can show a
-colored dot: green (in a work voice channel), blue (in an AFK/break voice
-channel), white (online/idle, not in voice), gray (offline).
+linked teammate's live status into Supabase so the web app can show their
+status: active (in a work voice channel), training, in a meeting, AFK, on a
+break, online/idle (not in voice), or offline.
 
 ## Setup
 
@@ -37,20 +37,22 @@ channel), white (online/idle, not in voice), gray (offline).
    `SUPABASE_SERVICE_ROLE_KEY` is in your Supabase project's
    Settings -> API -> service_role key. Keep it secret -- it bypasses RLS.
 
-4. **Run the SQL migration first** -- see
-   `../engagement-hub/supabase/migrations/0001_discord_integration.sql`.
-   Paste it into the Supabase SQL Editor and run it once.
+4. **Run the SQL migrations first** -- see
+   `../engagement-hub/supabase/migrations/0001_discord_integration.sql` and
+   `0002_discord_presence_categories.sql`. Paste each into the Supabase SQL
+   Editor and run them once, in order.
 
-## How channel colors are decided
+## How channel categories are decided
 
 The bot doesn't need a channel ID allowlist. It classifies a voice channel
-as a "break" channel if its name contains any of the `BREAK_KEYWORDS`
-(default: `afk,lunch,break,dinner`, case-insensitive substring match) --
-everything else counts as "active". For your server that means `AFK` and
-`Lunch Break/Dinner Break` are breaks; `General`, `Marketing`,
-`Retention - T1 & T2`, `VIP Retention - Tier ...`, `Training Room`,
-`Meeting Room 1/2/3`, etc. are all active. Adjust `BREAK_KEYWORDS` in `.env`
-if you rename channels.
+by matching keywords in its name (case-insensitive substring match), in
+this order: `afk` -> "afk", `training` -> "training", `meeting` -> "meeting",
+`lunch`/`dinner`/`break` -> "break", everything else -> "active". For your
+server that means `AFK` is afk, `Training Room` is training, `Meeting Room
+1/2/3` are meetings, `Lunch Break/Dinner Break` is a break; `General`,
+`Designer`, `Data Analysis`, `Marketing`, `Retention - T1 & T2`, `VIP
+Retention - Tier ...`, etc. are all active. Edit the `CATEGORY_KEYWORDS`
+list in `index.js` if you rename or add channels.
 
 ## Hosting
 
