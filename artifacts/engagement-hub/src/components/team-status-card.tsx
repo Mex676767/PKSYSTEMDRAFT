@@ -44,7 +44,7 @@ export function TeamStatusCard() {
                   <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
                   <span
                     className={cn(
-                      "flex items-center gap-1 shrink-0 ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+                      "flex items-center justify-center gap-1 shrink-0 ml-auto w-28 rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap overflow-hidden",
                       DISCORD_BADGE_CLASS[discordDotColor(presence)]
                     )}
                   >
