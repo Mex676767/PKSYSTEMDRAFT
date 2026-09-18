@@ -287,9 +287,8 @@ export default function Goals() {
             setIsDialogOpen(o);
             if (o) {
               setCreateError(null);
-              setDrafts([emptyDraft()]);
+              if (!hasDraftContent(drafts)) setDrafts([emptyDraft()]);
             }
-            clearStoredDrafts();
           }}
         >
           <DialogContent className="max-w-lg">

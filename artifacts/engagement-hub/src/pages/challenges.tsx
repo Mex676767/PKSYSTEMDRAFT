@@ -422,7 +422,7 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) reset(); clearDraft(NEW_CHALLENGE_DRAFT_KEY); }}>
+    <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o && !hasChallengeDraftContent({ opponentId, topic, description, reward, punishment, endsAt })) reset(); }}>
       <DialogTrigger asChild>
         <Button className="shrink-0 hover-elevate" disabled={disabled}>
           <Plus className="w-4 h-4 mr-2" /> Issue Challenge
