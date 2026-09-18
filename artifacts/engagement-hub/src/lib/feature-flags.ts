@@ -13,4 +13,4 @@ export function isRouteLocked(path: string) {
   return LOCKED_ROUTES.has(path);
 }
 
-export const DISCORD_INTEGRATION_ENABLED = false;
+export const DISCORD_INTEGRATION_ENABLED = true;
