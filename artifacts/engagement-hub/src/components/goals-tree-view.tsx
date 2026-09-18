@@ -305,7 +305,7 @@ export function GoalsTreeView({
 
       {header && (
         <div
-          className="hidden lg:block absolute inset-x-0 top-0 z-30 pt-20 px-6 pb-6 lg:pr-[22rem] xl:pt-24 xl:px-8 xl:pb-8 xl:pr-[22rem] pointer-events-none [&_input]:pointer-events-auto [&_button]:pointer-events-auto"
+          className="hidden lg:block absolute inset-x-0 top-0 z-30 pt-20 px-8 pb-6 pr-[22rem] pointer-events-none [&_input]:pointer-events-auto [&_button]:pointer-events-auto"
         >
           {header}
         </div>
