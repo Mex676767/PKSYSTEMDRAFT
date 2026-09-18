@@ -338,6 +338,13 @@ body.shaking {
   animation: progress-shimmer-sweep 1.8s ease-in-out infinite;
 }
 
+body.tab-hidden .btn-shine::after,
+body.tab-hidden .atmosphere-hue,
+body.tab-hidden .firefly,
+body.tab-hidden .progress-shimmer::after {
+  animation-play-state: paused;
+}
+
 .app-gradient-bg {
   background-color: hsl(var(--background));
   background-image:

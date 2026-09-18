@@ -14,6 +14,7 @@ import { BirthdayCelebration } from "./birthday-celebration";
 import { ConfettiBurstOnClick } from "./confetti-burst";
 import { CursorSparkleTrail } from "./cursor-sparkle-trail";
 import { Fireflies } from "./fireflies";
+import { TabVisibilityPause } from "./tab-visibility-pause";
 import { DiscordStatusDot } from "./discord-status-dot";
 import { UserAvatar } from "./user-avatar";
 import { ThemeToggle } from "./theme-toggle";
@@ -92,6 +93,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn("min-h-[100dvh] relative", isMyBirthdayToday && "birthday-mode")}>
       <div className="fixed inset-0 -z-10 pointer-events-none app-gradient-bg atmosphere-hue" />
+      <TabVisibilityPause />
       <BirthdayCelebration active={isMyBirthdayToday} />
       <ConfettiBurstOnClick />
       <CursorSparkleTrail />

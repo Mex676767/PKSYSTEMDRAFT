@@ -44,12 +44,17 @@ export function TeamStatusCard() {
                   <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
                   <span
                     className={cn(
-                      "flex items-center justify-start gap-1.5 shrink-0 ml-auto w-28 rounded-full pl-2.5 pr-2 py-0.5 text-[10px] font-medium whitespace-nowrap overflow-hidden",
+                      "relative shrink-0 ml-auto w-28 h-5 rounded-full",
                       DISCORD_BADGE_CLASS[discordDotColor(presence)]
                     )}
                   >
-                    <DiscordStatusDot presence={presence} className="w-1.5 h-1.5 shrink-0 border-0" />
-                    <span className="truncate">{discordShortStatusLabel(presence)}</span>
+                    <DiscordStatusDot
+                      presence={presence}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 border-0"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center px-1 text-[10px] font-medium truncate">
+                      {discordShortStatusLabel(presence)}
+                    </span>
                   </span>
                 </div>
               );
