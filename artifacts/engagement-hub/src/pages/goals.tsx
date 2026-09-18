@@ -392,7 +392,7 @@ export default function Goals() {
       )}
 
       {}
-      <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
+      <div className={cn("space-y-4 lg:pr-[20rem]", view === "tree" && "lg:hidden")}>
         {headingBlock()}
         <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
           {toggleButtons}
