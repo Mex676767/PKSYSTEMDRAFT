@@ -272,7 +272,12 @@ export default function Goals() {
   return (
     <>
       {}
-      <PageTransition className="p-4 md:p-8 md:-mt-16 space-y-4">
+      <PageTransition
+        className={cn(
+          "p-4 md:p-8 md:-mt-16 space-y-4",
+          view !== "tree" && "max-w-[100rem] mx-auto"
+        )}
+      >
       <Confetti active={showConfetti} />
 
       {}
@@ -393,9 +398,8 @@ export default function Goals() {
 
       {}
       <div className={cn("space-y-4", view === "tree" && "lg:hidden")}>
-        {headingBlock()}
         <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
-          {toggleButtons}
+          {headingBlock()}
           <div className="w-full sm:w-72 sm:ml-auto space-y-2">
             {searchInput}
             <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
@@ -403,6 +407,7 @@ export default function Goals() {
             </Button>
           </div>
         </div>
+        {toggleButtons}
       </div>
 
       {sortedPeople.length === 0 ? (
@@ -416,9 +421,8 @@ export default function Goals() {
             selectedId={selected?.id ?? null}
             header={
               <div className="space-y-4">
-                {headingBlock()}
                 <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
-                  {toggleButtons}
+                  {headingBlock()}
                   <div className="w-full sm:w-72 sm:ml-auto space-y-2">
                     {searchInput}
                     <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
@@ -426,6 +430,7 @@ export default function Goals() {
                     </Button>
                   </div>
                 </div>
+                {toggleButtons}
               </div>
             }
           />
@@ -438,7 +443,7 @@ export default function Goals() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-[100rem] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {sortedPeople.map((p) => (
             <PersonGoalCard
               key={p.id}
