@@ -35,7 +35,8 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: null,
       manifest: false,
       workbox: {
         cleanupOutdatedCaches: true,
