@@ -51,7 +51,7 @@ export default function Voice() {
     profile?.id,
     profile?.username ?? undefined
   );
-  const { data: directory = [] } = useDirectory();
+  const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [pendingId, setPendingId] = useState<string | null>(null);
 

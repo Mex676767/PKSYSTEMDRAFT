@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export type Mentorship = {
@@ -37,7 +37,7 @@ export type DirectoryProfile = {
   active_title: string | null;
 };
 
-export function useDirectory() {
+export function useDirectory(options?: Partial<UseQueryOptions<DirectoryProfile[]>>) {
   return useQuery({
     queryKey: ["directory"],
     queryFn: async () => {
@@ -49,6 +49,7 @@ export function useDirectory() {
       if (error) throw error;
       return data as DirectoryProfile[];
     },
+    ...options,
   });
 }
 
