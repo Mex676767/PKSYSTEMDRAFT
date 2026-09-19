@@ -397,7 +397,7 @@ export default function Goals() {
       )}
 
       {}
-      <div className={cn("relative flex flex-col sm:flex-row sm:items-start gap-4", view === "tree" && "lg:hidden")}>
+      <div className={cn("relative flex flex-col sm:flex-row sm:items-end gap-4", view === "tree" && "lg:hidden")}>
         <div className="space-y-3">
           {headingBlock()}
           {toggleButtons}
@@ -420,7 +420,7 @@ export default function Goals() {
             onSelect={setSelected}
             selectedId={selected?.id ?? null}
             header={
-              <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
+              <div className="relative flex flex-col sm:flex-row sm:items-end gap-4">
                 <div className="space-y-3">
                   {headingBlock()}
                   {toggleButtons}
