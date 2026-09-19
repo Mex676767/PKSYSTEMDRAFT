@@ -60,7 +60,7 @@ export function TreeDetailPanel(
   return (
     <div
       className={cn(
-        "mt-4 lg:mt-0 lg:absolute lg:top-72 lg:right-6 lg:bottom-6 xl:top-80 xl:right-8 xl:bottom-8 lg:z-40",
+        "mt-4 lg:mt-0 lg:absolute lg:top-[294px] lg:right-8 lg:bottom-8 lg:z-40",
         "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
         "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
         "overflow-hidden flex flex-col max-h-[calc(100dvh-8rem)] lg:max-h-none"
