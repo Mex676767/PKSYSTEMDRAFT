@@ -10,6 +10,8 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { VoiceCallProvider } from '@/hooks/use-voice-call';
+import { FloatingCallBar } from '@/components/floating-call-bar';
 import { ComingSoon } from '@/pages/coming-soon';
 import { requiresDiscordConnect } from '@/lib/feature-flags';
 
@@ -110,13 +112,16 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="engagement-hub-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <AuthGate />
-            </WouterRouter>
-            <ServiceWorkerCleanup />
-            <Toaster />
-          </TooltipProvider>
+          <VoiceCallProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+                <AuthGate />
+                <FloatingCallBar />
+              </WouterRouter>
+              <ServiceWorkerCleanup />
+              <Toaster />
+            </TooltipProvider>
+          </VoiceCallProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

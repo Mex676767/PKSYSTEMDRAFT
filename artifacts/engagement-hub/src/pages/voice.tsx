@@ -3,61 +3,27 @@ import { PageTransition, slideUp, staggerContainer } from "@/components/animatio
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
 import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users, VolumeX } from "lucide-react";
-import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { useVoiceChannels } from "@/hooks/use-voice-channel";
+import { useAuth } from "@/hooks/use-auth";
+import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useDirectory } from "@/hooks/use-mentors";
-import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS, type DiscordCategory, type DiscordDotColor } from "@/lib/discord";
+import { VoiceParticipantAvatar } from "@/components/voice-participant-avatar";
+import { VOICE_CHANNELS, VOICE_CATEGORY_DOT } from "@/lib/voice-channels";
+import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS } from "@/lib/discord";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 
-type Channel = {
-  id: string;
-  name: string;
-  category: DiscordCategory;
-};
-
-const CHANNELS: Channel[] = [
-  { id: "general", name: "General", category: "active" },
-  { id: "designer", name: "Designer", category: "active" },
-  { id: "data-analysis", name: "Data Analysis", category: "active" },
-  { id: "marketing", name: "Marketing", category: "active" },
-  { id: "retention", name: "Retention - T1 & T2", category: "active" },
-  { id: "vip-retention", name: "VIP Retention - Tier 3 & V", category: "active" },
-  { id: "training", name: "Training Room", category: "training" },
-  { id: "meeting-1", name: "Meeting Room 1", category: "meeting" },
-  { id: "meeting-2", name: "Meeting Room 2", category: "meeting" },
-  { id: "meeting-3", name: "Meeting Room 3", category: "meeting" },
-  { id: "afk", name: "AFK", category: "afk" },
-  { id: "lunch-break", name: "Lunch Break/Dinner Break", category: "break" },
-];
-
-const CATEGORY_DOT: Record<DiscordCategory, DiscordDotColor> = {
-  active: "green",
-  training: "cyan",
-  meeting: "violet",
-  afk: "amber",
-  break: "blue",
-};
-
-const CHANNEL_IDS = CHANNELS.map((c) => c.id);
-
 export default function Voice() {
   const { profile, isAdmin } = useAuth();
-  const { occupants, channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceChannels(
-    CHANNEL_IDS,
-    profile?.id,
-    profile?.username ?? undefined
-  );
+  const { occupants, channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   if (!isAdmin) return <NotFound />;
 
-  const joined = CHANNELS.find((c) => c.id === channelId) ?? null;
+  const joined = VOICE_CHANNELS.find((c) => c.id === channelId) ?? null;
 
   const handleJoin = async (targetId: string) => {
     setPendingId(targetId);
@@ -88,10 +54,10 @@ export default function Voice() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-5 items-start">
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-2">
-          {CHANNELS.map((channel) => {
+          {VOICE_CHANNELS.map((channel) => {
             const isJoined = channelId === channel.id;
             const isPending = pendingId === channel.id && connecting;
-            const dot = CATEGORY_DOT[channel.category];
+            const dot = VOICE_CATEGORY_DOT[channel.category];
             const channelOccupants = isJoined ? participants : occupants.get(channel.id) ?? [];
             return (
               <motion.div key={channel.id} variants={slideUp}>
@@ -136,42 +102,23 @@ export default function Voice() {
             ) : (
               <div className="space-y-5">
                 <div className="flex items-center gap-2">
-                  <span className={cn("w-2 h-2 rounded-full", DISCORD_DOT_CLASS[CATEGORY_DOT[joined.category]])} />
+                  <span className={cn("w-2 h-2 rounded-full", DISCORD_DOT_CLASS[VOICE_CATEGORY_DOT[joined.category]])} />
                   <h2 className="font-semibold text-sm">{joined.name}</h2>
                   <Badge variant="outline" className="ml-auto text-[10px]">{participants.length} in call</Badge>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {participants.map((p) => {
-                    const isMe = p.id === profile?.id;
-                    const isSpeaking = speakingIds.has(p.id);
-                    const dirEntry = directoryById.get(p.id);
-                    return (
-                      <div key={p.id} className="flex flex-col items-center gap-1.5">
-                        <div
-                          className={cn(
-                            "relative rounded-full transition-shadow",
-                            isSpeaking && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-card"
-                          )}
-                        >
-                          <UserAvatar
-                            user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
-                            photoUrl={isMe ? profile?.avatar_url : dirEntry?.avatar_url}
-                            border={isMe ? profile?.active_border : dirEntry?.active_border}
-                            className="w-12 h-12"
-                          />
-                          {isMe && muted && (
-                            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center">
-                              <MicOff className="w-3 h-3" />
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-muted-foreground truncate max-w-full">
-                          {isMe ? "You" : `@${p.username}`}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {participants.map((p) => (
+                    <VoiceParticipantAvatar
+                      key={p.id}
+                      participant={p}
+                      isMe={p.id === profile?.id}
+                      isSpeaking={speakingIds.has(p.id)}
+                      isMuted={muted}
+                      myProfile={profile}
+                      directoryEntry={directoryById.get(p.id)}
+                    />
+                  ))}
                 </div>
 
                 <div className="flex items-center justify-center gap-2 pt-3 border-t border-border/50">

@@ -2,24 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { playVoiceCue } from "@/lib/voice-sfx";
-
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-  // Free public TURN relay (Open Relay Project). STUN alone only lets two peers
-  // discover each other's public address -- it can't get through a symmetric NAT
-  // or a strict corporate firewall, which is exactly why a call can work fine
-  // between two tabs on the same network and go silent between real remote users.
-  // TURN relays the media instead of trying to connect the peers directly.
-  {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-];
+import { getIceServers } from "@/lib/turn-credentials";
 
 type SignalPayload =
   | { type: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
@@ -55,6 +38,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const pendingPlaybackRef = useRef<Set<string>>(new Set());
+  const iceServersRef = useRef<RTCIceServer[]>([{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]);
   const deafenedRef = useRef(false);
   const analysersRef = useRef<Map<string, { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }>>(new Map());
   const rafRef = useRef<number | null>(null);
@@ -111,7 +95,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
 
   const createPeerConnection = useCallback(
     (peerId: string) => {
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
       localStreamRef.current?.getTracks().forEach((track) => {
         if (localStreamRef.current) pc.addTrack(track, localStreamRef.current);
       });
@@ -244,6 +228,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         localStreamRef.current = stream;
         attachAnalyser(userId, stream);
+        iceServersRef.current = await getIceServers();
 
         joinedIdRef.current = targetId;
         await channel.track({ username });
