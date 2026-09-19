@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users } from "lucide-react";
+import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users, VolumeX } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useVoiceChannel } from "@/hooks/use-voice-channel";
 import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS, type DiscordCategory, type DiscordDotColor } from "@/lib/discord";
@@ -24,10 +24,12 @@ const CHANNELS: Channel[] = [
   { id: "data-analysis", name: "Data Analysis", category: "active" },
   { id: "marketing", name: "Marketing", category: "active" },
   { id: "retention", name: "Retention - T1 & T2", category: "active" },
-  { id: "vip-retention", name: "VIP Retention - Tier 1", category: "active" },
+  { id: "vip-retention", name: "VIP Retention - Tier 3 & V", category: "active" },
   { id: "training", name: "Training Room", category: "training" },
   { id: "meeting-1", name: "Meeting Room 1", category: "meeting" },
   { id: "meeting-2", name: "Meeting Room 2", category: "meeting" },
+  { id: "meeting-3", name: "Meeting Room 3", category: "meeting" },
+  { id: "afk", name: "AFK", category: "afk" },
   { id: "lunch-break", name: "Lunch Break/Dinner Break", category: "break" },
 ];
 
@@ -41,7 +43,7 @@ const CATEGORY_DOT: Record<DiscordCategory, DiscordDotColor> = {
 
 export default function Voice() {
   const { profile, isAdmin } = useAuth();
-  const { channelId, participants, speakingIds, muted, connecting, error, join, leave, toggleMute } = useVoiceChannel(
+  const { channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceChannel(
     profile?.id,
     profile?.username ?? undefined
   );
@@ -169,6 +171,15 @@ export default function Voice() {
                     title={muted ? "Unmute" : "Mute"}
                   >
                     {muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant={deafened ? "destructive" : "outline"}
+                    className="rounded-full"
+                    onClick={toggleDeafen}
+                    title={deafened ? "Undeafen" : "Deafen"}
+                  >
+                    {deafened ? <VolumeX className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
                   </Button>
                   <Button size="icon" variant="destructive" className="rounded-full" onClick={leave} title="Leave">
                     <PhoneOff className="w-4 h-4" />

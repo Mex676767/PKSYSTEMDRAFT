@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { playVoiceCue } from "@/lib/voice-sfx";
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
@@ -18,6 +19,7 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
   const [speakingIds, setSpeakingIds] = useState<Set<string>>(new Set());
   const [muted, setMuted] = useState(false);
+  const [deafened, setDeafened] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +27,7 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
   const localStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const deafenedRef = useRef(false);
   const analysersRef = useRef<Map<string, { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }>>(new Map());
   const rafRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -72,6 +75,7 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
         if (!el) {
           el = document.createElement("audio");
           el.autoplay = true;
+          el.muted = deafenedRef.current;
           document.body.appendChild(el);
           audioElsRef.current.set(peerId, el);
         }
@@ -161,6 +165,7 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
         });
 
         setChannelId(newChannelId);
+        playVoiceCue("join");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't access your microphone.");
         localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -173,6 +178,7 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
   );
 
   const leave = useCallback(() => {
+    const wasConnected = rtChannelRef.current !== null;
     for (const peerId of Array.from(pcsRef.current.keys())) cleanupPeer(peerId);
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
@@ -182,6 +188,9 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
     setParticipants([]);
     setSpeakingIds(new Set());
     setMuted(false);
+    setDeafened(false);
+    deafenedRef.current = false;
+    if (wasConnected) playVoiceCue("leave");
   }, [cleanupPeer]);
 
   const toggleMute = useCallback(() => {
@@ -190,8 +199,26 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
       localStreamRef.current?.getAudioTracks().forEach((track) => {
         track.enabled = !next;
       });
+      playVoiceCue(next ? "mute" : "unmute");
       return next;
     });
+  }, []);
+
+  const toggleDeafen = useCallback(() => {
+    const next = !deafenedRef.current;
+    deafenedRef.current = next;
+    setDeafened(next);
+    audioElsRef.current.forEach((el) => {
+      el.muted = next;
+    });
+    playVoiceCue(next ? "deafen" : "undeafen");
+    if (next) {
+      // entering deafen also mutes the mic, matching how Discord behaves
+      setMuted(true);
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -217,5 +244,5 @@ export function useVoiceChannel(userId: string | undefined, username: string | u
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { channelId, participants, speakingIds, muted, connecting, error, join, leave, toggleMute };
+  return { channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen };
 }
