@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
 import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users, VolumeX } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { useVoiceChannel } from "@/hooks/use-voice-channel";
+import { useVoiceChannels } from "@/hooks/use-voice-channel";
 import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS, type DiscordCategory, type DiscordDotColor } from "@/lib/discord";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
@@ -41,9 +41,12 @@ const CATEGORY_DOT: Record<DiscordCategory, DiscordDotColor> = {
   break: "blue",
 };
 
+const CHANNEL_IDS = CHANNELS.map((c) => c.id);
+
 export default function Voice() {
   const { profile, isAdmin } = useAuth();
-  const { channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceChannel(
+  const { occupants, channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceChannels(
+    CHANNEL_IDS,
     profile?.id,
     profile?.username ?? undefined
   );
@@ -86,6 +89,7 @@ export default function Voice() {
             const isJoined = channelId === channel.id;
             const isPending = pendingId === channel.id && connecting;
             const dot = CATEGORY_DOT[channel.category];
+            const channelOccupants = isJoined ? participants : occupants.get(channel.id) ?? [];
             return (
               <motion.div key={channel.id} variants={slideUp}>
                 <Card className={cn("shadow-sm transition-colors", isJoined && "border-primary/50 bg-primary/5")}>
@@ -93,8 +97,10 @@ export default function Voice() {
                     <span className={cn("w-2 h-2 rounded-full shrink-0", DISCORD_DOT_CLASS[dot])} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{channel.name}</p>
-                      {isJoined && participants.length > 0 ? (
-                        <span className="text-[11px] text-muted-foreground">{participants.length} in channel</span>
+                      {channelOccupants.length > 0 ? (
+                        <span className="text-[11px] text-muted-foreground truncate block">
+                          {channelOccupants.map((p) => p.username).join(", ")}
+                        </span>
                       ) : (
                         <span className={cn("inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full", DISCORD_BADGE_CLASS[dot])}>
                           Empty
