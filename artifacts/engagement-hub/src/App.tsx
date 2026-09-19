@@ -11,6 +11,7 @@ import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { VoiceCallProvider } from '@/hooks/use-voice-call';
+import { AppPresenceProvider } from '@/hooks/use-app-presence';
 import { FloatingCallBar } from '@/components/floating-call-bar';
 import { ComingSoon } from '@/pages/coming-soon';
 import { requiresDiscordConnect } from '@/lib/feature-flags';
@@ -66,6 +67,11 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function AppPresenceBoundary({ children }: { children: ReactNode }) {
+  const { profile } = useAuth();
+  return <AppPresenceProvider userId={profile?.id}>{children}</AppPresenceProvider>;
+}
+
 function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
   return !!(
     profile?.username &&
@@ -115,8 +121,10 @@ function App() {
           <VoiceCallProvider>
             <TooltipProvider>
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-                <AuthGate />
-                <FloatingCallBar />
+                <AppPresenceBoundary>
+                  <AuthGate />
+                  <FloatingCallBar />
+                </AppPresenceBoundary>
               </WouterRouter>
               <ServiceWorkerCleanup />
               <Toaster />

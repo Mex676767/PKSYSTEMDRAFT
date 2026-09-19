@@ -284,6 +284,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         await channel.track({ username, muted: false, deafened: false });
         setParticipants(readPresence(channel));
         setJoinedId(targetId);
+        supabase.rpc("join_voice_session", { p_channel_id: targetId }).then(({ error: rpcError }) => {
+          if (rpcError) console.error("Failed to record voice session start", rpcError);
+        });
         try {
           sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
         } catch {
@@ -305,6 +308,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const leave = useCallback(() => {
     const wasConnected = joinedIdRef.current !== null;
     const channel = joinedIdRef.current ? channelsRef.current.get(joinedIdRef.current) : null;
+    if (wasConnected) {
+      supabase.rpc("leave_voice_session").then(({ error: rpcError }) => {
+        if (rpcError) console.error("Failed to record voice session end", rpcError);
+      });
+    }
     for (const peerId of Array.from(pcsRef.current.keys())) cleanupPeer(peerId);
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
