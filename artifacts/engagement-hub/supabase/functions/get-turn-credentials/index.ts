@@ -46,7 +46,10 @@ Deno.serve(async (req) => {
     }
 
     const data = await cfRes.json();
-    return json({ iceServers: [data.iceServers] });
+    // Cloudflare returns iceServers as an array already; guard in case that
+    // ever changes to a single object.
+    const iceServers = Array.isArray(data.iceServers) ? data.iceServers : [data.iceServers];
+    return json({ iceServers });
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
