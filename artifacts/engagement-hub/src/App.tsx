@@ -11,7 +11,7 @@ import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ComingSoon } from '@/pages/coming-soon';
-import { DISCORD_INTEGRATION_ENABLED } from '@/lib/feature-flags';
+import { requiresDiscordConnect } from '@/lib/feature-flags';
 
 import Login from '@/pages/login';
 import Onboarding from '@/pages/onboarding';
@@ -70,7 +70,7 @@ function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
     profile?.birthday &&
     profile?.role &&
     profile?.department &&
-    (!DISCORD_INTEGRATION_ENABLED || profile?.discord_id)
+    !requiresDiscordConnect(profile)
   );
 }
 

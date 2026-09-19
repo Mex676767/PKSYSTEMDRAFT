@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { AtSign, Sparkles, Cake, Briefcase, MessageSquare, Check } from "lucide-react";
+import { AtSign, Sparkles, Cake, Briefcase, MessageSquare, Check, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DatePicker } from "@/components/date-picker";
@@ -10,7 +10,7 @@ import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { connectDiscord } from "@/hooks/use-discord";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
-import { DISCORD_INTEGRATION_ENABLED } from "@/lib/feature-flags";
+import { DISCORD_INTEGRATION_ENABLED, requiresDiscordConnect } from "@/lib/feature-flags";
 import { getErrorMessage } from "@/lib/utils";
 
 function sanitizeUsername(raw: string) {
@@ -27,7 +27,7 @@ function stepFor(profile: ReturnType<typeof useAuth>["profile"]): Step | null {
   if (!profile?.username) return "username";
   if (!profile?.birthday) return "birthday";
   if (!profile?.role || !profile?.department) return "role";
-  if (DISCORD_INTEGRATION_ENABLED && !profile?.discord_id) return "discord";
+  if (requiresDiscordConnect(profile)) return "discord";
   return null;
 }
 
@@ -206,6 +206,8 @@ function RoleStep() {
 }
 
 function DiscordStep() {
+  const { signOut } = useAuth();
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/25 p-4 text-sm text-muted-foreground">
@@ -222,6 +224,9 @@ function DiscordStep() {
       <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
         <Check className="w-3 h-3" /> You'll be redirected back here automatically.
       </p>
+      <Button type="button" variant="outline" className="w-full h-11" onClick={() => signOut()}>
+        <LogOut className="w-4 h-4 mr-2" /> Log out instead
+      </Button>
     </div>
   );
 }
