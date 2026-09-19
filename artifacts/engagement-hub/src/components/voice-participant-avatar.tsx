@@ -3,7 +3,7 @@ import { colorForId, initialsForUsername } from "@/hooks/use-auth";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import type { Profile } from "@/hooks/use-auth";
 import type { VoiceParticipant } from "@/hooks/use-voice-channel";
-import { MicOff, VolumeX } from "lucide-react";
+import { MicOff, VolumeX, ScreenShare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,9 +16,23 @@ type Props = {
   directoryEntry: DirectoryProfile | undefined;
   size?: "sm" | "md";
   connectionState?: RTCPeerConnectionState;
+  volume?: number;
+  onVolumeChange?: (volume: number) => void;
 };
 
-export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted, isDeafened, myProfile, directoryEntry, size = "md", connectionState }: Props) {
+export function VoiceParticipantAvatar({
+  participant,
+  isMe,
+  isSpeaking,
+  isMuted,
+  isDeafened,
+  myProfile,
+  directoryEntry,
+  size = "md",
+  connectionState,
+  volume,
+  onVolumeChange,
+}: Props) {
   const dimClass = size === "sm" ? "w-9 h-9" : "w-12 h-12";
   const deafened = isMe ? isDeafened : participant.deafened;
   const muted = isMe ? isMuted : participant.muted;
@@ -41,6 +55,11 @@ export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted,
             {deafened ? <VolumeX className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
           </span>
         )}
+        {participant.streaming && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+            <ScreenShare className="w-3 h-3" />
+          </span>
+        )}
       </div>
       <span className="text-[11px] text-muted-foreground truncate max-w-full">
         {isMe ? "You" : `@${participant.username}`}
@@ -49,6 +68,18 @@ export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted,
         <span className="text-[9px] text-amber-500 truncate max-w-full -mt-1">
           {connectionState === "connecting" || connectionState === "new" ? "Connecting…" : "Connection issue"}
         </span>
+      )}
+      {!isMe && onVolumeChange && (
+        <input
+          type="range"
+          min={0}
+          max={1.5}
+          step={0.05}
+          value={volume ?? 1}
+          onChange={(e) => onVolumeChange(Number(e.target.value))}
+          className="w-16 h-1 accent-primary"
+          title={`Volume: ${Math.round((volume ?? 1) * 100)}%`}
+        />
       )}
     </div>
   );

@@ -53,20 +53,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { data: presenceMap } = useDiscordPresenceMap();
   const myPresence = profile ? presenceMap?.get(profile.id) : undefined;
   const navRef = useRef<HTMLElement>(null);
-  const iconClusterRef = useRef<HTMLDivElement>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [iconClusterWidth, setIconClusterWidth] = useState(96);
-
-  useEffect(() => {
-    const el = iconClusterRef.current;
-    if (!el) return;
-    const update = () => setIconClusterWidth(el.getBoundingClientRect().width);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     const el = navRef.current;
@@ -113,11 +101,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <CursorSparkleTrail />
       <Fireflies />
 
-      <div className="fixed top-4 inset-x-4 z-40 h-14">
-        <div
-          className="absolute inset-y-0 left-2 right-[var(--icon-cluster-gutter)] sm:left-[200px] sm:right-[200px] flex items-center justify-start sm:justify-center"
-          style={{ ["--icon-cluster-gutter" as string]: `${iconClusterWidth + 16}px` }}
-        >
+      <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 sm:block sm:h-14">
+        <div className="flex items-center justify-start sm:absolute sm:inset-y-0 sm:left-[200px] sm:right-[200px] sm:justify-center">
         <nav ref={navRef} className="relative max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           {canScrollLeft && (
             <div className="sticky left-0 z-10 flex items-center pr-6 shrink-0 pointer-events-none bg-gradient-to-r from-card via-card to-transparent">
@@ -181,7 +166,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         </div>
 
-        <div ref={iconClusterRef} className="absolute right-0 top-0 flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 sm:absolute sm:right-0 sm:top-0">
         {isAdmin && (
           <Link
             href="/voice"
@@ -279,7 +264,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <main className="w-full pt-20 md:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
+      <main className="w-full pt-32 sm:pt-20 md:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
         {children}
       </main>
     </div>

@@ -76,7 +76,7 @@ export function TeamStatusCard() {
                       <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
                       <span
                         className={cn(
-                          "relative shrink-0 ml-auto w-28 h-5 rounded-full",
+                          "relative shrink-0 ml-auto w-32 h-5 rounded-full",
                           PRESENCE_BADGE_CLASS[status.color]
                         )}
                       >
@@ -86,7 +86,7 @@ export function TeamStatusCard() {
                             PRESENCE_DOT_CLASS[status.color]
                           )}
                         />
-                        <span className="absolute inset-0 flex items-center justify-center px-1 text-[10px] font-medium truncate">
+                        <span className="absolute inset-0 flex items-center pl-5 pr-2 text-[10px] font-medium truncate">
                           {status.label}
                         </span>
                       </span>

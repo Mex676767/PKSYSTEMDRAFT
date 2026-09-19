@@ -9,17 +9,21 @@ type SignalPayload =
   | { type: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { type: "candidate"; from: string; to: string; candidate: RTCIceCandidateInit };
 
-export type VoiceParticipant = { id: string; username: string; muted: boolean; deafened: boolean };
+export type VoiceParticipant = { id: string; username: string; muted: boolean; deafened: boolean; streaming: boolean };
 
 const LAST_CHANNEL_KEY = "voice:lastChannel";
 
 function readPresence(channel: RealtimeChannel): VoiceParticipant[] {
-  const state = channel.presenceState() as Record<string, { username: string; muted?: boolean; deafened?: boolean }[]>;
+  const state = channel.presenceState() as Record<
+    string,
+    { username: string; muted?: boolean; deafened?: boolean; streaming?: boolean }[]
+  >;
   return Object.entries(state).map(([id, presences]) => ({
     id,
     username: presences[0]?.username ?? "unknown",
     muted: presences[0]?.muted ?? false,
     deafened: presences[0]?.deafened ?? false,
+    streaming: presences[0]?.streaming ?? false,
   }));
 }
 
@@ -33,6 +37,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const [deafened, setDeafened] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [remoteVideoStreams, setRemoteVideoStreams] = useState<Map<string, MediaStream>>(new Map());
 
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const joinedIdRef = useRef<string | null>(null);
@@ -45,6 +52,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]);
   const deafenedRef = useRef(false);
   const mutedRef = useRef(false);
+  const isStreamingRef = useRef(false);
+  const volumesRef = useRef<Map<string, number>>(new Map());
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const analysersRef = useRef<Map<string, { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }>>(new Map());
   const rafRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -83,6 +93,12 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     analysersRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
     pendingPlaybackRef.current.delete(peerId);
+    setRemoteVideoStreams((prev) => {
+      if (!prev.has(peerId)) return prev;
+      const next = new Map(prev);
+      next.delete(peerId);
+      return next;
+    });
     const timer = disconnectTimersRef.current.get(peerId);
     if (timer) {
       clearTimeout(timer);
@@ -112,9 +128,15 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const createPeerConnection = useCallback(
     (peerId: string) => {
       const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
+      let hasConnectedOnce = false;
       localStreamRef.current?.getTracks().forEach((track) => {
         if (localStreamRef.current) pc.addTrack(track, localStreamRef.current);
       });
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => {
+          if (screenStreamRef.current) pc.addTrack(track, screenStreamRef.current);
+        });
+      }
       pc.onicecandidate = (e) => {
         if (e.candidate && userId) {
           console.log(`[voice] local ICE candidate for ${peerId}:`, e.candidate.type, e.candidate.candidate);
@@ -122,13 +144,26 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         }
       };
       pc.ontrack = (e) => {
-        console.log(`[voice] ontrack fired for ${peerId} -- remote media arrived`);
+        console.log(`[voice] ontrack (${e.track.kind}) fired for ${peerId} -- remote media arrived`);
         const stream = e.streams[0];
+        if (e.track.kind === "video") {
+          setRemoteVideoStreams((prev) => new Map(prev).set(peerId, stream));
+          e.track.onended = () => {
+            setRemoteVideoStreams((prev) => {
+              if (!prev.has(peerId)) return prev;
+              const next = new Map(prev);
+              next.delete(peerId);
+              return next;
+            });
+          };
+          return;
+        }
         let el = audioElsRef.current.get(peerId);
         if (!el) {
           el = document.createElement("audio");
           el.autoplay = true;
           el.muted = deafenedRef.current;
+          el.volume = volumesRef.current.get(peerId) ?? 1;
           document.body.appendChild(el);
           audioElsRef.current.set(peerId, el);
         }
@@ -144,8 +179,24 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       pc.oniceconnectionstatechange = () => {
         console.log(`[voice] ICE connection state for ${peerId}: ${pc.iceConnectionState}`);
       };
+      pc.onnegotiationneeded = async () => {
+        // Adding/removing tracks (e.g. starting or stopping a screen share)
+        // after the connection is already up triggers this. Ignore it during
+        // the very first negotiation -- initiateCall/handleSignal already
+        // drive that offer/answer cycle manually, so acting on it here too
+        // would race a second, conflicting offer.
+        if (!hasConnectedOnce || !userId) return;
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal({ type: "offer", from: userId, to: peerId, sdp: offer });
+        } catch (err) {
+          console.error(`[voice] renegotiation failed for ${peerId}`, err);
+        }
+      };
       pc.onconnectionstatechange = () => {
         console.log(`[voice] connection state for ${peerId}: ${pc.connectionState}`);
+        if (pc.connectionState === "connected") hasConnectedOnce = true;
         setConnectionStates((prev) => {
           const next = new Map(prev);
           next.set(peerId, pc.connectionState);
@@ -281,7 +332,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
 
         joinedIdRef.current = targetId;
         mutedRef.current = false;
-        await channel.track({ username, muted: false, deafened: false });
+        isStreamingRef.current = false;
+        await channel.track({ username, muted: false, deafened: false, streaming: false });
         setParticipants(readPresence(channel));
         setJoinedId(targetId);
         supabase.rpc("join_voice_session", { p_channel_id: targetId }).then(({ error: rpcError }) => {
@@ -316,6 +368,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     for (const peerId of Array.from(pcsRef.current.keys())) cleanupPeer(peerId);
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
+    screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
     channel?.untrack();
     joinedIdRef.current = null;
     try {
@@ -328,10 +382,66 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     setSpeakingIds(new Set());
     setMuted(false);
     setDeafened(false);
+    setIsStreaming(false);
+    setRemoteVideoStreams(new Map());
+    setVolumes(new Map());
+    volumesRef.current = new Map();
     deafenedRef.current = false;
     mutedRef.current = false;
+    isStreamingRef.current = false;
     if (wasConnected) playVoiceCue("leave");
   }, [cleanupPeer]);
+
+  const setParticipantVolume = useCallback((peerId: string, volume: number) => {
+    setVolumes((prev) => {
+      const next = new Map(prev);
+      next.set(peerId, volume);
+      volumesRef.current = next;
+      return next;
+    });
+    const el = audioElsRef.current.get(peerId);
+    if (el) el.volume = volume;
+  }, []);
+
+  const startScreenShare = useCallback(async () => {
+    if (screenStreamRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const track = stream.getVideoTracks()[0];
+      screenStreamRef.current = stream;
+      track.onended = () => stopScreenShareRef.current();
+      pcsRef.current.forEach((pc) => {
+        pc.addTrack(track, stream);
+      });
+      isStreamingRef.current = true;
+      setIsStreaming(true);
+      if (username) {
+        activeChannel()?.track({ username, muted: mutedRef.current, deafened: deafenedRef.current, streaming: true });
+      }
+    } catch (err) {
+      console.error("[voice] failed to start screen share", err);
+    }
+  }, [activeChannel, username]);
+
+  const stopScreenShare = useCallback(() => {
+    const stream = screenStreamRef.current;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    pcsRef.current.forEach((pc) => {
+      const sender = pc.getSenders().find((s) => s.track === track);
+      if (sender) pc.removeTrack(sender);
+    });
+    stream.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
+    isStreamingRef.current = false;
+    setIsStreaming(false);
+    if (username) {
+      activeChannel()?.track({ username, muted: mutedRef.current, deafened: deafenedRef.current, streaming: false });
+    }
+  }, [activeChannel, username]);
+
+  const stopScreenShareRef = useRef(stopScreenShare);
+  stopScreenShareRef.current = stopScreenShare;
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
@@ -340,7 +450,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       localStreamRef.current?.getAudioTracks().forEach((track) => {
         track.enabled = !next;
       });
-      if (username) activeChannel()?.track({ username, muted: next, deafened: deafenedRef.current });
+      if (username) {
+        activeChannel()?.track({ username, muted: next, deafened: deafenedRef.current, streaming: isStreamingRef.current });
+      }
       playVoiceCue(next ? "mute" : "unmute");
       return next;
     });
@@ -361,7 +473,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         track.enabled = false;
       });
     }
-    if (username) activeChannel()?.track({ username, muted: mutedRef.current, deafened: next });
+    if (username) {
+      activeChannel()?.track({ username, muted: mutedRef.current, deafened: next, streaming: isStreamingRef.current });
+    }
   }, [activeChannel, username]);
 
   // A real page reload (not a tab switch, which no longer tears anything down)
@@ -441,6 +555,12 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     deafened,
     connecting,
     error,
+    volumes,
+    setParticipantVolume,
+    isStreaming,
+    remoteVideoStreams,
+    startScreenShare,
+    stopScreenShare,
     join,
     leave,
     toggleMute,

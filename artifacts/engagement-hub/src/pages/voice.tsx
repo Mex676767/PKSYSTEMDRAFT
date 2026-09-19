@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users, VolumeX } from "lucide-react";
+import { Headphones, Mic, MicOff, PhoneOff, Radio, ScreenShare, ScreenShareOff, Sparkles, Users, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useDirectory } from "@/hooks/use-mentors";
@@ -16,7 +16,27 @@ import NotFound from "@/pages/not-found";
 
 export default function Voice() {
   const { profile, isAdmin } = useAuth();
-  const { occupants, channelId, participants, speakingIds, connectionStates, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceCall();
+  const {
+    occupants,
+    channelId,
+    participants,
+    speakingIds,
+    connectionStates,
+    muted,
+    deafened,
+    connecting,
+    error,
+    volumes,
+    setParticipantVolume,
+    isStreaming,
+    remoteVideoStreams,
+    startScreenShare,
+    stopScreenShare,
+    join,
+    leave,
+    toggleMute,
+    toggleDeafen,
+  } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -108,20 +128,53 @@ export default function Voice() {
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {participants.map((p) => (
-                    <VoiceParticipantAvatar
-                      key={p.id}
-                      participant={p}
-                      isMe={p.id === profile?.id}
-                      isSpeaking={speakingIds.has(p.id)}
-                      isMuted={muted}
-                      isDeafened={deafened}
-                      myProfile={profile}
-                      directoryEntry={directoryById.get(p.id)}
-                      connectionState={connectionStates.get(p.id)}
-                    />
-                  ))}
+                  {participants.map((p) => {
+                    const isMe = p.id === profile?.id;
+                    return (
+                      <VoiceParticipantAvatar
+                        key={p.id}
+                        participant={p}
+                        isMe={isMe}
+                        isSpeaking={speakingIds.has(p.id)}
+                        isMuted={muted}
+                        isDeafened={deafened}
+                        myProfile={profile}
+                        directoryEntry={directoryById.get(p.id)}
+                        connectionState={connectionStates.get(p.id)}
+                        volume={isMe ? undefined : volumes.get(p.id)}
+                        onVolumeChange={isMe ? undefined : (v) => setParticipantVolume(p.id, v)}
+                      />
+                    );
+                  })}
                 </div>
+
+                {(isStreaming || remoteVideoStreams.size > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/50">
+                    {isStreaming && (
+                      <div className="rounded-lg overflow-hidden border border-primary/40 bg-black/50 aspect-video flex items-center justify-center text-xs text-muted-foreground">
+                        You're sharing your screen
+                      </div>
+                    )}
+                    {Array.from(remoteVideoStreams.entries()).map(([peerId, stream]) => {
+                      const streamer = participants.find((p) => p.id === peerId);
+                      return (
+                        <div key={peerId} className="relative rounded-lg overflow-hidden border border-border bg-black/50 aspect-video">
+                          <video
+                            ref={(el) => {
+                              if (el) el.srcObject = stream;
+                            }}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-contain"
+                          />
+                          <span className="absolute bottom-1.5 left-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
+                            @{streamer?.username ?? "Someone"}'s screen
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-center gap-2 pt-3 border-t border-border/50">
                   <Button
@@ -141,6 +194,15 @@ export default function Voice() {
                     title={deafened ? "Undeafen" : "Deafen"}
                   >
                     {deafened ? <VolumeX className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant={isStreaming ? "destructive" : "outline"}
+                    className="rounded-full"
+                    onClick={isStreaming ? stopScreenShare : startScreenShare}
+                    title={isStreaming ? "Stop sharing" : "Share your screen"}
+                  >
+                    {isStreaming ? <ScreenShareOff className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
                   </Button>
                   <Button size="icon" variant="destructive" className="rounded-full" onClick={leave} title="Leave">
                     <PhoneOff className="w-4 h-4" />
