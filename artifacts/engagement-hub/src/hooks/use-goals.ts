@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { addYears, endOfYear } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export type GoalTerm = "short" | "mid" | "long";
 
@@ -43,6 +44,7 @@ export type Goal = {
 const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border)";
 
 export function useGoalsFeed() {
+  useRealtimeInvalidate("goals", [["goals-feed"], ["my-goals"]]);
   return useQuery({
     queryKey: ["goals-feed"],
     queryFn: async () => {
@@ -58,6 +60,7 @@ export function useGoalsFeed() {
 
 export function useMyGoals() {
   const { session } = useAuth();
+  useRealtimeInvalidate("goals", [["my-goals"], ["goals-feed"]]);
   return useQuery({
     queryKey: ["my-goals", session?.user.id],
     enabled: !!session,

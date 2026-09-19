@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export type ChallengeStatus = "pending" | "active" | "completed" | "declined";
 
@@ -27,6 +28,7 @@ const CHALLENGE_SELECT =
   "*, creator:profiles!challenges_creator_id_fkey!inner(username, role, avatar_url, active_border), opponent:profiles!challenges_opponent_id_fkey!inner(username, role, avatar_url, active_border)";
 
 export function useChallengesList() {
+  useRealtimeInvalidate("challenges", [["challenges"]]);
   return useQuery({
     queryKey: ["challenges"],
     queryFn: async () => {

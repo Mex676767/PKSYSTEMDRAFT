@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export type PostCategory = "general" | "desk_setup";
 
@@ -17,6 +18,7 @@ export type Post = {
 const POST_SELECT = "*, author:profiles!inner(username, avatar_url, active_border)";
 
 export function usePostsFeed() {
+  useRealtimeInvalidate("posts", [["posts-feed"], ["desk-setup-entries"]]);
   return useQuery({
     queryKey: ["posts-feed"],
     queryFn: async () => {
@@ -92,6 +94,8 @@ export function useDeletePost() {
 export type DeskSetupEntry = Post & { vote_count: number };
 
 export function useDeskSetupEntries() {
+  useRealtimeInvalidate("posts", [["desk-setup-entries"]]);
+  useRealtimeInvalidate("reactions", [["desk-setup-entries"]]);
   return useQuery({
     queryKey: ["desk-setup-entries"],
     queryFn: async () => {
