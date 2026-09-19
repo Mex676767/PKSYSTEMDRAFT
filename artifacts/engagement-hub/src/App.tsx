@@ -24,6 +24,7 @@ import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
 import Birthdays from '@/pages/birthdays';
+import Voice from '@/pages/voice';
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ function Router() {
           <Route path="/games/quiz" component={() => <ComingSoon label="Brand Knowledge Quiz" icon={Gamepad2} />} />
           <Route path="/betting" component={() => <ComingSoon label="Betting" icon={Dices} />} />
           <Route path="/admin" component={Admin} />
+          <Route path="/voice" component={Voice} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

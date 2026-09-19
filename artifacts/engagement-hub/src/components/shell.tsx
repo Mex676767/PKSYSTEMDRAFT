@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -44,6 +44,7 @@ const navItems = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
+  const items = isAdmin ? [...navItems, { href: "/voice", label: "Voice", icon: Radio }] : navItems;
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
@@ -79,7 +80,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       el.removeEventListener("scroll", updateScrollState);
       ro.disconnect();
     };
-  }, [navItems.length]);
+  }, [items.length]);
 
   const scrollNavRight = () => {
     navRef.current?.scrollBy({ left: 200, behavior: "smooth" });
@@ -120,7 +121,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline font-display font-bold text-sm tracking-tight whitespace-nowrap">C9MYR</span>
           </Link>
 
-          {navItems.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
             const isLocked = LOCKED_ROUTES.has(item.href);
