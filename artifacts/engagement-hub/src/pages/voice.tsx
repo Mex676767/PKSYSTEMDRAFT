@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Headphones, Mic, MicOff, PhoneOff, Radio, Sparkles, Users, VolumeX } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useVoiceChannels } from "@/hooks/use-voice-channel";
+import { useDirectory } from "@/hooks/use-mentors";
 import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS, type DiscordCategory, type DiscordDotColor } from "@/lib/discord";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
@@ -50,6 +51,8 @@ export default function Voice() {
     profile?.id,
     profile?.username ?? undefined
   );
+  const { data: directory = [] } = useDirectory();
+  const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   if (!isAdmin) return <NotFound />;
@@ -142,6 +145,7 @@ export default function Voice() {
                   {participants.map((p) => {
                     const isMe = p.id === profile?.id;
                     const isSpeaking = speakingIds.has(p.id);
+                    const dirEntry = directoryById.get(p.id);
                     return (
                       <div key={p.id} className="flex flex-col items-center gap-1.5">
                         <div
@@ -152,6 +156,8 @@ export default function Voice() {
                         >
                           <UserAvatar
                             user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
+                            photoUrl={isMe ? profile?.avatar_url : dirEntry?.avatar_url}
+                            border={isMe ? profile?.active_border : dirEntry?.active_border}
                             className="w-12 h-12"
                           />
                           {isMe && muted && (
