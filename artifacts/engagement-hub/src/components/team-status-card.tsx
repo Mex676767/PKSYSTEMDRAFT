@@ -57,7 +57,7 @@ export function TeamStatusCard() {
             No teammates yet.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {directory.map((p) => {
               const status = statusFor(p.id, voiceChannelByUserId.get(p.id), presenceMap.get(p.id)?.activity, p.last_seen_at);
               return (
@@ -76,14 +76,17 @@ export function TeamStatusCard() {
                       <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
                       <span
                         className={cn(
-                          "relative shrink-0 ml-auto max-w-28 h-5 rounded-full px-2",
+                          "relative shrink-0 ml-auto w-28 h-5 rounded-full",
                           PRESENCE_BADGE_CLASS[status.color]
                         )}
                       >
-                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full" >
-                          <span className={cn("block w-1.5 h-1.5 rounded-full", PRESENCE_DOT_CLASS[status.color])} />
-                        </span>
-                        <span className="flex items-center justify-center pl-2 text-[10px] font-medium truncate">
+                        <span
+                          className={cn(
+                            "absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full",
+                            PRESENCE_DOT_CLASS[status.color]
+                          )}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center px-1 text-[10px] font-medium truncate">
                           {status.label}
                         </span>
                       </span>
