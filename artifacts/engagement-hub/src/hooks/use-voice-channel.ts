@@ -38,6 +38,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const pendingPlaybackRef = useRef<Set<string>>(new Set());
   const deafenedRef = useRef(false);
   const analysersRef = useRef<Map<string, { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }>>(new Map());
   const rafRef = useRef<number | null>(null);
@@ -76,6 +77,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     audioElsRef.current.delete(peerId);
     analysersRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
+    pendingPlaybackRef.current.delete(peerId);
   }, []);
 
   const flushPendingCandidates = useCallback(async (peerId: string, pc: RTCPeerConnection) => {
@@ -113,6 +115,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           audioElsRef.current.set(peerId, el);
         }
         el.srcObject = stream;
+        el.play().catch(() => {
+          pendingPlaybackRef.current.add(peerId);
+        });
         attachAnalyser(peerId, stream);
       };
       pc.onconnectionstatechange = () => {
@@ -300,6 +305,32 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [joinedId]);
+
+  // Mobile browsers can silently block autoplay on an <audio> element created
+  // asynchronously in pc.ontrack, even after the join button's own click. Retry
+  // playback on the next real user gesture so the connection isn't left mute.
+  useEffect(() => {
+    if (!joinedId) return;
+    const retryBlockedPlayback = () => {
+      if (pendingPlaybackRef.current.size === 0) return;
+      for (const peerId of Array.from(pendingPlaybackRef.current)) {
+        const el = audioElsRef.current.get(peerId);
+        if (!el) {
+          pendingPlaybackRef.current.delete(peerId);
+          continue;
+        }
+        el.play()
+          .then(() => pendingPlaybackRef.current.delete(peerId))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener("click", retryBlockedPlayback);
+    document.addEventListener("touchend", retryBlockedPlayback);
+    return () => {
+      document.removeEventListener("click", retryBlockedPlayback);
+      document.removeEventListener("touchend", retryBlockedPlayback);
     };
   }, [joinedId]);
 
