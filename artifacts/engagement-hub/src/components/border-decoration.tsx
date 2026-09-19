@@ -38,7 +38,7 @@ export function BorderDecoration({ border }: { border: string | null | undefined
     <svg
       viewBox="0 0 100 100"
       className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ transform: "scale(1.4)" }}
+      style={{ transform: "scale(1.25)" }}
       aria-hidden="true"
     >
       <defs>

@@ -35,8 +35,10 @@ function burst(x: number, y: number) {
 }
 
 function shakeScreen() {
-  document.body.classList.add("shaking");
-  setTimeout(() => document.body.classList.remove("shaking"), 350);
+  const root = document.getElementById("root");
+  if (!root) return;
+  root.classList.add("shaking");
+  setTimeout(() => root.classList.remove("shaking"), 350);
 }
 
 export function ConfettiBurstOnClick() {

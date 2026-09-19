@@ -294,7 +294,17 @@
   60% { transform: translate(-3px, -2px); }
   80% { transform: translate(3px, 2px); }
 }
-body.shaking {
+/*
+  Applied to #root rather than body: a transform animating on body itself
+  makes body a containing block for position:fixed descendants, including
+  anything Radix portals directly onto body (dialogs, dropdowns). During the
+  0.35s shake that briefly repositions them relative to body's full
+  (possibly scrolled/tall) box instead of the viewport, then snaps back --
+  e.g. a dialog opened during a shake would flash near the bottom of the
+  page before jumping to center. #root sits beside those portals as a
+  sibling, so shaking it moves the visible app without touching that math.
+*/
+#root.shaking {
   animation: screen-shake 0.35s ease-in-out;
 }
 
