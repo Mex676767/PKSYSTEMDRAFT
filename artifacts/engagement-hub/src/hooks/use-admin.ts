@@ -82,11 +82,24 @@ export function useReactivateUser() {
   });
 }
 
+export function useAdminDiscordStatus() {
+  return useQuery({
+    queryKey: ["admin-discord-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_discord_status");
+      if (error) throw error;
+      const map = new Map<string, string | null>();
+      for (const row of data as { id: string; discord_id: string | null }[]) map.set(row.id, row.discord_id);
+      return map;
+    },
+  });
+}
+
 export function useAdminDisconnectDiscord() {
   return useAdminMutation(async (userId: string) => {
     const { error } = await supabase.rpc("admin_disconnect_discord", { target_user: userId });
     if (error) throw error;
-  });
+  }, [["admin-discord-status"]]);
 }
 
 export function useDeleteOwnAccount() {

@@ -44,7 +44,6 @@ const navItems = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
-  const items = isAdmin ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldAlert }] : navItems;
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
@@ -80,7 +79,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       el.removeEventListener("scroll", updateScrollState);
       ro.disconnect();
     };
-  }, [items.length]);
+  }, [navItems.length]);
 
   const scrollNavRight = () => {
     navRef.current?.scrollBy({ left: 200, behavior: "smooth" });
@@ -121,7 +120,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline font-display font-bold text-sm tracking-tight whitespace-nowrap">C9MYR</span>
           </Link>
 
-          {items.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
             const isLocked = LOCKED_ROUTES.has(item.href);
