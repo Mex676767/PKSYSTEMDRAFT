@@ -115,6 +115,7 @@ export default function Voice() {
                       isMe={p.id === profile?.id}
                       isSpeaking={speakingIds.has(p.id)}
                       isMuted={muted}
+                      isDeafened={deafened}
                       myProfile={profile}
                       directoryEntry={directoryById.get(p.id)}
                     />

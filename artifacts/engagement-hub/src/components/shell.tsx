@@ -7,6 +7,7 @@ import { titleLabel } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
+import { useVoiceCall } from "@/hooks/use-voice-call";
 import { isBirthdayToday } from "@/hooks/use-birthdays";
 import { useDiscordPresenceMap } from "@/hooks/use-discord";
 import { discordStatusLabel } from "@/lib/discord";
@@ -44,7 +45,8 @@ const navItems = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
-  const items = isAdmin ? [...navItems, { href: "/voice", label: "Voice", icon: Radio }] : navItems;
+  const items = navItems;
+  const { channelId: voiceChannelId } = useVoiceCall();
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
@@ -180,6 +182,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div ref={iconClusterRef} className="absolute right-0 top-0 flex items-center gap-2">
+        {isAdmin && (
+          <Link
+            href="/voice"
+            title="Voice Channels"
+            className={cn(
+              "relative shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+              location.startsWith("/voice")
+                ? "bg-gradient-flame text-primary-foreground shadow-glow-primary"
+                : "bg-card/70 backdrop-blur-xl border border-border shadow-lg text-foreground hover:scale-110"
+            )}
+          >
+            <Radio className="w-4 h-4" />
+            {voiceChannelId && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
+            )}
+          </Link>
+        )}
         <Link
           href="/messages"
           title="Messages"

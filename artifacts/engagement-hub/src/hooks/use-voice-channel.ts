@@ -9,15 +9,17 @@ type SignalPayload =
   | { type: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { type: "candidate"; from: string; to: string; candidate: RTCIceCandidateInit };
 
-export type VoiceParticipant = { id: string; username: string };
+export type VoiceParticipant = { id: string; username: string; muted: boolean; deafened: boolean };
 
 const LAST_CHANNEL_KEY = "voice:lastChannel";
 
 function readPresence(channel: RealtimeChannel): VoiceParticipant[] {
-  const state = channel.presenceState() as Record<string, { username: string }[]>;
+  const state = channel.presenceState() as Record<string, { username: string; muted?: boolean; deafened?: boolean }[]>;
   return Object.entries(state).map(([id, presences]) => ({
     id,
     username: presences[0]?.username ?? "unknown",
+    muted: presences[0]?.muted ?? false,
+    deafened: presences[0]?.deafened ?? false,
   }));
 }
 
@@ -40,6 +42,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const pendingPlaybackRef = useRef<Set<string>>(new Set());
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]);
   const deafenedRef = useRef(false);
+  const mutedRef = useRef(false);
   const analysersRef = useRef<Map<string, { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }>>(new Map());
   const rafRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -231,7 +234,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         iceServersRef.current = await getIceServers();
 
         joinedIdRef.current = targetId;
-        await channel.track({ username });
+        mutedRef.current = false;
+        await channel.track({ username, muted: false, deafened: false });
         setParticipants(readPresence(channel));
         setJoinedId(targetId);
         try {
@@ -271,19 +275,22 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     setMuted(false);
     setDeafened(false);
     deafenedRef.current = false;
+    mutedRef.current = false;
     if (wasConnected) playVoiceCue("leave");
   }, [cleanupPeer]);
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
+      mutedRef.current = next;
       localStreamRef.current?.getAudioTracks().forEach((track) => {
         track.enabled = !next;
       });
+      if (username) activeChannel()?.track({ username, muted: next, deafened: deafenedRef.current });
       playVoiceCue(next ? "mute" : "unmute");
       return next;
     });
-  }, []);
+  }, [activeChannel, username]);
 
   const toggleDeafen = useCallback(() => {
     const next = !deafenedRef.current;
@@ -295,11 +302,13 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     playVoiceCue(next ? "deafen" : "undeafen");
     if (next) {
       setMuted(true);
+      mutedRef.current = true;
       localStreamRef.current?.getAudioTracks().forEach((track) => {
         track.enabled = false;
       });
     }
-  }, []);
+    if (username) activeChannel()?.track({ username, muted: mutedRef.current, deafened: next });
+  }, [activeChannel, username]);
 
   // A real page reload (not a tab switch, which no longer tears anything down)
   // destroys the live call along with everything else in memory -- there's no
