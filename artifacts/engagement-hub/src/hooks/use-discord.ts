@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { buildDiscordAuthorizeUrl, type DiscordPresence } from "@/lib/discord";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useDiscordPresenceMap() {
   const qc = useQueryClient();
@@ -33,4 +34,15 @@ export function useDiscordPresenceMap() {
 
 export function connectDiscord() {
   window.location.href = buildDiscordAuthorizeUrl();
+}
+
+export function useDisconnectMyDiscord() {
+  const { refetchProfile } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("disconnect_my_discord");
+      if (error) throw error;
+    },
+    onSuccess: () => refetchProfile(),
+  });
 }

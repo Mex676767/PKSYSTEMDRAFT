@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, MessageCircle } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -14,6 +14,7 @@ import {
   useReactivateUser,
   useAdminSetUsername,
   useAdminAdjustPoints,
+  useAdminDisconnectDiscord,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
@@ -95,6 +96,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const [usernameInput, setUsernameInput] = useState(row.username ?? "");
   const usernameValid = USERNAME_PATTERN.test(usernameInput);
   const adjustPoints = useAdminAdjustPoints();
+  const disconnectDiscord = useAdminDisconnectDiscord();
   const [editingPoints, setEditingPoints] = useState(false);
   const [pointsAmount, setPointsAmount] = useState("");
   const [pointsReason, setPointsReason] = useState("");
@@ -345,6 +347,21 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               </button>
             </>
           )}
+        </div>
+
+        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>Discord</span>
+          <button
+            disabled={disconnectDiscord.isPending}
+            onClick={() =>
+              window.confirm(`Disconnect @${row.username ?? row.email}'s Discord account?`) &&
+              disconnectDiscord.mutate(row.id)
+            }
+            className="text-primary hover:underline disabled:opacity-50"
+          >
+            {disconnectDiscord.isPending ? "Disconnecting..." : "Disconnect"}
+          </button>
         </div>
       </CardContent>
     </Card>

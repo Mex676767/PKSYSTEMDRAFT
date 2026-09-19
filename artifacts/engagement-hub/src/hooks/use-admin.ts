@@ -82,6 +82,13 @@ export function useReactivateUser() {
   });
 }
 
+export function useAdminDisconnectDiscord() {
+  return useAdminMutation(async (userId: string) => {
+    const { error } = await supabase.rpc("admin_disconnect_discord", { target_user: userId });
+    if (error) throw error;
+  });
+}
+
 export function useDeleteOwnAccount() {
   const { signOut } = useAuth();
   return useMutation({
