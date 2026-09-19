@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export function FloatingCallBar() {
   const [location] = useLocation();
   const { profile } = useAuth();
-  const { channelId, participants, speakingIds, muted, deafened, leave, toggleMute, toggleDeafen } = useVoiceCall();
+  const { channelId, participants, speakingIds, connectionStates, muted, deafened, leave, toggleMute, toggleDeafen } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [minimized, setMinimized] = useState(false);
@@ -78,6 +78,7 @@ export function FloatingCallBar() {
                 isDeafened={deafened}
                 myProfile={profile}
                 directoryEntry={directoryById.get(p.id)}
+                connectionState={connectionStates.get(p.id)}
                 size="sm"
               />
             ))}

@@ -16,7 +16,7 @@ import NotFound from "@/pages/not-found";
 
 export default function Voice() {
   const { profile, isAdmin } = useAuth();
-  const { occupants, channelId, participants, speakingIds, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceCall();
+  const { occupants, channelId, participants, speakingIds, connectionStates, muted, deafened, connecting, error, join, leave, toggleMute, toggleDeafen } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -118,6 +118,7 @@ export default function Voice() {
                       isDeafened={deafened}
                       myProfile={profile}
                       directoryEntry={directoryById.get(p.id)}
+                      connectionState={connectionStates.get(p.id)}
                     />
                   ))}
                 </div>

@@ -28,6 +28,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const [joinedId, setJoinedId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
   const [speakingIds, setSpeakingIds] = useState<Set<string>>(new Set());
+  const [connectionStates, setConnectionStates] = useState<Map<string, RTCPeerConnectionState>>(new Map());
   const [muted, setMuted] = useState(false);
   const [deafened, setDeafened] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -40,6 +41,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const pendingPlaybackRef = useRef<Set<string>>(new Set());
+  const disconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]);
   const deafenedRef = useRef(false);
   const mutedRef = useRef(false);
@@ -81,6 +83,17 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     analysersRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
     pendingPlaybackRef.current.delete(peerId);
+    const timer = disconnectTimersRef.current.get(peerId);
+    if (timer) {
+      clearTimeout(timer);
+      disconnectTimersRef.current.delete(peerId);
+    }
+    setConnectionStates((prev) => {
+      if (!prev.has(peerId)) return prev;
+      const next = new Map(prev);
+      next.delete(peerId);
+      return next;
+    });
   }, []);
 
   const flushPendingCandidates = useCallback(async (peerId: string, pc: RTCPeerConnection) => {
@@ -104,10 +117,12 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       });
       pc.onicecandidate = (e) => {
         if (e.candidate && userId) {
+          console.log(`[voice] local ICE candidate for ${peerId}:`, e.candidate.type, e.candidate.candidate);
           sendSignal({ type: "candidate", from: userId, to: peerId, candidate: e.candidate.toJSON() });
         }
       };
       pc.ontrack = (e) => {
+        console.log(`[voice] ontrack fired for ${peerId} -- remote media arrived`);
         const stream = e.streams[0];
         let el = audioElsRef.current.get(peerId);
         if (!el) {
@@ -118,14 +133,44 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           audioElsRef.current.set(peerId, el);
         }
         el.srcObject = stream;
-        el.play().catch(() => {
-          pendingPlaybackRef.current.add(peerId);
-        });
+        el.play()
+          .then(() => console.log(`[voice] audio playback started for ${peerId}`))
+          .catch((err) => {
+            console.warn(`[voice] audio playback BLOCKED for ${peerId}, will retry on next click`, err);
+            pendingPlaybackRef.current.add(peerId);
+          });
         attachAnalyser(peerId, stream);
       };
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[voice] ICE connection state for ${peerId}: ${pc.iceConnectionState}`);
+      };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "closed" || pc.connectionState === "disconnected") {
+        console.log(`[voice] connection state for ${peerId}: ${pc.connectionState}`);
+        setConnectionStates((prev) => {
+          const next = new Map(prev);
+          next.set(peerId, pc.connectionState);
+          return next;
+        });
+
+        const existingTimer = disconnectTimersRef.current.get(peerId);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          disconnectTimersRef.current.delete(peerId);
+        }
+
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
           cleanupPeer(peerId);
+        } else if (pc.connectionState === "disconnected") {
+          // "disconnected" is often transient (a brief network hiccup) and can
+          // recover on its own, especially across real networks -- give it a
+          // grace period instead of tearing the connection down immediately.
+          const timer = setTimeout(() => {
+            if (pcsRef.current.get(peerId)?.connectionState === "disconnected") {
+              console.log(`[voice] ${peerId} still disconnected after grace period, cleaning up`);
+              cleanupPeer(peerId);
+            }
+          }, 8000);
+          disconnectTimersRef.current.set(peerId, timer);
         }
       };
       pcsRef.current.set(peerId, pc);
@@ -232,6 +277,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         localStreamRef.current = stream;
         attachAnalyser(userId, stream);
         iceServersRef.current = await getIceServers();
+        console.log("[voice] ICE servers for this call:", iceServersRef.current);
 
         joinedIdRef.current = targetId;
         mutedRef.current = false;
@@ -382,6 +428,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     channelId: joinedId,
     participants,
     speakingIds,
+    connectionStates,
     muted,
     deafened,
     connecting,

@@ -15,9 +15,10 @@ type Props = {
   myProfile: Profile | null;
   directoryEntry: DirectoryProfile | undefined;
   size?: "sm" | "md";
+  connectionState?: RTCPeerConnectionState;
 };
 
-export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted, isDeafened, myProfile, directoryEntry, size = "md" }: Props) {
+export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted, isDeafened, myProfile, directoryEntry, size = "md", connectionState }: Props) {
   const dimClass = size === "sm" ? "w-9 h-9" : "w-12 h-12";
   const deafened = isMe ? isDeafened : participant.deafened;
   const muted = isMe ? isMuted : participant.muted;
@@ -44,6 +45,11 @@ export function VoiceParticipantAvatar({ participant, isMe, isSpeaking, isMuted,
       <span className="text-[11px] text-muted-foreground truncate max-w-full">
         {isMe ? "You" : `@${participant.username}`}
       </span>
+      {!isMe && connectionState && connectionState !== "connected" && (
+        <span className="text-[9px] text-amber-500 truncate max-w-full -mt-1">
+          {connectionState === "connecting" || connectionState === "new" ? "Connecting…" : "Connection issue"}
+        </span>
+      )}
     </div>
   );
 }
