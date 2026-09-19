@@ -5,6 +5,20 @@ import { playVoiceCue } from "@/lib/voice-sfx";
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  // Free public TURN relay (Open Relay Project). STUN alone only lets two peers
+  // discover each other's public address -- it can't get through a symmetric NAT
+  // or a strict corporate firewall, which is exactly why a call can work fine
+  // between two tabs on the same network and go silent between real remote users.
+  // TURN relays the media instead of trying to connect the peers directly.
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
 ];
 
 type SignalPayload =
