@@ -35,8 +35,13 @@ export default function Dashboard() {
   const recentGoals = goalsFeed.slice(0, DASHBOARD_GOAL_PREVIEW_COUNT);
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const todayBirthdays = birthdays.filter((b) => b.isToday);
-  const featuredBirthday = todayBirthdays[0];
-  const isMyBirthday = featuredBirthday?.id === profile?.id;
+
+  const birthdayHeadline =
+    todayBirthdays.length === 1
+      ? `It's @${todayBirthdays[0].username ?? "someone"}'s Birthday!`
+      : todayBirthdays.length === 2
+        ? `It's @${todayBirthdays[0].username ?? "someone"} and @${todayBirthdays[1].username ?? "someone"}'s Birthday!`
+        : `It's ${todayBirthdays.length} teammates' Birthday today!`;
 
   const celebrate = () => {
     setShowConfetti(true);
@@ -66,45 +71,55 @@ export default function Dashboard() {
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
 
         <motion.div variants={slideUp}>
-          {featuredBirthday ? (
+          {todayBirthdays.length > 0 ? (
             <Card className="bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-white border-2 border-white/40 shadow-xl shadow-pink-500/30 overflow-hidden relative hover:-translate-y-1 transition-transform duration-200">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-50" />
-              <CardContent className="p-5 relative z-10">
-                <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                  <UserAvatar
-                    user={{
-                      name: featuredBirthday.username ?? "someone",
-                      initials: initialsForUsername(featuredBirthday.username ?? "?"),
-                      color: colorForId(featuredBirthday.id),
-                    }}
-                    photoUrl={featuredBirthday.avatar_url}
-                    border={featuredBirthday.active_border}
-                    className="w-16 h-16 text-xl border-4 border-white/30 shadow-lg shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold flex items-center gap-2 text-lg">
-                      <PartyPopper className="w-5 h-5 shrink-0" /> It's @{featuredBirthday.username ?? "someone"}'s Birthday!
-                    </h3>
-                    <p className="text-white/85 text-sm mt-0.5">
-                      {isMyBirthday ? "Happy birthday to you! 🎉" : "Send a quick wish below"}
-                    </p>
-                  </div>
+              <CardContent className="p-5 relative z-10 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-bold flex items-center gap-2 text-lg">
+                    <PartyPopper className="w-5 h-5 shrink-0" /> {birthdayHeadline}
+                  </h3>
                   <Link href="/birthdays" className="shrink-0">
                     <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white">
                       View all
                     </Button>
                   </Link>
                 </div>
-                {!isMyBirthday && (
-                  <div className="mt-4 pt-4 border-t border-white/20">
-                    <SendBirthdayWish
-                      birthdayId={featuredBirthday.id}
-                      username={featuredBirthday.username ?? "someone"}
-                      dark
-                      onSent={celebrate}
-                    />
-                  </div>
-                )}
+                <div className="divide-y divide-white/20">
+                  {todayBirthdays.map((person) => {
+                    const isMe = person.id === profile?.id;
+                    return (
+                      <div key={person.id} className="py-3 first:pt-0 last:pb-0 flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                        <UserAvatar
+                          user={{
+                            name: person.username ?? "someone",
+                            initials: initialsForUsername(person.username ?? "?"),
+                            color: colorForId(person.id),
+                          }}
+                          photoUrl={person.avatar_url}
+                          border={person.active_border}
+                          className="w-14 h-14 text-lg border-4 border-white/30 shadow-lg shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold">@{person.username ?? "someone"}</p>
+                          <p className="text-white/85 text-sm mt-0.5">
+                            {isMe ? "Happy birthday to you! 🎉" : "Send a quick wish below"}
+                          </p>
+                          {!isMe && (
+                            <div className="mt-2">
+                              <SendBirthdayWish
+                                birthdayId={person.id}
+                                username={person.username ?? "someone"}
+                                dark
+                                onSent={celebrate}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           ) : (
