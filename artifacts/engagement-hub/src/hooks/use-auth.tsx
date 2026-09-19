@@ -121,7 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => { cancelled = true; };
-  }, [session, fetchProfile]);
+    // Supabase silently refreshes the session (a new object, same user) whenever
+    // the tab regains focus. Keying off session.user.id instead of the whole
+    // session object means that refresh doesn't retrigger the loading spinner
+    // and remount the app -- which was tearing down things like an active call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, fetchProfile]);
 
   useEffect(() => {
     if (!session || !profile?.username) return;

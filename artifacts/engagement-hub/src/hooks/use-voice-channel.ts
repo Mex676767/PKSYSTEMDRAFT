@@ -28,6 +28,8 @@ type SignalPayload =
 
 export type VoiceParticipant = { id: string; username: string };
 
+const LAST_CHANNEL_KEY = "voice:lastChannel";
+
 function readPresence(channel: RealtimeChannel): VoiceParticipant[] {
   const state = channel.presenceState() as Record<string, { username: string }[]>;
   return Object.entries(state).map(([id, presences]) => ({
@@ -247,6 +249,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         await channel.track({ username });
         setParticipants(readPresence(channel));
         setJoinedId(targetId);
+        try {
+          sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
+        } catch {
+          // ignore -- sessionStorage may be unavailable (private mode, etc.)
+        }
         playVoiceCue("join");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't access your microphone.");
@@ -268,6 +275,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     localStreamRef.current = null;
     channel?.untrack();
     joinedIdRef.current = null;
+    try {
+      sessionStorage.removeItem(LAST_CHANNEL_KEY);
+    } catch {
+      // ignore
+    }
     setJoinedId(null);
     setParticipants([]);
     setSpeakingIds(new Set());
@@ -303,6 +315,24 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       });
     }
   }, []);
+
+  // A real page reload (not a tab switch, which no longer tears anything down)
+  // destroys the live call along with everything else in memory -- there's no
+  // way around that. What we CAN do is remember which channel was joined and
+  // rejoin it automatically as soon as the channel subscriptions are ready.
+  useEffect(() => {
+    if (!userId || !username || joinedIdRef.current) return;
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(LAST_CHANNEL_KEY);
+    } catch {
+      saved = null;
+    }
+    if (saved && channelsRef.current.has(saved)) {
+      join(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, username]);
 
   useEffect(() => {
     if (!joinedId) return;
