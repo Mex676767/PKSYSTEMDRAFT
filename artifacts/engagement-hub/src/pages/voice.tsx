@@ -213,10 +213,6 @@ export default function Voice() {
           </CardContent>
         </Card>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
-        <Headphones className="w-3.5 h-3.5" /> Real peer-to-peer voice -- your mic audio only leaves your browser when you join a channel.
-      </p>
     </PageTransition>
   );
 }
