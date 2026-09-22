@@ -111,22 +111,42 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
     .sort((a, b) => a.angle - b.angle);
 }
 
-// Nudges any nodes that end up closer together than MIN_NODE_GAP_PX apart (in
-// real screen pixels) so their avatars and name tags never render on top of
-// each other -- the hand-placed canopy slots are spaced out proportionally,
-// but that spacing can compress into overlapping pixels on short/narrow
-// containers (mobile) or once the team outgrows the slot count.
+// Nudges any nodes that end up closer together than the target gap (in real
+// screen pixels) so their avatars and name tags never render on top of each
+// other -- the hand-placed canopy slots are spaced out proportionally, but
+// that spacing can compress into overlapping pixels on short/narrow
+// containers (mobile), once the team outgrows the slot count, or simply when
+// the page is zoomed in (the container shrinks in CSS pixels while the
+// avatars stay a fixed size).
 const MIN_NODE_GAP_PX = 54;
-const RELAXATION_PASSES = 8;
+const RELAXATION_PASSES = 10;
 
 function resolveOverlaps(positions: Map<string, Pos>, width: number, height: number): Map<string, Pos> {
   if (!width || !height) return positions;
 
   const ids = Array.from(positions.keys());
+  const n = ids.length;
+  if (n <= 1) return positions;
+
+  // If the container can't actually fit everyone at the ideal spacing (a
+  // short mobile strip, or the whole page zoomed way in), shrink the target
+  // gap to what the available area can realistically support instead of
+  // fighting an impossible constraint -- that fight is what let points get
+  // clamped straight back on top of each other.
+  const feasibleGap = Math.sqrt((width * height) / n) * 0.82;
+  const gap = Math.min(MIN_NODE_GAP_PX, Math.max(16, feasibleGap));
+  const marginX = Math.min(width / 2 - 0.5, gap / 2);
+  const marginY = Math.min(height / 2 - 0.5, gap / 2);
+
   const points = ids.map((id) => {
     const p = positions.get(id)!;
     return { x: (p.x / 100) * width, y: (p.y / 100) * height };
   });
+
+  const clamp = (pt: { x: number; y: number }) => {
+    pt.x = Math.min(width - marginX, Math.max(marginX, pt.x));
+    pt.y = Math.min(height - marginY, Math.max(marginY, pt.y));
+  };
 
   for (let pass = 0; pass < RELAXATION_PASSES; pass++) {
     let movedAny = false;
@@ -135,12 +155,12 @@ function resolveOverlaps(positions: Map<string, Pos>, width: number, height: num
         const dx = points[j].x - points[i].x;
         const dy = points[j].y - points[i].y;
         const dist = Math.hypot(dx, dy);
-        if (dist >= MIN_NODE_GAP_PX) continue;
+        if (dist >= gap) continue;
         movedAny = true;
         // Nodes sitting exactly on top of each other have no direction to
         // push apart along -- pick a deterministic one from their index.
         const angle = dist === 0 ? (i * 2.4) % TWO_PI : Math.atan2(dy, dx);
-        const push = (MIN_NODE_GAP_PX - dist) / 2;
+        const push = (gap - dist) / 2;
         const ux = Math.cos(angle);
         const uy = Math.sin(angle);
         points[i].x -= ux * push;
@@ -149,14 +169,18 @@ function resolveOverlaps(positions: Map<string, Pos>, width: number, height: num
         points[j].y += uy * push;
       }
     }
+    // Keep every point inside the container after EVERY pass, not just once
+    // at the end -- clamping only at the end is what let crowded points get
+    // pushed miles outside the box and then slammed back onto the same edge.
+    points.forEach(clamp);
     if (!movedAny) break;
   }
 
   const result = new Map<string, Pos>();
   ids.forEach((id, i) => {
     result.set(id, {
-      x: Math.min(99, Math.max(1, (points[i].x / width) * 100)),
-      y: Math.min(99, Math.max(1, (points[i].y / height) * 100)),
+      x: (points[i].x / width) * 100,
+      y: (points[i].y / height) * 100,
     });
   });
   return result;
