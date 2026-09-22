@@ -52,6 +52,10 @@ const TREE_ZOOM = 1.08;
 const TREE_FOCAL_Y = 0;
 const TREE_BACKGROUND_POSITION = `center ${TREE_FOCAL_Y * 100}%`;
 const TWO_PI = Math.PI * 2;
+// How far down from the top every node is pinned on desktop, to clear the
+// floating search/header bar. Shared between the render style and the
+// collision resolver so they agree on where nodes actually end up.
+const HEADER_CLEARANCE_PX = 280;
 
 type FlowerSlot = Pos & { angle: number };
 
@@ -119,7 +123,7 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
 // the page is zoomed in (the container shrinks in CSS pixels while the
 // avatars stay a fixed size).
 const MIN_NODE_GAP_PX = 54;
-const RELAXATION_PASSES = 10;
+const RELAXATION_PASSES = 20;
 
 function resolveOverlaps(
   positions: Map<string, Pos>,
@@ -134,11 +138,16 @@ function resolveOverlaps(
   if (n <= 1) return positions;
 
   // If the container can't actually fit everyone at the ideal spacing (a
-  // short mobile strip, or the whole page zoomed way in), shrink the target
-  // gap to what the available area can realistically support instead of
+  // short mobile strip, the whole page zoomed way in, or a lot of vertical
+  // room eaten by the header floor below), shrink the target gap to what the
+  // AREA THAT'S ACTUALLY USABLE can realistically support, instead of
   // fighting an impossible constraint -- that fight is what let points get
-  // clamped straight back on top of each other.
-  const feasibleGap = Math.sqrt((width * height) / n) * 0.82;
+  // clamped straight back on top of each other. Margins are estimated with a
+  // fixed constant here since the real margins depend on the gap this derives.
+  const marginEstimate = MIN_NODE_GAP_PX / 2;
+  const usableWidth = Math.max(1, width - 2 * marginEstimate);
+  const usableHeight = Math.max(1, height - Math.max(minTopPx, marginEstimate) - marginEstimate);
+  const feasibleGap = Math.sqrt((usableWidth * usableHeight) / n) * 0.82;
   const gap = Math.min(MIN_NODE_GAP_PX, Math.max(16, feasibleGap));
   const marginX = Math.min(width / 2 - 0.5, gap / 2);
   const marginY = Math.min(height / 2 - 0.5, gap / 2);
@@ -158,6 +167,24 @@ function resolveOverlaps(
     pt.y = Math.min(height - marginY, Math.max(topFloor, marginY, pt.y));
   };
 
+  // A push straight up/down is useless against the header floor above -- it
+  // gets clamped back to the same line every pass, so two nodes that start
+  // directly above/below each other (some hand-placed canopy slots share an
+  // x) can get stuck permanently coincident. Fall back to a deterministic,
+  // guaranteed-mostly-horizontal angle whenever the natural push would be
+  // near-vertical (magnitude capped well under 90 degrees so it can never
+  // trip this same guard again).
+  const pushApart = (i: number, j: number, dx: number, dy: number, dist: number) => {
+    let angle = dist === 0 ? NaN : Math.atan2(dy, dx);
+    if (Number.isNaN(angle) || Math.abs(Math.cos(angle)) < 0.35) {
+      const dir = (i + j) % 2 === 0 ? 1 : -1;
+      const wobble = ((i * 5 + j * 11) % 7) / 7;
+      angle = dir * (0.15 + wobble * 0.7);
+    }
+    const push = (gap - dist) / 2;
+    return { ux: Math.cos(angle) * push, uy: Math.sin(angle) * push };
+  };
+
   for (let pass = 0; pass < RELAXATION_PASSES; pass++) {
     let movedAny = false;
     for (let i = 0; i < points.length; i++) {
@@ -167,22 +194,73 @@ function resolveOverlaps(
         const dist = Math.hypot(dx, dy);
         if (dist >= gap) continue;
         movedAny = true;
-        // Nodes sitting exactly on top of each other have no direction to
-        // push apart along -- pick a deterministic one from their index.
-        const angle = dist === 0 ? (i * 2.4) % TWO_PI : Math.atan2(dy, dx);
-        const push = (gap - dist) / 2;
-        const ux = Math.cos(angle);
-        const uy = Math.sin(angle);
-        points[i].x -= ux * push;
-        points[i].y -= uy * push;
-        points[j].x += ux * push;
-        points[j].y += uy * push;
+        const { ux, uy } = pushApart(i, j, dx, dy, dist);
+        points[i].x -= ux;
+        points[i].y -= uy;
+        points[j].x += ux;
+        points[j].y += uy;
       }
     }
     // Keep every point inside the container after EVERY pass, not just once
     // at the end -- clamping only at the end is what let crowded points get
     // pushed miles outside the box and then slammed back onto the same edge.
     points.forEach(clamp);
+    if (!movedAny) break;
+  }
+
+  // Anyone still sitting on the header floor after relaxation is fundamentally
+  // a 1D layout problem, not a 2D one -- when a large share of the canopy
+  // slots land above that line, they're all fighting over the same row and
+  // pairwise relaxation alone doesn't reliably converge to clean, even
+  // spacing in a fixed number of passes. Lay that row out explicitly instead.
+  const floorSet = new Set<number>();
+  if (topFloor > marginY) {
+    const onFloor = points
+      .map((pt, i) => ({ pt, i }))
+      .filter(({ pt }) => pt.y <= topFloor + 0.5)
+      .sort((a, b) => a.pt.x - b.pt.x);
+    if (onFloor.length > 1) {
+      const rowGap = Math.min(gap, (width - 2 * marginX) / (onFloor.length - 1));
+      const totalSpan = (onFloor.length - 1) * rowGap;
+      const avgX = onFloor.reduce((sum, o) => sum + o.pt.x, 0) / onFloor.length;
+      const startX = Math.max(marginX, Math.min(width - marginX - totalSpan, avgX - totalSpan / 2));
+      onFloor.forEach(({ pt, i }, idx) => {
+        pt.x = startX + idx * rowGap;
+        pt.y = topFloor;
+        floorSet.add(i);
+      });
+    }
+  }
+
+  // The floor row is now a fixed, evenly-spaced anchor -- but any point that
+  // landed just *below* it (close enough in x/y to still collide, without
+  // having been floor-clamped itself) was never checked against it. Run a
+  // few more passes so those stragglers get pushed clear too, without
+  // disturbing the floor row's now-correct spacing.
+  for (let pass = 0; pass < 8; pass++) {
+    let movedAny = false;
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        if (floorSet.has(i) && floorSet.has(j)) continue;
+        const dx = points[j].x - points[i].x;
+        const dy = points[j].y - points[i].y;
+        const dist = Math.hypot(dx, dy);
+        if (dist >= gap) continue;
+        movedAny = true;
+        const { ux, uy } = pushApart(i, j, dx, dy, dist);
+        if (!floorSet.has(i)) {
+          points[i].x -= ux;
+          points[i].y -= uy;
+        }
+        if (!floorSet.has(j)) {
+          points[j].x += ux;
+          points[j].y += uy;
+        }
+      }
+    }
+    points.forEach((pt, i) => {
+      if (!floorSet.has(i)) clamp(pt);
+    });
     if (!movedAny) break;
   }
 
@@ -366,8 +444,8 @@ export function GoalsTreeView({
   const positions = useMemo(() => {
     const raw = computeTreePositions(people, flowerSlots);
     if (!containerSize) return raw;
-    return resolveOverlaps(raw, containerSize.width, containerSize.height);
-  }, [people, flowerSlots, containerSize]);
+    return resolveOverlaps(raw, containerSize.width, containerSize.height, isLgUp ? HEADER_CLEARANCE_PX : 0);
+  }, [people, flowerSlots, containerSize, isLgUp]);
 
   return (
     <div
@@ -414,7 +492,7 @@ export function GoalsTreeView({
             goals={goalsByOwner.get(person.id) ?? []}
             x={pos.x}
             y={pos.y}
-            minTopPx={isLgUp ? 280 : undefined}
+            minTopPx={isLgUp ? HEADER_CLEARANCE_PX : undefined}
             selected={person.id === selectedId}
             onClick={() => onSelect(person)}
           />
