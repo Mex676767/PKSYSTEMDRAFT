@@ -34,6 +34,7 @@ export type Goal = {
   term: GoalTerm;
   category: GoalCategory;
   accountability: string | null;
+  action_plan: string | null;
   target_date: string | null;
   progress: number;
   completed: boolean;
@@ -41,7 +42,18 @@ export type Goal = {
   owner: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null } | null;
 };
 
+export type GoalUpdate = {
+  id: string;
+  goal_id: string;
+  author_id: string;
+  progress: number;
+  note: string | null;
+  created_at: string;
+  author: { username: string | null; avatar_url: string | null } | null;
+};
+
 const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border)";
+const GOAL_UPDATE_SELECT = "*, author:profiles!inner(username, avatar_url)";
 
 export function useGoalsFeed() {
   useRealtimeInvalidate("goals", [["goals-feed"], ["my-goals"]]);
@@ -86,11 +98,13 @@ export function useCreateGoal() {
       term: GoalTerm;
       category: GoalCategory;
       accountability: string | null;
+      action_plan: string | null;
+      target_date: string | null;
     }) => {
       if (!session) throw new Error("Not signed in");
       const { data, error } = await supabase
         .from("goals")
-        .insert({ ...input, owner_id: session.user.id, target_date: computeTargetDate(input.term) })
+        .insert({ ...input, owner_id: session.user.id })
         .select(GOAL_SELECT)
         .single();
       if (error) throw error;
@@ -128,7 +142,15 @@ export function useUpdateGoal() {
       updates: Partial<
         Pick<
           Goal,
-          "progress" | "completed" | "title" | "description" | "term" | "category" | "accountability" | "target_date"
+          | "progress"
+          | "completed"
+          | "title"
+          | "description"
+          | "term"
+          | "category"
+          | "accountability"
+          | "action_plan"
+          | "target_date"
         >
       >;
     }) => {
@@ -144,6 +166,72 @@ export function useUpdateGoal() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals-feed"] });
       qc.invalidateQueries({ queryKey: ["my-goals"] });
+    },
+  });
+}
+
+export function useGoalUpdates(goalId: string | null) {
+  useRealtimeInvalidate("goal_updates", [["goal-updates", goalId]]);
+  return useQuery({
+    queryKey: ["goal-updates", goalId],
+    enabled: !!goalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goal_updates")
+        .select(GOAL_UPDATE_SELECT)
+        .eq("goal_id", goalId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as GoalUpdate[];
+    },
+  });
+}
+
+export function useAddGoalUpdate() {
+  const { session } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      goalId,
+      progress,
+      completed,
+      note,
+    }: {
+      goalId: string;
+      progress: number;
+      completed: boolean;
+      note: string;
+    }) => {
+      if (!session) throw new Error("Not signed in");
+
+      const { error: updateError } = await supabase
+        .from("goals")
+        .update({ progress, completed })
+        .eq("id", goalId);
+      if (updateError) throw updateError;
+
+      const { error: insertError } = await supabase
+        .from("goal_updates")
+        .insert({ goal_id: goalId, author_id: session.user.id, progress, note: note.trim() || null });
+      if (insertError) throw insertError;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["goals-feed"] });
+      qc.invalidateQueries({ queryKey: ["my-goals"] });
+      qc.invalidateQueries({ queryKey: ["goal-updates", vars.goalId] });
+    },
+  });
+}
+
+export function useDeleteGoalUpdate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; goalId: string }) => {
+      const { error } = await supabase.from("goal_updates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["goal-updates", vars.goalId] });
     },
   });
 }

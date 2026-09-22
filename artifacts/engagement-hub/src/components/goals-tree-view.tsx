@@ -121,7 +121,12 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
 const MIN_NODE_GAP_PX = 54;
 const RELAXATION_PASSES = 10;
 
-function resolveOverlaps(positions: Map<string, Pos>, width: number, height: number): Map<string, Pos> {
+function resolveOverlaps(
+  positions: Map<string, Pos>,
+  width: number,
+  height: number,
+  minTopPx = 0
+): Map<string, Pos> {
   if (!width || !height) return positions;
 
   const ids = Array.from(positions.keys());
@@ -137,6 +142,11 @@ function resolveOverlaps(positions: Map<string, Pos>, width: number, height: num
   const gap = Math.min(MIN_NODE_GAP_PX, Math.max(16, feasibleGap));
   const marginX = Math.min(width / 2 - 0.5, gap / 2);
   const marginY = Math.min(height / 2 - 0.5, gap / 2);
+  // The node's own `top` style separately clamps to at least minTopPx (to
+  // clear the header on desktop) -- if we don't honor that same floor here,
+  // every node whose y lands above it collapses onto that one line in the
+  // browser regardless of how far apart we thought we'd pushed them.
+  const topFloor = Math.min(minTopPx, height - marginY);
 
   const points = ids.map((id) => {
     const p = positions.get(id)!;
@@ -145,7 +155,7 @@ function resolveOverlaps(positions: Map<string, Pos>, width: number, height: num
 
   const clamp = (pt: { x: number; y: number }) => {
     pt.x = Math.min(width - marginX, Math.max(marginX, pt.x));
-    pt.y = Math.min(height - marginY, Math.max(marginY, pt.y));
+    pt.y = Math.min(height - marginY, Math.max(topFloor, marginY, pt.y));
   };
 
   for (let pass = 0; pass < RELAXATION_PASSES; pass++) {
