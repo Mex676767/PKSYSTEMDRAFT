@@ -40,16 +40,18 @@ export function CertificateDialog({
             </div>
 
             <div className="flex flex-col items-center gap-2 py-2">
-              <UserAvatar
-                user={{
-                  name: record.holder?.username ?? "unknown",
-                  initials: initialsForUsername(record.holder?.username ?? "?"),
-                  color: colorForId(record.holder_id),
-                }}
-                photoUrl={record.holder?.avatar_url ?? null}
-                border={record.holder?.active_border ?? null}
-                className="w-16 h-16 border-2 border-amber-400 shadow"
-              />
+              <div>
+                <UserAvatar
+                  user={{
+                    name: record.holder?.username ?? "unknown",
+                    initials: initialsForUsername(record.holder?.username ?? "?"),
+                    color: colorForId(record.holder_id),
+                  }}
+                  photoUrl={record.holder?.avatar_url ?? null}
+                  border={record.holder?.active_border ?? null}
+                  className="w-16 h-16 border-2 border-amber-400 shadow"
+                />
+              </div>
               <p className="text-lg font-bold">@{record.holder?.username ?? "unknown"}</p>
             </div>
 

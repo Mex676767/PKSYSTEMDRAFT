@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
-import { History, Sparkles, ChevronDown, ChevronUp, Award } from "lucide-react";
+import { History, Sparkles, ChevronDown, ChevronUp, Award, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useHofRecordHistory,
   useSubmitHofRecord,
+  useDeleteHofRecord,
   useAllUsernames,
   type HofCategory,
   type HofRecord,
@@ -24,6 +25,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
   const canManage = hasPermission("manage_hall_of_fame");
   const Icon = getHofIcon(category.icon);
   const submitRecord = useSubmitHofRecord(category.id);
+  const deleteRecord = useDeleteHofRecord(category.id);
   const { data: users = [] } = useAllUsernames();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -93,6 +95,15 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
             >
               <Award className="w-4 h-4" />
             </button>
+            {canManage && (
+              <button
+                onClick={() => window.confirm("Delete this record?") && deleteRecord.mutate(current.id)}
+                title="Delete record"
+                className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         ) : (
           <div className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-xl border border-dashed">
@@ -177,6 +188,15 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
                 >
                   <Award className="w-3 h-3" />
                 </button>
+                {canManage && (
+                  <button
+                    onClick={() => window.confirm("Delete this record?") && deleteRecord.mutate(r.id)}
+                    title="Delete record"
+                    className="shrink-0 hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
                 <span className="shrink-0">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
               </div>
             ))}

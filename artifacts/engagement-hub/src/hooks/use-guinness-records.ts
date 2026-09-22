@@ -118,3 +118,17 @@ export function useSubmitHofRecord(categoryId: string) {
     },
   });
 }
+
+export function useDeleteHofRecord(categoryId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (recordId: string) => {
+      const { error } = await supabase.from("hof_records").delete().eq("id", recordId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hof-current-records"] });
+      qc.invalidateQueries({ queryKey: ["hof-history", categoryId] });
+    },
+  });
+}
