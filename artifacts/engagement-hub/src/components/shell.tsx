@@ -9,14 +9,11 @@ import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
 import { useVoiceCall } from "@/hooks/use-voice-call";
 import { isBirthdayToday } from "@/hooks/use-birthdays";
-import { useDiscordPresenceMap } from "@/hooks/use-discord";
-import { discordStatusLabel } from "@/lib/discord";
 import { BirthdayCelebration } from "./birthday-celebration";
 import { ConfettiBurstOnClick } from "./confetti-burst";
 import { CursorSparkleTrail } from "./cursor-sparkle-trail";
 import { Fireflies } from "./fireflies";
 import { TabVisibilityPause } from "./tab-visibility-pause";
-import { DiscordStatusDot } from "./discord-status-dot";
 import { UserAvatar } from "./user-avatar";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
@@ -50,8 +47,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);
   const isMyBirthdayToday = isBirthdayToday(profile?.birthday);
-  const { data: presenceMap } = useDiscordPresenceMap();
-  const myPresence = profile ? presenceMap?.get(profile.id) : undefined;
   const navRef = useRef<HTMLElement>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -220,7 +215,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     border={profile.active_border}
                     className="w-8 h-8"
                   />
-                  <DiscordStatusDot presence={myPresence} className="w-2.5 h-2.5 absolute bottom-0 right-0" />
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
               </button>
@@ -237,9 +231,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     {profile.active_title ? `${titleLabel(profile.active_title)} · ` : ""}{profile.points} pts
                   </p>
                 )}
-                <p className="text-[11px] text-muted-foreground font-normal truncate mt-1 flex items-center gap-1.5">
-                  <DiscordStatusDot presence={myPresence} className="w-2 h-2" /> {discordStatusLabel(myPresence)}
-                </p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

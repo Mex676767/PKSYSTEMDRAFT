@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X, MessageCircle } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { getAccessoryEmoji } from "@/lib/accessories";
@@ -24,7 +24,6 @@ import {
   useSetAvatarUrl,
 } from "@/hooks/use-profile-customization";
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
-import { useDisconnectMyDiscord, connectDiscord } from "@/hooks/use-discord";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
@@ -396,25 +395,6 @@ export default function Profile() {
         </Card>
       </motion.div>
 
-      {}
-      <motion.div variants={slideUp} initial="hidden" animate="show">
-        <Card className="border-primary/20 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageCircle className="w-5 h-5 text-primary" /> Discord
-            </CardTitle>
-            <CardDescription>
-              {profile.discord_id
-                ? "Your Discord account is linked, so teammates can see your live status."
-                : "Link your Discord account so teammates can see your live status."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DiscordField discordId={profile.discord_id} discordUsername={profile.discord_username} />
-          </CardContent>
-        </Card>
-      </motion.div>
-
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-destructive/30 shadow-sm">
           <CardHeader className="pb-3">
@@ -520,32 +500,6 @@ function RoleDepartmentField({ role, department }: { role: string | null; depart
       </Button>
       {error && <p className="text-xs text-destructive w-full">{error}</p>}
     </form>
-  );
-}
-
-function DiscordField({ discordId, discordUsername }: { discordId: string | null; discordUsername: string | null }) {
-  const disconnect = useDisconnectMyDiscord();
-
-  if (!discordId) {
-    return (
-      <Button size="sm" onClick={() => connectDiscord()}>
-        Connect Discord
-      </Button>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="text-sm font-medium">Connected{discordUsername ? ` as @${discordUsername}` : ""}</p>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={disconnect.isPending}
-        onClick={() => window.confirm("Disconnect your Discord account? You can reconnect anytime.") && disconnect.mutate()}
-      >
-        {disconnect.isPending ? "Disconnecting..." : "Disconnect"}
-      </Button>
-    </div>
   );
 }
 

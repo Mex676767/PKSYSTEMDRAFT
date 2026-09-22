@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
-import { DiscordStatusDot } from "@/components/discord-status-dot";
-import { useDiscordPresenceMap } from "@/hooks/use-discord";
-import type { DiscordPresence } from "@/lib/discord";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,15 +28,11 @@ function PersonChip({
   username,
   photoUrl,
   border,
-  presence,
-  showPresence,
 }: {
   id: string;
   username: string | null | undefined;
   photoUrl?: string | null;
   border?: string | null;
-  presence?: DiscordPresence | null;
-  showPresence?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -50,7 +43,6 @@ function PersonChip({
           border={border}
           className="w-8 h-8 text-[10px]"
         />
-        {showPresence && <DiscordStatusDot presence={presence} className="w-2.5 h-2.5 absolute bottom-0 right-0" />}
       </div>
       <span className="text-sm font-medium truncate">@{username ?? "unknown"}</span>
     </div>
@@ -482,7 +474,6 @@ function DepartmentSection({
   const setDepartment = useSetDepartment();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deptInput, setDeptInput] = useState<Department | "">("");
-  const { data: presenceMap } = useDiscordPresenceMap();
 
   const byDept = useMemo(() => {
     const map = new Map<string, typeof list>();
@@ -520,8 +511,6 @@ function DepartmentSection({
                     username={p.username}
                     photoUrl={p.avatar_url}
                     border={p.active_border}
-                    presence={presenceMap?.get(p.id)}
-                    showPresence
                   />
                   {canManage && (
                     editingId === p.id ? (

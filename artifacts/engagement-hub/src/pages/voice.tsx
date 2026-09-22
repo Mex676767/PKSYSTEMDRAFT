@@ -9,8 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useDirectory } from "@/hooks/use-mentors";
 import { VoiceParticipantAvatar } from "@/components/voice-participant-avatar";
-import { VOICE_CHANNELS, VOICE_CATEGORY_DOT } from "@/lib/voice-channels";
-import { DISCORD_BADGE_CLASS, DISCORD_DOT_CLASS } from "@/lib/discord";
+import { VOICE_CHANNELS, VOICE_CATEGORY_DOT, VOICE_CATEGORY_BADGE_CLASS, VOICE_CATEGORY_DOT_CLASS } from "@/lib/voice-channels";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 
@@ -83,7 +82,7 @@ export default function Voice() {
               <motion.div key={channel.id} variants={slideUp}>
                 <Card className={cn("shadow-sm transition-colors", isJoined && "border-primary/50 bg-primary/5")}>
                   <CardContent className="p-3 flex items-center gap-3">
-                    <span className={cn("w-2 h-2 rounded-full shrink-0", DISCORD_DOT_CLASS[dot])} />
+                    <span className={cn("w-2 h-2 rounded-full shrink-0", VOICE_CATEGORY_DOT_CLASS[dot])} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{channel.name}</p>
                       {channelOccupants.length > 0 ? (
@@ -91,7 +90,7 @@ export default function Voice() {
                           {channelOccupants.map((p) => p.username).join(", ")}
                         </span>
                       ) : (
-                        <span className={cn("inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full", DISCORD_BADGE_CLASS[dot])}>
+                        <span className={cn("inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full", VOICE_CATEGORY_BADGE_CLASS[dot])}>
                           Empty
                         </span>
                       )}
@@ -122,7 +121,7 @@ export default function Voice() {
             ) : (
               <div className="space-y-5">
                 <div className="flex items-center gap-2">
-                  <span className={cn("w-2 h-2 rounded-full", DISCORD_DOT_CLASS[VOICE_CATEGORY_DOT[joined.category]])} />
+                  <span className={cn("w-2 h-2 rounded-full", VOICE_CATEGORY_DOT_CLASS[VOICE_CATEGORY_DOT[joined.category]])} />
                   <h2 className="font-semibold text-sm">{joined.name}</h2>
                   <Badge variant="outline" className="ml-auto text-[10px]">{participants.length} in call</Badge>
                 </div>

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, MessageCircle } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -14,8 +14,6 @@ import {
   useReactivateUser,
   useAdminSetUsername,
   useAdminAdjustPoints,
-  useAdminDisconnectDiscord,
-  useAdminDiscordStatus,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
@@ -30,7 +28,6 @@ import NotFound from "@/pages/not-found";
 export default function Admin() {
   const { isAdmin, session } = useAuth();
   const { data: profiles = [], isLoading } = useAllProfiles();
-  const { data: discordStatus } = useAdminDiscordStatus();
   const [search, setSearch] = useState("");
 
   if (!isAdmin)
@@ -69,7 +66,7 @@ export default function Admin() {
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-3">
           {filtered.map((p) => (
             <motion.div key={p.id} variants={slideUp}>
-              <UserRow row={p} isSelf={p.id === session?.user.id} discordId={discordStatus?.get(p.id) ?? null} />
+              <UserRow row={p} isSelf={p.id === session?.user.id} />
             </motion.div>
           ))}
           {filtered.length === 0 && (
@@ -81,7 +78,7 @@ export default function Admin() {
   );
 }
 
-function UserRow({ row, isSelf, discordId }: { row: AdminProfileRow; isSelf: boolean; discordId: string | null }) {
+function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const setAdmin = useSetUserAdmin();
   const setPermissions = useSetUserPermissions();
   const deactivate = useDeactivateUser();
@@ -98,7 +95,6 @@ function UserRow({ row, isSelf, discordId }: { row: AdminProfileRow; isSelf: boo
   const [usernameInput, setUsernameInput] = useState(row.username ?? "");
   const usernameValid = USERNAME_PATTERN.test(usernameInput);
   const adjustPoints = useAdminAdjustPoints();
-  const disconnectDiscord = useAdminDisconnectDiscord();
   const [editingPoints, setEditingPoints] = useState(false);
   const [pointsAmount, setPointsAmount] = useState("");
   const [pointsReason, setPointsReason] = useState("");
@@ -351,26 +347,6 @@ function UserRow({ row, isSelf, discordId }: { row: AdminProfileRow; isSelf: boo
           )}
         </div>
 
-        <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
-          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-          {discordId ? (
-            <>
-              <span>Discord: Connected</span>
-              <button
-                disabled={disconnectDiscord.isPending}
-                onClick={() =>
-                  window.confirm(`Disconnect @${row.username ?? row.email}'s Discord account?`) &&
-                  disconnectDiscord.mutate(row.id)
-                }
-                className="text-primary hover:underline disabled:opacity-50"
-              >
-                {disconnectDiscord.isPending ? "Disconnecting..." : "Disconnect"}
-              </button>
-            </>
-          ) : (
-            <span>Discord: Not connected</span>
-          )}
-        </div>
       </CardContent>
     </Card>
   );

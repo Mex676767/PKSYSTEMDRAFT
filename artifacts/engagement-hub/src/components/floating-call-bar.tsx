@@ -7,8 +7,7 @@ import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useAuth } from "@/hooks/use-auth";
 import { useDirectory } from "@/hooks/use-mentors";
 import { VoiceParticipantAvatar } from "@/components/voice-participant-avatar";
-import { VOICE_CHANNELS, VOICE_CATEGORY_DOT } from "@/lib/voice-channels";
-import { DISCORD_DOT_CLASS } from "@/lib/discord";
+import { VOICE_CHANNELS, VOICE_CATEGORY_DOT, VOICE_CATEGORY_DOT_CLASS } from "@/lib/voice-channels";
 import { cn } from "@/lib/utils";
 
 export function FloatingCallBar() {
@@ -52,7 +51,7 @@ export function FloatingCallBar() {
           className="fixed bottom-5 right-5 z-40 w-72 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center gap-2 px-3.5 py-3 border-b border-border/60">
-            <span className={cn("w-2 h-2 rounded-full shrink-0", DISCORD_DOT_CLASS[VOICE_CATEGORY_DOT[channel.category]])} />
+            <span className={cn("w-2 h-2 rounded-full shrink-0", VOICE_CATEGORY_DOT_CLASS[VOICE_CATEGORY_DOT[channel.category]])} />
             <Link href="/voice" className="text-sm font-semibold truncate hover:underline">
               {channel.name}
             </Link>

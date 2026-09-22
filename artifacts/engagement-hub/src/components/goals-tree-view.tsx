@@ -111,6 +111,57 @@ function buildFlowerSlotsCover(raw: Pos[], centroid: Pos, containerRatio: number
     .sort((a, b) => a.angle - b.angle);
 }
 
+// Nudges any nodes that end up closer together than MIN_NODE_GAP_PX apart (in
+// real screen pixels) so their avatars and name tags never render on top of
+// each other -- the hand-placed canopy slots are spaced out proportionally,
+// but that spacing can compress into overlapping pixels on short/narrow
+// containers (mobile) or once the team outgrows the slot count.
+const MIN_NODE_GAP_PX = 54;
+const RELAXATION_PASSES = 8;
+
+function resolveOverlaps(positions: Map<string, Pos>, width: number, height: number): Map<string, Pos> {
+  if (!width || !height) return positions;
+
+  const ids = Array.from(positions.keys());
+  const points = ids.map((id) => {
+    const p = positions.get(id)!;
+    return { x: (p.x / 100) * width, y: (p.y / 100) * height };
+  });
+
+  for (let pass = 0; pass < RELAXATION_PASSES; pass++) {
+    let movedAny = false;
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        const dx = points[j].x - points[i].x;
+        const dy = points[j].y - points[i].y;
+        const dist = Math.hypot(dx, dy);
+        if (dist >= MIN_NODE_GAP_PX) continue;
+        movedAny = true;
+        // Nodes sitting exactly on top of each other have no direction to
+        // push apart along -- pick a deterministic one from their index.
+        const angle = dist === 0 ? (i * 2.4) % TWO_PI : Math.atan2(dy, dx);
+        const push = (MIN_NODE_GAP_PX - dist) / 2;
+        const ux = Math.cos(angle);
+        const uy = Math.sin(angle);
+        points[i].x -= ux * push;
+        points[i].y -= uy * push;
+        points[j].x += ux * push;
+        points[j].y += uy * push;
+      }
+    }
+    if (!movedAny) break;
+  }
+
+  const result = new Map<string, Pos>();
+  ids.forEach((id, i) => {
+    result.set(id, {
+      x: Math.min(99, Math.max(1, (points[i].x / width) * 100)),
+      y: Math.min(99, Math.max(1, (points[i].y / height) * 100)),
+    });
+  });
+  return result;
+}
+
 function computeTreePositions(people: DirectoryProfile[], flowerSlots: FlowerSlot[]): Map<string, Pos> {
   const positions = new Map<string, Pos>();
   const n = people.length;
@@ -248,7 +299,7 @@ export function GoalsTreeView({
   const bgFile = isLight ? "tree-bg-light.png" : "tree-bg.png";
 
   const [isLgUp, setIsLgUp] = useState(false);
-  const [containerRatio, setContainerRatio] = useState<number | null>(null);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -259,22 +310,30 @@ export function GoalsTreeView({
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  // Tracked on every breakpoint (not just lg+) so the overlap-resolution pass
+  // below always has the real on-screen container size to work in pixels.
   useEffect(() => {
-    if (!isLgUp || !containerRef.current) return;
+    if (!containerRef.current) return;
     const el = containerRef.current;
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) setContainerRatio(width / height);
+      if (width > 0 && height > 0) setContainerSize({ width, height });
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isLgUp]);
+  }, []);
+
+  const containerRatio = containerSize ? containerSize.width / containerSize.height : null;
 
   const flowerSlots = useMemo(() => {
     if (isLgUp && containerRatio) return buildFlowerSlotsCover(CANOPY_SLOTS, CANOPY_CENTROID, containerRatio, TREE_FOCAL_Y);
     return buildFlowerSlots(CANOPY_SLOTS, CANOPY_CENTROID, TREE_ZOOM, TREE_FOCAL_Y);
   }, [isLgUp, containerRatio]);
-  const positions = useMemo(() => computeTreePositions(people, flowerSlots), [people, flowerSlots]);
+  const positions = useMemo(() => {
+    const raw = computeTreePositions(people, flowerSlots);
+    if (!containerSize) return raw;
+    return resolveOverlaps(raw, containerSize.width, containerSize.height);
+  }, [people, flowerSlots, containerSize]);
 
   return (
     <div

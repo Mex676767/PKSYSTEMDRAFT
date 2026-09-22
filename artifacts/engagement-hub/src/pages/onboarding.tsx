@@ -1,33 +1,28 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { AtSign, Sparkles, Cake, Briefcase, MessageSquare, Check, LogOut } from "lucide-react";
+import { AtSign, Sparkles, Cake, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DatePicker } from "@/components/date-picker";
 import { useAuth } from "@/hooks/use-auth";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
-import { connectDiscord } from "@/hooks/use-discord";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
-import { DISCORD_INTEGRATION_ENABLED, requiresDiscordConnect } from "@/lib/feature-flags";
 import { getErrorMessage } from "@/lib/utils";
 
 function sanitizeUsername(raw: string) {
   return raw.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
 }
 
-type Step = "username" | "birthday" | "role" | "discord";
+type Step = "username" | "birthday" | "role";
 
-const STEPS: Step[] = DISCORD_INTEGRATION_ENABLED
-  ? ["username", "birthday", "role", "discord"]
-  : ["username", "birthday", "role"];
+const STEPS: Step[] = ["username", "birthday", "role"];
 
 function stepFor(profile: ReturnType<typeof useAuth>["profile"]): Step | null {
   if (!profile?.username) return "username";
   if (!profile?.birthday) return "birthday";
   if (!profile?.role || !profile?.department) return "role";
-  if (requiresDiscordConnect(profile)) return "discord";
   return null;
 }
 
@@ -35,7 +30,6 @@ const STEP_META: Record<Step, { icon: typeof AtSign; title: string; subtitle: st
   username: { icon: AtSign, title: "Pick a username", subtitle: "This is how everyone will see you. Choose wisely." },
   birthday: { icon: Cake, title: "When's your birthday?", subtitle: "We'll throw you a little something on the day." },
   role: { icon: Briefcase, title: "Your role & department", subtitle: "Helps us route challenges and mentorships correctly." },
-  discord: { icon: MessageSquare, title: "Connect Discord", subtitle: "So teammates can see when you're around." },
 };
 
 export default function Onboarding() {
@@ -77,7 +71,6 @@ export default function Onboarding() {
             {step === "username" && <UsernameStep />}
             {step === "birthday" && <BirthdayStep />}
             {step === "role" && <RoleStep />}
-            {step === "discord" && <DiscordStep />}
           </CardContent>
         </Card>
       </motion.div>
@@ -202,31 +195,5 @@ function RoleStep() {
         {setRoleDept.isPending ? "Saving..." : "Continue"}
       </Button>
     </form>
-  );
-}
-
-function DiscordStep() {
-  const { signOut } = useAuth();
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/25 p-4 text-sm text-muted-foreground">
-        One last step -- link your Discord account so teammates can see when you're online, in a voice
-        channel, or on a break.
-      </div>
-      <Button
-        type="button"
-        className="w-full h-11 bg-[#5865F2] hover:bg-[#4752c4] text-white"
-        onClick={connectDiscord}
-      >
-        <MessageSquare className="w-4 h-4 mr-2" /> Connect Discord
-      </Button>
-      <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
-        <Check className="w-3 h-3" /> You'll be redirected back here automatically.
-      </p>
-      <Button type="button" variant="outline" className="w-full h-11" onClick={() => signOut()}>
-        <LogOut className="w-4 h-4 mr-2" /> Log out instead
-      </Button>
-    </div>
   );
 }

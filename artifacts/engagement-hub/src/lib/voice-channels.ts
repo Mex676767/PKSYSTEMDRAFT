@@ -1,9 +1,9 @@
-import type { DiscordCategory, DiscordDotColor } from "@/lib/discord";
+export type VoiceCategory = "active" | "training" | "meeting" | "afk" | "break";
 
 export type VoiceChannelDef = {
   id: string;
   name: string;
-  category: DiscordCategory;
+  category: VoiceCategory;
 };
 
 export const VOICE_CHANNELS: VoiceChannelDef[] = [
@@ -23,10 +23,28 @@ export const VOICE_CHANNELS: VoiceChannelDef[] = [
 
 export const VOICE_CHANNEL_IDS = VOICE_CHANNELS.map((c) => c.id);
 
-export const VOICE_CATEGORY_DOT: Record<DiscordCategory, DiscordDotColor> = {
+export type VoiceCategoryColor = "green" | "cyan" | "violet" | "amber" | "blue";
+
+export const VOICE_CATEGORY_DOT: Record<VoiceCategory, VoiceCategoryColor> = {
   active: "green",
   training: "cyan",
   meeting: "violet",
   afk: "amber",
   break: "blue",
+};
+
+export const VOICE_CATEGORY_DOT_CLASS: Record<VoiceCategoryColor, string> = {
+  green: "bg-emerald-500",
+  cyan: "bg-cyan-500",
+  violet: "bg-violet-500",
+  amber: "bg-amber-500",
+  blue: "bg-sky-500",
+};
+
+export const VOICE_CATEGORY_BADGE_CLASS: Record<VoiceCategoryColor, string> = {
+  green: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  cyan: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  violet: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  blue: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
 };

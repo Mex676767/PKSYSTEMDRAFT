@@ -14,11 +14,9 @@ import { VoiceCallProvider } from '@/hooks/use-voice-call';
 import { AppPresenceProvider } from '@/hooks/use-app-presence';
 import { FloatingCallBar } from '@/components/floating-call-bar';
 import { ComingSoon } from '@/pages/coming-soon';
-import { requiresDiscordConnect } from '@/lib/feature-flags';
 
 import Login from '@/pages/login';
 import Onboarding from '@/pages/onboarding';
-import DiscordCallback from '@/pages/discord-callback';
 import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Social from '@/pages/social';
@@ -77,14 +75,12 @@ function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
     profile?.username &&
     profile?.birthday &&
     profile?.role &&
-    profile?.department &&
-    !requiresDiscordConnect(profile)
+    profile?.department
   );
 }
 
 function AuthGate() {
   const { session, profile, loading } = useAuth();
-  const [location] = useLocation();
 
   if (!REQUIRE_LOGIN) {
     return <Router />;
@@ -100,10 +96,6 @@ function AuthGate() {
 
   if (!session) {
     return <Login />;
-  }
-
-  if (location === '/discord-callback') {
-    return <DiscordCallback />;
   }
 
   if (!isOnboarded(profile)) {
