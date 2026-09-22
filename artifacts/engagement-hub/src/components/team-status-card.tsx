@@ -73,22 +73,15 @@ export function TeamStatusCard() {
                         border={p.active_border}
                         className="w-8 h-8 text-[10px] shrink-0"
                       />
-                      <span className="text-xs font-medium truncate flex-1 min-w-0">@{p.username}</span>
+                      <span className="text-xs font-medium truncate min-w-0">@{p.username}</span>
                       <span
                         className={cn(
-                          "relative shrink-0 ml-auto w-32 h-5 rounded-full",
+                          "shrink-0 ml-auto inline-flex items-center gap-1.5 h-5 pl-2 pr-2.5 rounded-full whitespace-nowrap",
                           PRESENCE_BADGE_CLASS[status.color]
                         )}
                       >
-                        <span
-                          className={cn(
-                            "absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full",
-                            PRESENCE_DOT_CLASS[status.color]
-                          )}
-                        />
-                        <span className="absolute inset-0 flex items-center pl-5 pr-2 text-[10px] font-medium truncate">
-                          {status.label}
-                        </span>
+                        <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", PRESENCE_DOT_CLASS[status.color])} />
+                        <span className="text-[10px] font-medium">{status.label}</span>
                       </span>
                     </button>
                   </TooltipTrigger>
