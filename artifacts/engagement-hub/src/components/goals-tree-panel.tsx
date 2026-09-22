@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ListChecks, Send, Trash2, Pencil } from "lucide-react";
+import { X, ListChecks, ClipboardList, Send, Trash2, Pencil } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
@@ -173,6 +173,12 @@ export function TreeDetailPanel(
                         <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1">
                           <ListChecks className="w-3 h-3 shrink-0 mt-0.5" />
                           <span>{goal.accountability}</span>
+                        </div>
+                      )}
+                      {goal.action_plan && (
+                        <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1">
+                          <ClipboardList className="w-3 h-3 shrink-0 mt-0.5" />
+                          <span className="whitespace-pre-wrap">{goal.action_plan}</span>
                         </div>
                       )}
                     </div>

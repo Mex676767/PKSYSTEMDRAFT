@@ -3,16 +3,16 @@ import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Confetti } from "@/components/confetti";
+import { DatePicker } from "@/components/date-picker";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
 import { TreeDetailPanel } from "@/components/goals-tree-panel";
-import { Plus, Search, X, MessageCircle, ListChecks, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
+import { Plus, Search, X, MessageCircle, ListChecks, ClipboardList, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useGoalsFeed,
   useCreateGoal,
-  useUpdateGoal,
+  computeTargetDate,
   GOAL_TERM_META,
   GOAL_CATEGORY_META,
   type GoalTerm,
@@ -37,6 +37,8 @@ type DraftGoal = {
   term: GoalTerm;
   category: GoalCategory;
   accountability: string;
+  actionPlan: string;
+  targetDate: string | null;
   imageFile: File | null;
   imagePreview: string | null;
 };
@@ -48,6 +50,8 @@ function emptyDraft(): DraftGoal {
     description: "",
     term: "short",
     category: "personal",
+    actionPlan: "",
+    targetDate: null,
     accountability: "",
     imageFile: null,
     imagePreview: null,
@@ -96,9 +100,7 @@ export default function Goals() {
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
-  const updateGoal = useUpdateGoal();
 
-  const [showConfetti, setShowConfetti] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<DirectoryProfile | null>(null);
@@ -119,18 +121,6 @@ export default function Goals() {
   useEffect(() => {
     if (isDialogOpen) saveStoredDrafts(drafts);
   }, [drafts, isDialogOpen]);
-
-  const handleAdvance = (id: string, currentProgress: number) => {
-    const newProgress = Math.min(100, currentProgress + 25);
-    const isNowCompleted = newProgress === 100;
-
-    if (isNowCompleted) {
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-    }
-
-    updateGoal.mutate({ id, updates: { progress: newProgress, completed: isNowCompleted } });
-  };
 
   const updateDraft = (key: string, patch: Partial<DraftGoal>) =>
     setDrafts((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
@@ -160,6 +150,8 @@ export default function Goals() {
           term: d.term,
           category: d.category,
           accountability: d.term === "short" ? d.accountability.trim() : null,
+          action_plan: d.actionPlan.trim() || null,
+          target_date: d.targetDate,
         })
       )
     );
@@ -278,8 +270,6 @@ export default function Goals() {
           view !== "tree" && "max-w-[100rem] mx-auto"
         )}
       >
-      <Confetti active={showConfetti} />
-
       {}
       <Dialog
           open={isDialogOpen}
@@ -355,6 +345,34 @@ export default function Goals() {
                         className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       />
                     )}
+                    <textarea
+                      value={d.actionPlan}
+                      onChange={(e) => updateDraft(d.key, { actionPlan: e.target.value })}
+                      placeholder="Action plan (optional) -- how are you going to get there?"
+                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground shrink-0">Target date:</span>
+                      <DatePicker
+                        value={d.targetDate}
+                        onChange={(date) => updateDraft(d.key, { targetDate: date })}
+                        onClear={() => updateDraft(d.key, { targetDate: null })}
+                        placeholder="No target date"
+                        className="flex-1"
+                      />
+                      {!d.targetDate && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs shrink-0"
+                          onClick={() => updateDraft(d.key, { targetDate: computeTargetDate(d.term).slice(0, 10) })}
+                        >
+                          Suggest
+                        </Button>
+                      )}
+                    </div>
 
                     {d.imagePreview ? (
                       <div className="relative rounded-lg overflow-hidden border border-border">
@@ -479,8 +497,6 @@ export default function Goals() {
                             key={goal.id}
                             goal={goal}
                             isOwner={goal.owner_id === session?.user.id}
-                            onAdvance={() => handleAdvance(goal.id, goal.progress)}
-                            updating={updateGoal.isPending}
                           />
                         ))}
                       </div>

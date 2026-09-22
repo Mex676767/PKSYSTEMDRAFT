@@ -250,10 +250,12 @@ function LogUpdateDialog({
   goal,
   open,
   onOpenChange,
+  onCompleted,
 }: {
   goal: Goal;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCompleted: () => void;
 }) {
   const addUpdate = useAddGoalUpdate();
   const [progress, setProgress] = useState(goal.progress);
@@ -263,12 +265,14 @@ function LogUpdateDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const willComplete = progress >= 100 && !goal.completed;
     addUpdate.mutate(
       { goalId: goal.id, progress, completed: progress >= 100, note },
       {
         onSuccess: () => {
           onOpenChange(false);
           setNote("");
+          if (willComplete) onCompleted();
         },
         onError: (err) => setError(getErrorMessage(err)),
       }
