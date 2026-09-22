@@ -49,6 +49,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const pendingPlaybackRef = useRef<Set<string>>(new Set());
   const disconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const stuckTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const joinLockRef = useRef(false);
+  const leaveRef = useRef<() => void>(() => {});
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]);
   const deafenedRef = useRef(false);
   const mutedRef = useRef(false);
@@ -104,6 +107,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       clearTimeout(timer);
       disconnectTimersRef.current.delete(peerId);
     }
+    const stuckTimer = stuckTimersRef.current.get(peerId);
+    if (stuckTimer) {
+      clearTimeout(stuckTimer);
+      stuckTimersRef.current.delete(peerId);
+    }
     setConnectionStates((prev) => {
       if (!prev.has(peerId)) return prev;
       const next = new Map(prev);
@@ -122,6 +130,14 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       } catch {
         // ignore a stray bad candidate, the connection can still succeed with the rest
       }
+    }
+  }, []);
+
+  const clearStuckTimer = useCallback((peerId: string) => {
+    const timer = stuckTimersRef.current.get(peerId);
+    if (timer) {
+      clearTimeout(timer);
+      stuckTimersRef.current.delete(peerId);
     }
   }, []);
 
@@ -196,7 +212,10 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       };
       pc.onconnectionstatechange = () => {
         console.log(`[voice] connection state for ${peerId}: ${pc.connectionState}`);
-        if (pc.connectionState === "connected") hasConnectedOnce = true;
+        if (pc.connectionState === "connected") {
+          hasConnectedOnce = true;
+          clearStuckTimer(peerId);
+        }
         setConnectionStates((prev) => {
           const next = new Map(prev);
           next.set(peerId, pc.connectionState);
@@ -210,6 +229,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         }
 
         if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+          clearStuckTimer(peerId);
           cleanupPeer(peerId);
         } else if (pc.connectionState === "disconnected") {
           // "disconnected" is often transient (a brief network hiccup) and can
@@ -224,10 +244,29 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           disconnectTimersRef.current.set(peerId, timer);
         }
       };
+      // If the very first connection attempt never completes (a lost offer,
+      // answer, or ICE candidate over the realtime broadcast channel -- which
+      // has no delivery guarantee), we'd otherwise sit silently disconnected
+      // for the whole call. Give it one automatic ICE restart with a fresh
+      // offer before giving up. Only the side that would have initiated the
+      // original call re-offers, to avoid both sides racing a restart at once.
+      const stuckTimer = setTimeout(() => {
+        if (hasConnectedOnce || pc.connectionState === "closed") return;
+        if (!userId || userId >= peerId) return;
+        console.warn(`[voice] ${peerId} never connected after 12s, attempting ICE restart`);
+        pc.restartIce();
+        pc.createOffer({ iceRestart: true })
+          .then(async (offer) => {
+            await pc.setLocalDescription(offer);
+            sendSignal({ type: "offer", from: userId, to: peerId, sdp: offer });
+          })
+          .catch((err) => console.error(`[voice] ICE restart offer failed for ${peerId}`, err));
+      }, 12000);
+      stuckTimersRef.current.set(peerId, stuckTimer);
       pcsRef.current.set(peerId, pc);
       return pc;
     },
-    [userId, sendSignal, attachAnalyser, cleanupPeer]
+    [userId, sendSignal, attachAnalyser, cleanupPeer, clearStuckTimer]
   );
 
   const initiateCall = useCallback(
@@ -319,39 +358,55 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const join = useCallback(
     async (targetId: string) => {
       if (!userId || !username) return;
-      const channel = channelsRef.current.get(targetId);
-      if (!channel) return;
-      setError(null);
-      setConnecting(true);
+      // Guards against the two ways this used to let someone end up joined to
+      // two channels at once: (1) clicking Join on a different channel while
+      // an earlier join() call is still awaiting getUserMedia/ICE credentials
+      // -- neither call could see the other's in-progress state, so both
+      // would track() their own channel; and (2) join() never tore down a
+      // channel you were already in before joining a new one.
+      if (joinLockRef.current) return;
+      if (joinedIdRef.current === targetId) return;
+      joinLockRef.current = true;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        localStreamRef.current = stream;
-        attachAnalyser(userId, stream);
-        iceServersRef.current = await getIceServers();
-        console.log("[voice] ICE servers for this call:", iceServersRef.current);
-
-        joinedIdRef.current = targetId;
-        mutedRef.current = false;
-        isStreamingRef.current = false;
-        await channel.track({ username, muted: false, deafened: false, streaming: false });
-        setParticipants(readPresence(channel));
-        setJoinedId(targetId);
-        supabase.rpc("join_voice_session", { p_channel_id: targetId }).then(({ error: rpcError }) => {
-          if (rpcError) console.error("Failed to record voice session start", rpcError);
-        });
-        try {
-          sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
-        } catch {
-          // ignore -- sessionStorage may be unavailable (private mode, etc.)
+        if (joinedIdRef.current !== null) {
+          leaveRef.current();
         }
-        playVoiceCue("join");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Couldn't access your microphone.");
-        localStreamRef.current?.getTracks().forEach((t) => t.stop());
-        localStreamRef.current = null;
-        joinedIdRef.current = null;
+        const channel = channelsRef.current.get(targetId);
+        if (!channel) return;
+        setError(null);
+        setConnecting(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          localStreamRef.current = stream;
+          attachAnalyser(userId, stream);
+          iceServersRef.current = await getIceServers();
+          console.log("[voice] ICE servers for this call:", iceServersRef.current);
+
+          joinedIdRef.current = targetId;
+          mutedRef.current = false;
+          isStreamingRef.current = false;
+          await channel.track({ username, muted: false, deafened: false, streaming: false });
+          setParticipants(readPresence(channel));
+          setJoinedId(targetId);
+          supabase.rpc("join_voice_session", { p_channel_id: targetId }).then(({ error: rpcError }) => {
+            if (rpcError) console.error("Failed to record voice session start", rpcError);
+          });
+          try {
+            sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
+          } catch {
+            // ignore -- sessionStorage may be unavailable (private mode, etc.)
+          }
+          playVoiceCue("join");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Couldn't access your microphone.");
+          localStreamRef.current?.getTracks().forEach((t) => t.stop());
+          localStreamRef.current = null;
+          joinedIdRef.current = null;
+        } finally {
+          setConnecting(false);
+        }
       } finally {
-        setConnecting(false);
+        joinLockRef.current = false;
       }
     },
     [userId, username, attachAnalyser]
@@ -391,6 +446,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     isStreamingRef.current = false;
     if (wasConnected) playVoiceCue("leave");
   }, [cleanupPeer]);
+  leaveRef.current = leave;
 
   const setParticipantVolume = useCallback((peerId: string, volume: number) => {
     setVolumes((prev) => {
@@ -514,9 +570,14 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     };
   }, [joinedId]);
 
-  // Mobile browsers can silently block autoplay on an <audio> element created
-  // asynchronously in pc.ontrack, even after the join button's own click. Retry
-  // playback on the next real user gesture so the connection isn't left mute.
+  // Browsers can silently block autoplay on an <audio> element created
+  // asynchronously in pc.ontrack -- by the time the remote track actually
+  // arrives (after ICE negotiation), the original Join click's user-gesture
+  // window may already have expired, and the browser rejects play() with no
+  // visible error. This is the most likely cause of "sometimes can't hear
+  // people" since it depends entirely on negotiation timing. Retry on the
+  // next interaction of any kind, and also keep polling for a while after
+  // joining in case the person never clicks anything else while listening.
   useEffect(() => {
     if (!joinedId) return;
     const retryBlockedPlayback = () => {
@@ -528,15 +589,24 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           continue;
         }
         el.play()
-          .then(() => pendingPlaybackRef.current.delete(peerId))
+          .then(() => {
+            pendingPlaybackRef.current.delete(peerId);
+            console.log(`[voice] recovered blocked playback for ${peerId}`);
+          })
           .catch(() => {});
       }
     };
     document.addEventListener("click", retryBlockedPlayback);
+    document.addEventListener("mousedown", retryBlockedPlayback);
+    document.addEventListener("keydown", retryBlockedPlayback);
     document.addEventListener("touchend", retryBlockedPlayback);
+    const pollTimer = setInterval(retryBlockedPlayback, 2000);
     return () => {
       document.removeEventListener("click", retryBlockedPlayback);
+      document.removeEventListener("mousedown", retryBlockedPlayback);
+      document.removeEventListener("keydown", retryBlockedPlayback);
       document.removeEventListener("touchend", retryBlockedPlayback);
+      clearInterval(pollTimer);
     };
   }, [joinedId]);
 

@@ -27,7 +27,7 @@ export function SendBirthdayWish({
   const [sent, setSent] = useState(false);
 
   const send = (text: string) => {
-    addComment.mutate(text, {
+    addComment.mutate({ body: text }, {
       onSuccess: () => {
         setSent(true);
         toast({ title: "Wishes sent!", description: `You sent birthday wishes to @${username}.` });

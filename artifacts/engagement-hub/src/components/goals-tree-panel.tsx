@@ -54,16 +54,21 @@ export function TreeDetailPanel(
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
+    addComment.mutate({ body: commentText.trim() }, { onSuccess: () => setCommentText("") });
   };
 
   return (
     <div
       className={cn(
-        "mt-4 lg:mt-0 lg:absolute lg:top-[294px] lg:right-8 lg:bottom-8 lg:z-40",
+        "mt-4 lg:mt-0 lg:absolute lg:top-[294px] lg:right-8 lg:z-40",
         "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
         "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
-        "overflow-hidden flex flex-col max-h-[calc(100dvh-8rem)] lg:max-h-none"
+        // top-294px/bottom-8 alone can leave almost no room for tab content
+        // below the header on shorter screens -- prefer a comfortable 420px
+        // so there's actually room to see and scroll a handful of
+        // comments/goals, but cap it to whatever the viewport can fit so the
+        // panel never runs off-screen with no way to reach the bottom of it.
+        "overflow-hidden flex flex-col max-h-[calc(100dvh-8rem)] lg:max-h-[clamp(0px,420px,calc(100vh-302px))]"
       )}
     >
       <div className="p-4 flex items-start gap-3 border-b border-border">

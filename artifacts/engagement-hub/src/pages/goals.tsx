@@ -546,7 +546,7 @@ function PersonGoalCard(
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
+    addComment.mutate({ body: commentText.trim() }, { onSuccess: () => setCommentText("") });
   };
 
   return (

@@ -12,6 +12,7 @@ export type Comment = {
   target_id: string;
   author_id: string;
   body: string;
+  parent_comment_id: string | null;
   created_at: string;
   author: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
 };
@@ -94,13 +95,14 @@ export function useAddComment(targetType: TargetType, targetId: string) {
   const { session } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({ body, parentCommentId }: { body: string; parentCommentId?: string | null }) => {
       if (!session) throw new Error("Not signed in");
       const { error } = await supabase.from("comments").insert({
         target_type: targetType,
         target_id: targetId,
         author_id: session.user.id,
         body,
+        parent_comment_id: parentCommentId ?? null,
       });
       if (error) throw error;
     },

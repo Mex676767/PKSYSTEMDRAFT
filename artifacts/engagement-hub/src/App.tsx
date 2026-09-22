@@ -7,7 +7,7 @@ import { ServiceWorkerCleanup } from '@/components/service-worker-cleanup';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import { Trophy, Users, Gift, Gamepad2, Dices } from 'lucide-react';
+import { Users, Gift, Gamepad2, Dices } from 'lucide-react';
 import { Shell } from '@/components/shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { VoiceCallProvider } from '@/hooks/use-voice-call';
@@ -26,6 +26,8 @@ import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
 import Birthdays from '@/pages/birthdays';
 import Voice from '@/pages/voice';
+import HallOfFame from '@/pages/hall-of-fame';
+import GuinnessRecords from '@/pages/guinness-records';
 
 const queryClient = new QueryClient();
 
@@ -41,7 +43,8 @@ function Router() {
           <Route path="/social" component={Social} />
           <Route path="/challenges" component={Challenges} />
           <Route path="/messages" component={Messages} />
-          <Route path="/hall-of-fame" component={() => <ComingSoon label="Hall of Fame" icon={Trophy} />} />
+          <Route path="/hall-of-fame" component={HallOfFame} />
+          <Route path="/guinness-records" component={GuinnessRecords} />
           <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
           <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />

@@ -1,120 +1,56 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
 
-export type HofCategory = {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: string;
-  sort_order: number;
+export type HofPodiumEntry = {
+  department: string;
+  rank: number;
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  active_border: string | null;
+  total_points: number;
 };
 
-export type HofRecord = {
-  id: string;
-  category_id: string;
-  holder_id: string;
-  achievement: string;
-  record_date: string;
-  is_current: boolean;
-  created_at: string;
-  holder: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
-};
-
-const RECORD_SELECT = "*, holder:profiles(username, avatar_url, active_border)";
-
-export function useHofCategories() {
+export function useMonthlyPodium(monthStart: Date) {
+  const monthKey = format(monthStart, "yyyy-MM-01");
   return useQuery({
-    queryKey: ["hof-categories"],
+    queryKey: ["hof-monthly-podium", monthKey],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_categories")
-        .select("*")
-        .order("sort_order")
-        .order("created_at");
+      const { data, error } = await supabase.rpc("hof_monthly_podium", { target_month: monthKey });
       if (error) throw error;
-      return data as HofCategory[];
+      return data as HofPodiumEntry[];
     },
   });
 }
 
-export function useCurrentHofRecords() {
+export type HofExcludedUser = { user_id: string; username: string | null; avatar_url: string | null };
+
+export function useHofExclusions() {
   return useQuery({
-    queryKey: ["hof-current-records"],
+    queryKey: ["hof-podium-exclusions"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hof_records")
-        .select(RECORD_SELECT)
-        .eq("is_current", true);
+        .from("hof_podium_exclusions")
+        .select("user_id, profile:profiles!user_id(username, avatar_url)");
       if (error) throw error;
-      return data as unknown as HofRecord[];
+      return (data as unknown as { user_id: string; profile: { username: string | null; avatar_url: string | null } | null }[]).map(
+        (row) => ({ user_id: row.user_id, username: row.profile?.username ?? null, avatar_url: row.profile?.avatar_url ?? null })
+      );
     },
   });
 }
 
-export function useHofRecordHistory(categoryId: string) {
-  return useQuery({
-    queryKey: ["hof-history", categoryId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_records")
-        .select(RECORD_SELECT)
-        .eq("category_id", categoryId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as HofRecord[];
-    },
-  });
-}
-
-export function useAllUsernames() {
-  return useQuery({
-    queryKey: ["all-usernames"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .not("username", "is", null)
-        .order("username");
-      if (error) throw error;
-      return data as { id: string; username: string }[];
-    },
-  });
-}
-
-export function useCreateHofCategory() {
+export function useSetHofPodiumExclusion() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description: string; icon: string }) => {
-      const { data, error } = await supabase.from("hof_categories").insert(input).select().single();
+    mutationFn: async ({ userId, excluded }: { userId: string; excluded: boolean }) => {
+      const { error } = await supabase.rpc("hof_set_podium_exclusion", { target_user: userId, excluded });
       if (error) throw error;
-      return data as HofCategory;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["hof-categories"] }),
-  });
-}
-
-export function useSubmitHofRecord(categoryId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ achievement, holderId }: { achievement: string; holderId: string }) => {
-      const { error: retireError } = await supabase
-        .from("hof_records")
-        .update({ is_current: false })
-        .eq("category_id", categoryId)
-        .eq("is_current", true);
-      if (retireError) throw retireError;
-
-      const { data, error } = await supabase
-        .from("hof_records")
-        .insert({ category_id: categoryId, holder_id: holderId, achievement, is_current: true })
-        .select(RECORD_SELECT)
-        .single();
-      if (error) throw error;
-      return data as unknown as HofRecord;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hof-current-records"] });
-      qc.invalidateQueries({ queryKey: ["hof-history", categoryId] });
+      qc.invalidateQueries({ queryKey: ["hof-podium-exclusions"] });
+      qc.invalidateQueries({ queryKey: ["hof-monthly-podium"] });
     },
   });
 }

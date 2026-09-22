@@ -25,6 +25,7 @@ const ROUTE_ACTIVITY: { test: (path: string) => boolean; label: string }[] = [
   { test: (p) => p === "/social", label: "Browsing Social" },
   { test: (p) => p === "/challenges", label: "Browsing Challenges" },
   { test: (p) => p === "/hall-of-fame", label: "Browsing Hall of Fame" },
+  { test: (p) => p === "/guinness-records", label: "Checking Guinness Records" },
   { test: (p) => p === "/mentors", label: "Browsing Mentors" },
   { test: (p) => p === "/lottery", label: "Checking Lucky Draw" },
   { test: (p) => p === "/games", label: "Browsing Games" },

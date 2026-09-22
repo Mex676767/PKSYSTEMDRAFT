@@ -1,5 +1,6 @@
 export const PERMISSIONS = {
-  manage_hall_of_fame: "Manage Hall of Fame",
+  manage_hall_of_fame: "Manage Guinness Records",
+  manage_hof_awards: "Manage Hall of Fame",
   manage_quiz: "Manage Quiz Questions",
   manage_mentors: "Manage Mentors & Departments",
   manage_users: "Manage Users (deactivate accounts)",

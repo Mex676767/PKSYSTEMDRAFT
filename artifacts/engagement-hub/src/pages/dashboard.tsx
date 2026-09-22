@@ -8,7 +8,7 @@ import { useGoalsFeed, GOAL_TERM_META, type GoalTerm } from "@/hooks/use-goals";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, Flame, Target, Trophy, Cake, PartyPopper } from "lucide-react";
+import { ArrowRight, Flame, Target, Trophy, Medal, Cake, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -247,13 +247,35 @@ export default function Dashboard() {
                 <h3 className="font-semibold flex items-center gap-2 text-sm">
                   <Trophy className="w-4 h-4 text-accent shrink-0" /> Hall of Fame
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">See who's holding the record.</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">This month's top earners by department.</p>
               </div>
               <Link href="/hall-of-fame" className="shrink-0">
                 <Button
                   size="sm"
                   variant="outline"
                   className="border-accent/40 bg-accent/10 text-accent hover:bg-accent/25 hover:text-accent"
+                >
+                  View
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={slideUp}>
+          <Card className="bg-gradient-to-br from-amber-500/20 to-transparent border-amber-500/20 shadow-sm hover:-translate-y-1 transition-transform duration-200">
+            <CardContent className="p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-semibold flex items-center gap-2 text-sm">
+                  <Medal className="w-4 h-4 text-amber-500 shrink-0" /> Guinness Records
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">See who's holding the all-time record.</p>
+              </div>
+              <Link href="/guinness-records" className="shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25"
                 >
                   View
                 </Button>

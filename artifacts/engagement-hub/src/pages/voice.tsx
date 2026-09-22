@@ -76,6 +76,10 @@ export default function Voice() {
           {VOICE_CHANNELS.map((channel) => {
             const isJoined = channelId === channel.id;
             const isPending = pendingId === channel.id && connecting;
+            // Block every OTHER channel's button too while a join is still in
+            // flight -- clicking a different channel mid-connect used to be
+            // able to join both at once.
+            const blockedByOtherJoin = connecting && pendingId !== null && pendingId !== channel.id;
             const dot = VOICE_CATEGORY_DOT[channel.category];
             const channelOccupants = isJoined ? participants : occupants.get(channel.id) ?? [];
             return (
@@ -99,7 +103,7 @@ export default function Voice() {
                       size="sm"
                       variant={isJoined ? "secondary" : "outline"}
                       className="shrink-0 h-8"
-                      disabled={isPending}
+                      disabled={isPending || blockedByOtherJoin}
                       onClick={() => (isJoined ? leave() : handleJoin(channel.id))}
                     >
                       {isPending ? "Joining..." : isJoined ? "Joined" : "Join"}

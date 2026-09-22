@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
-import { History, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { History, Sparkles, ChevronDown, ChevronUp, Award } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CertificateDialog } from "@/components/certificate-dialog";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -15,7 +16,7 @@ import {
   useAllUsernames,
   type HofCategory,
   type HofRecord,
-} from "@/hooks/use-hall-of-fame";
+} from "@/hooks/use-guinness-records";
 import { getHofIcon } from "@/lib/icon-map";
 
 export function HofCategoryCard({ category, current }: { category: HofCategory; current: HofRecord | null }) {
@@ -30,6 +31,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
   const [holderId, setHolderId] = useState(session?.user.id ?? "");
   const [showHistory, setShowHistory] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [certificateFor, setCertificateFor] = useState<HofRecord | null>(null);
 
   const { data: history = [] } = useHofRecordHistory(category.id);
   const pastRecords = history.filter((r) => !r.is_current);
@@ -40,9 +42,10 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
     submitRecord.mutate(
       { achievement: achievement.trim(), holderId },
       {
-        onSuccess: () => {
+        onSuccess: (newRecord) => {
           setIsDialogOpen(false);
           setAchievement("");
+          setCertificateFor(newRecord);
         },
       }
     );
@@ -83,6 +86,13 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
                 {format(new Date(current.record_date), "MMM d, yyyy")}
               </p>
             </div>
+            <button
+              onClick={() => setCertificateFor(current)}
+              title="View certificate"
+              className="shrink-0 text-muted-foreground hover:text-accent transition-colors"
+            >
+              <Award className="w-4 h-4" />
+            </button>
           </div>
         ) : (
           <div className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-xl border border-dashed">
@@ -160,7 +170,14 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
                 />
                 <span className="font-medium">@{r.holder?.username ?? "unknown"}</span>
                 <span className="truncate">{r.achievement}</span>
-                <span className="ml-auto shrink-0">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
+                <button
+                  onClick={() => setCertificateFor(r)}
+                  title="View certificate"
+                  className="ml-auto shrink-0 hover:text-accent transition-colors"
+                >
+                  <Award className="w-3 h-3" />
+                </button>
+                <span className="shrink-0">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
               </div>
             ))}
           </div>
@@ -181,6 +198,13 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
           </div>
         )}
       </CardContent>
+
+      <CertificateDialog
+        category={category}
+        record={certificateFor}
+        open={!!certificateFor}
+        onOpenChange={(o) => !o && setCertificateFor(null)}
+      />
     </Card>
   );
 }

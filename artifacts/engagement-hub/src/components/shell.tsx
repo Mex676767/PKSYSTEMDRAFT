@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
@@ -33,6 +33,7 @@ const navItems = [
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
+  { href: "/guinness-records", label: "Guinness Records", icon: Medal },
   { href: "/mentors", label: "Mentors", icon: Users },
   { href: "/lottery", label: "Lucky Draw", icon: Gift },
   { href: "/games", label: "Games", icon: Gamepad2 },

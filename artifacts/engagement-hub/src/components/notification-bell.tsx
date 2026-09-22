@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, MessageCircle, Heart, Swords, MessageSquare, type LucideIcon } from "lucide-react";
+import { Bell, MessageCircle, Reply, Heart, Swords, MessageSquare, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useNotifications,
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 const TYPE_ICON: Record<AppNotification["type"], LucideIcon> = {
   comment: MessageCircle,
+  reply: Reply,
   reaction: Heart,
   challenge: Swords,
   dm: MessageSquare,
@@ -22,7 +23,7 @@ const TARGET_LINK: Record<string, string> = {
   goal: "/goals",
   birthday: "/birthdays",
   post: "/social",
-  hof_record: "/hall-of-fame",
+  hof_record: "/guinness-records",
   challenge: "/challenges",
   dm: "/messages",
 };
