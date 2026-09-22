@@ -40,6 +40,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
   const [isStreaming, setIsStreaming] = useState(false);
   const [remoteVideoStreams, setRemoteVideoStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [audioBlocked, setAudioBlocked] = useState(false);
 
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const joinedIdRef = useRef<string | null>(null);
@@ -96,6 +97,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     analysersRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
     pendingPlaybackRef.current.delete(peerId);
+    if (pendingPlaybackRef.current.size === 0) setAudioBlocked(false);
     setRemoteVideoStreams((prev) => {
       if (!prev.has(peerId)) return prev;
       const next = new Map(prev);
@@ -146,7 +148,20 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
       let hasConnectedOnce = false;
       localStreamRef.current?.getTracks().forEach((track) => {
-        if (localStreamRef.current) pc.addTrack(track, localStreamRef.current);
+        if (!localStreamRef.current) return;
+        const sender = pc.addTrack(track, localStreamRef.current);
+        if (track.kind === "audio") {
+          // Cap each outgoing voice stream to a sane bitrate (Discord itself
+          // runs voice around this range) -- in a mesh, every extra person who
+          // joins means another full send+receive stream, and leaving audio
+          // uncapped lets it fight for bandwidth as more people talk at once,
+          // which is a common cause of calls degrading with 2+ simultaneous
+          // speakers on a constrained connection.
+          const params = sender.getParameters();
+          if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+          params.encodings[0].maxBitrate = 64_000;
+          sender.setParameters(params).catch((err) => console.warn(`[voice] couldn't set bitrate for ${peerId}`, err));
+        }
       });
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach((track) => {
@@ -189,6 +204,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           .catch((err) => {
             console.warn(`[voice] audio playback BLOCKED for ${peerId}, will retry on next click`, err);
             pendingPlaybackRef.current.add(peerId);
+            setAudioBlocked(true);
           });
         attachAnalyser(peerId, stream);
       };
@@ -376,7 +392,20 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         setError(null);
         setConnecting(true);
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          // Explicit, Discord-standard mic processing -- without this, simultaneous
+          // speakers (especially anyone on speakers rather than headphones) can
+          // produce feedback/howling that sounds like the call "breaking". Browsers
+          // sometimes default these on already, but only inconsistently, so they're
+          // requested explicitly rather than relying on that.
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 1,
+            },
+            video: false,
+          });
           localStreamRef.current = stream;
           attachAnalyser(userId, stream);
           iceServersRef.current = await getIceServers();
@@ -444,6 +473,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     deafenedRef.current = false;
     mutedRef.current = false;
     isStreamingRef.current = false;
+    pendingPlaybackRef.current.clear();
+    setAudioBlocked(false);
     if (wasConnected) playVoiceCue("leave");
   }, [cleanupPeer]);
   leaveRef.current = leave;
@@ -574,41 +605,46 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   // asynchronously in pc.ontrack -- by the time the remote track actually
   // arrives (after ICE negotiation), the original Join click's user-gesture
   // window may already have expired, and the browser rejects play() with no
-  // visible error. This is the most likely cause of "sometimes can't hear
-  // people" since it depends entirely on negotiation timing. Retry on the
-  // next interaction of any kind, and also keep polling for a while after
-  // joining in case the person never clicks anything else while listening.
+  // visible error. This is the single most common cause of one-sided audio
+  // ("I can hear them but they can't hear me"), and it's especially common on
+  // mobile Safari, which is far stricter about what counts as a real user
+  // gesture -- background retries (click/keydown listeners, polling) are NOT
+  // trusted gestures there and can keep failing silently forever. unlockAudio
+  // is exposed so the UI can show an explicit "tap to enable audio" button,
+  // which IS a trusted gesture and reliably unblocks it.
+  const unlockAudio = useCallback(() => {
+    if (pendingPlaybackRef.current.size === 0) return;
+    for (const peerId of Array.from(pendingPlaybackRef.current)) {
+      const el = audioElsRef.current.get(peerId);
+      if (!el) {
+        pendingPlaybackRef.current.delete(peerId);
+        continue;
+      }
+      el.play()
+        .then(() => {
+          pendingPlaybackRef.current.delete(peerId);
+          console.log(`[voice] recovered blocked playback for ${peerId}`);
+          if (pendingPlaybackRef.current.size === 0) setAudioBlocked(false);
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     if (!joinedId) return;
-    const retryBlockedPlayback = () => {
-      if (pendingPlaybackRef.current.size === 0) return;
-      for (const peerId of Array.from(pendingPlaybackRef.current)) {
-        const el = audioElsRef.current.get(peerId);
-        if (!el) {
-          pendingPlaybackRef.current.delete(peerId);
-          continue;
-        }
-        el.play()
-          .then(() => {
-            pendingPlaybackRef.current.delete(peerId);
-            console.log(`[voice] recovered blocked playback for ${peerId}`);
-          })
-          .catch(() => {});
-      }
-    };
-    document.addEventListener("click", retryBlockedPlayback);
-    document.addEventListener("mousedown", retryBlockedPlayback);
-    document.addEventListener("keydown", retryBlockedPlayback);
-    document.addEventListener("touchend", retryBlockedPlayback);
-    const pollTimer = setInterval(retryBlockedPlayback, 2000);
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("mousedown", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
+    document.addEventListener("touchend", unlockAudio);
+    const pollTimer = setInterval(unlockAudio, 2000);
     return () => {
-      document.removeEventListener("click", retryBlockedPlayback);
-      document.removeEventListener("mousedown", retryBlockedPlayback);
-      document.removeEventListener("keydown", retryBlockedPlayback);
-      document.removeEventListener("touchend", retryBlockedPlayback);
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("mousedown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+      document.removeEventListener("touchend", unlockAudio);
       clearInterval(pollTimer);
     };
-  }, [joinedId]);
+  }, [joinedId, unlockAudio]);
 
   useEffect(() => {
     return () => leave();
@@ -635,5 +671,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     leave,
     toggleMute,
     toggleDeafen,
+    audioBlocked,
+    unlockAudio,
   };
 }

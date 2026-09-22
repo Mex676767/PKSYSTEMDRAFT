@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Headphones, Mic, MicOff, PhoneOff, Radio, ScreenShare, ScreenShareOff, Sparkles, Users, VolumeX } from "lucide-react";
+import { Headphones, Mic, MicOff, PhoneOff, Radio, ScreenShare, ScreenShareOff, Sparkles, Users, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useDirectory } from "@/hooks/use-mentors";
@@ -35,6 +35,8 @@ export default function Voice() {
     leave,
     toggleMute,
     toggleDeafen,
+    audioBlocked,
+    unlockAudio,
   } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
@@ -69,6 +71,15 @@ export default function Voice() {
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive">
           {error} Check your browser's microphone permissions for this site.
         </div>
+      )}
+
+      {audioBlocked && (
+        <button
+          onClick={unlockAudio}
+          className="w-full p-3 rounded-lg bg-amber-500/10 border border-amber-500/40 text-sm text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2 font-medium hover:bg-amber-500/20 transition-colors animate-pulse"
+        >
+          <Volume2 className="w-4 h-4" /> Tap here to enable audio -- your browser is blocking playback
+        </button>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-5 items-start">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Headphones, Mic, MicOff, PhoneOff, VolumeX, X, ChevronUp, Radio } from "lucide-react";
+import { Headphones, Mic, MicOff, PhoneOff, Volume2, VolumeX, X, ChevronUp, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVoiceCall } from "@/hooks/use-voice-call";
 import { useAuth } from "@/hooks/use-auth";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export function FloatingCallBar() {
   const [location] = useLocation();
   const { profile } = useAuth();
-  const { channelId, participants, speakingIds, connectionStates, muted, deafened, leave, toggleMute, toggleDeafen } = useVoiceCall();
+  const { channelId, participants, speakingIds, connectionStates, muted, deafened, leave, toggleMute, toggleDeafen, audioBlocked, unlockAudio } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [minimized, setMinimized] = useState(false);
@@ -65,6 +65,15 @@ export function FloatingCallBar() {
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {audioBlocked && (
+            <button
+              onClick={unlockAudio}
+              className="w-full px-3 py-2 bg-amber-500/10 border-b border-amber-500/30 text-[11px] text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5 font-medium hover:bg-amber-500/20 transition-colors animate-pulse"
+            >
+              <Volume2 className="w-3.5 h-3.5" /> Tap to enable audio
+            </button>
+          )}
 
           <div className="p-3 grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
             {participants.map((p) => (
