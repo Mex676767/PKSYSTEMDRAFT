@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { BorderDecoration } from "./border-decoration";
+import { AccessoryDecoration } from "./accessory-decoration";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
@@ -22,11 +23,7 @@ export function UserAvatar({ user, className, style, accessory, photoUrl, border
           {user.initials}
         </AvatarFallback>
       </Avatar>
-      {accessory && (
-        <span className="absolute -bottom-1 -right-1 z-20 text-xs bg-card border border-border rounded-full w-4 h-4 flex items-center justify-center leading-none">
-          {accessory}
-        </span>
-      )}
+      <AccessoryDecoration accessory={accessory} />
     </div>
   );
 }

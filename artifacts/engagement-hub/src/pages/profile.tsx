@@ -6,19 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { motion } from "framer-motion";
-import { Flame, Award, ShoppingBag, Check, Lock, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
+import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
-import { getAccessoryEmoji } from "@/lib/accessories";
+import { BORDER_KEYS, BORDER_META, ACCESSORY_KEYS, ACCESSORY_META } from "@/lib/cosmetics";
 import { BorderDecoration } from "@/components/border-decoration";
+import { AccessoryDecoration } from "@/components/accessory-decoration";
 import { AVATAR_PRESETS, avatarPresetDataUri, presetIdFromAvatarUrl } from "@/lib/avatar-presets";
 import {
-  useAccessoryCatalog,
-  usePurchaseAccessory,
   useSetActiveAccessory,
   useSetActiveTitle,
-  useBorderCatalog,
-  usePurchaseBorder,
   useSetActiveBorder,
   useUploadAvatar,
   useSetAvatarUrl,
@@ -34,12 +31,8 @@ import { format } from "date-fns";
 
 export default function Profile() {
   const { profile } = useAuth();
-  const { data: catalog = [] } = useAccessoryCatalog();
-  const purchase = usePurchaseAccessory();
   const setAccessory = useSetActiveAccessory();
   const setTitle = useSetActiveTitle();
-  const { data: borderCatalog = [] } = useBorderCatalog();
-  const purchaseBorder = usePurchaseBorder();
   const setBorder = useSetActiveBorder();
   const uploadAvatar = useUploadAvatar();
   const setAvatarUrl = useSetAvatarUrl();
@@ -64,7 +57,6 @@ export default function Profile() {
   }
 
   const unlockedTitles = profile.unlocked_titles ?? [];
-  const unlockedAccessories = profile.unlocked_accessories ?? [];
   const activePresetId = presetIdFromAvatarUrl(profile.avatar_url);
 
   return (
@@ -79,7 +71,7 @@ export default function Profile() {
                   initials: initialsForUsername(profile.username ?? profile.email),
                   color: colorForId(profile.id),
                 }}
-                accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+                accessory={profile.active_accessory}
                 photoUrl={profile.avatar_url}
                 border={profile.active_border}
                 className="w-16 h-16 text-xl"
@@ -245,51 +237,40 @@ export default function Profile() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShoppingBag className="w-5 h-5 text-accent" /> Accessory Shop
             </CardTitle>
-            <CardDescription>Spend points on a little flair for your avatar</CardDescription>
+            <CardDescription>Free for everyone — pick a little flair for your avatar</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-              {catalog.map((item) => {
-                const owned = unlockedAccessories.includes(item.key);
-                const equipped = profile.active_accessory === item.key;
-                const canAfford = profile.points >= item.price;
+              {ACCESSORY_KEYS.map((key) => {
+                const meta = ACCESSORY_META[key];
+                const equipped = profile.active_accessory === key;
 
                 return (
                   <div
-                    key={item.key}
+                    key={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="text-3xl">{item.emoji}</div>
-                    <div className="text-xs font-semibold">{item.name}</div>
-                    {owned ? (
-                      <Button
-                        size="sm"
-                        variant={equipped ? "outline" : "default"}
-                        className="w-full text-xs h-7"
-                        disabled={setAccessory.isPending}
-                        onClick={() => setAccessory.mutate(equipped ? null : item.key)}
-                      >
-                        {equipped ? (
-                          <><Check className="w-3 h-3 mr-1" /> Equipped</>
-                        ) : (
-                          "Equip"
-                        )}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full text-xs h-7"
-                        disabled={!canAfford || purchase.isPending}
-                        onClick={() => purchase.mutate(item.key)}
-                      >
-                        {!canAfford && <Lock className="w-3 h-3 mr-1" />}
-                        {item.price} pts
-                      </Button>
-                    )}
+                    <div className="relative w-10 h-10 shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-muted border-2 border-background" />
+                      <AccessoryDecoration accessory={key} />
+                    </div>
+                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <Button
+                      size="sm"
+                      variant={equipped ? "outline" : "default"}
+                      className="w-full text-xs h-7"
+                      disabled={setAccessory.isPending}
+                      onClick={() => setAccessory.mutate(equipped ? null : key)}
+                    >
+                      {equipped ? (
+                        <><Check className="w-3 h-3 mr-1" /> Equipped</>
+                      ) : (
+                        "Equip"
+                      )}
+                    </Button>
                   </div>
                 );
               })}
@@ -305,50 +286,36 @@ export default function Profile() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <CircleDashed className="w-5 h-5 text-secondary" /> Profile Borders
             </CardTitle>
-            <CardDescription>Redeem points for a border around your avatar</CardDescription>
+            <CardDescription>Free for everyone — pick a border for your avatar</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {borderCatalog.map((item) => {
-                const owned = profile.unlocked_borders?.includes(item.key) ?? false;
-                const equipped = profile.active_border === item.key;
-                const canAfford = profile.points >= item.price;
+              {BORDER_KEYS.map((key) => {
+                const meta = BORDER_META[key];
+                const equipped = profile.active_border === key;
 
                 return (
                   <div
-                    key={item.key}
+                    key={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
                     <div className="relative w-10 h-10">
-                      <BorderDecoration border={item.key} />
+                      <BorderDecoration border={key} />
                       <div className="absolute inset-0 z-10 rounded-full bg-muted border-2 border-background" />
                     </div>
-                    <div className="text-xs font-semibold">{item.name}</div>
-                    {owned ? (
-                      <Button
-                        size="sm"
-                        variant={equipped ? "outline" : "default"}
-                        className="w-full text-xs h-7"
-                        disabled={setBorder.isPending}
-                        onClick={() => setBorder.mutate(equipped ? null : item.key)}
-                      >
-                        {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Equip"}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full text-xs h-7"
-                        disabled={!canAfford || purchaseBorder.isPending}
-                        onClick={() => purchaseBorder.mutate(item.key)}
-                      >
-                        {!canAfford && <Lock className="w-3 h-3 mr-1" />}
-                        {item.price} pts
-                      </Button>
-                    )}
+                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <Button
+                      size="sm"
+                      variant={equipped ? "outline" : "default"}
+                      className="w-full text-xs h-7"
+                      disabled={setBorder.isPending}
+                      onClick={() => setBorder.mutate(equipped ? null : key)}
+                    >
+                      {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Equip"}
+                    </Button>
                   </div>
                 );
               })}

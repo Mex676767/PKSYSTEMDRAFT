@@ -4,7 +4,6 @@ import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, G
 import { cn } from "@/lib/utils";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
-import { getAccessoryEmoji } from "@/lib/accessories";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
 import { useVoiceCall } from "@/hooks/use-voice-call";
@@ -211,7 +210,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                       initials: initialsForUsername(profile.username ?? profile.email),
                       color: colorForId(profile.id),
                     }}
-                    accessory={profile.active_accessory ? getAccessoryEmoji(profile.active_accessory) : null}
+                    accessory={profile.active_accessory}
                     photoUrl={profile.avatar_url}
                     border={profile.active_border}
                     className="w-8 h-8"

@@ -541,8 +541,6 @@ function PersonGoalCard(
     return map;
   }, [goals]);
 
-  const recentComments = comments.slice(-2).reverse();
-
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -607,9 +605,9 @@ function PersonGoalCard(
             <MessageCircle className="w-3.5 h-3.5" />
             Comments {comments.length > 0 && `(${comments.length})`}
           </div>
-          <div className="flex-1 space-y-1.5 mb-2 overflow-hidden">
-            {recentComments.length > 0 ? (
-              recentComments.map((c) => (
+          <div className="flex-1 space-y-1.5 mb-2 overflow-y-auto max-h-36 pr-0.5">
+            {comments.length > 0 ? (
+              comments.map((c) => (
                 <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5 flex items-start gap-1">
                   <p className="flex-1 min-w-0">
                     <span className="font-medium">@{c.author?.username ?? "?"}: </span>
