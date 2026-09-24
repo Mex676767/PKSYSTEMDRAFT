@@ -98,7 +98,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 sm:block sm:h-14">
         <div className="flex items-center justify-start sm:absolute sm:inset-y-0 sm:left-[200px] sm:right-[200px] sm:justify-center">
-        <nav ref={navRef} className="relative max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
+        <nav ref={navRef} data-tree-obstacle className="relative max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
           {canScrollLeft && (
             <div className="sticky left-0 z-10 flex items-center pr-6 shrink-0 pointer-events-none bg-gradient-to-r from-card via-card to-transparent">
               <button
@@ -161,7 +161,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         </div>
 
-        <div className="flex items-center justify-end gap-2 sm:absolute sm:right-0 sm:top-0">
+        <div data-tree-obstacle className="flex items-center justify-end gap-2 sm:absolute sm:right-0 sm:top-0">
         {isAdmin && (
           <Link
             href="/voice"

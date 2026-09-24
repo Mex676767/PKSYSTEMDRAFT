@@ -36,6 +36,7 @@ export function FloatingCallBar() {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           onClick={() => setMinimized(false)}
+          data-tree-obstacle
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2 bg-card/90 backdrop-blur-xl border border-primary/40 rounded-full shadow-lg pl-3 pr-4 py-2 hover:border-primary/70 transition-colors"
         >
           <Radio className="w-4 h-4 text-primary animate-pulse" />
@@ -48,6 +49,7 @@ export function FloatingCallBar() {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          data-tree-obstacle
           className="fixed bottom-5 right-5 z-40 w-72 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center gap-2 px-3.5 py-3 border-b border-border/60">
