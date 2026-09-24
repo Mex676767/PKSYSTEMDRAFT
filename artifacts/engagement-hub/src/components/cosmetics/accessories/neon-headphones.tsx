@@ -1,57 +1,105 @@
 import type { CosmeticRenderProps } from "../geometry";
+import { Glow, bob } from "../details";
 
-export function NeonHeadphonesAccessory({ uid, animated }: CosmeticRenderProps) {
-  const glowId = `nh-glow-${uid}`;
-  const cupGrad = `nh-cup-${uid}`;
-
+export function NeonHeadphonesAccessory({
+  uid,
+  animated,
+}: CosmeticRenderProps) {
+  const neon = `nh-neon-${uid}`,
+    glow = `nh-glow-${uid}`,
+    cup = `nh-cup-${uid}`;
   return (
     <>
       <defs>
-        <filter id={glowId} x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="1.3" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id={cupGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff5fd1" />
-          <stop offset="100%" stopColor="#22d3ee" />
+        <linearGradient id={neon}>
+          <stop stopColor="#fc25e6" />
+          <stop offset=".55" stopColor="#ce4dff" />
+          <stop offset="1" stopColor="#30eaff" />
         </linearGradient>
+        <linearGradient id={cup}>
+          <stop stopColor="#211237" />
+          <stop offset=".5" stopColor="#803bd4" />
+          <stop offset="1" stopColor="#211237" />
+        </linearGradient>
+        <Glow id={glow} />
       </defs>
-
-      <path d="M 17 40 C 17 14 83 14 83 40" fill="none" stroke={`url(#${cupGrad})`} strokeWidth={2.4} strokeLinecap="round" filter={`url(#${glowId})`} />
-
-      {[17, 83].map((cx, i) => (
-        <g key={i}>
-          <ellipse cx={cx} cy={44} rx={5.2} ry={7.2} fill="#18181b" stroke={`url(#${cupGrad})`} strokeWidth={1.6} filter={`url(#${glowId})`} />
+      <path
+        d="M-4 48 C-12 -28 112 -28 104 48"
+        fill="none"
+        stroke="#211329"
+        strokeWidth="10"
+      />
+      <path
+        d="M-4 45 C-12 -28 112 -28 104 45"
+        fill="none"
+        stroke={`url(#${neon})`}
+        strokeWidth="4"
+        filter={`url(#${glow})`}
+      />
+      <path
+        d="M0 30 C5 -11 95 -11 100 30"
+        fill="none"
+        stroke="#493065"
+        strokeWidth="3"
+      />
+      {[0, 100].map((x, i) => (
+        <g key={x} transform={`translate(${x} 49) rotate(${i ? 8 : -8})`}>
+          <rect
+            x="-11"
+            y="-23"
+            width="22"
+            height="44"
+            rx="11"
+            fill={`url(#${cup})`}
+            stroke="#e262ff"
+            strokeWidth="1.4"
+          />
           <ellipse
-            cx={cx}
-            cy={44}
-            rx={2.6}
-            ry={4}
-            fill="none"
-            stroke="#f5f5ff"
-            strokeWidth={0.5}
-            opacity={0.7}
+            cx={i ? 3 : -3}
+            cy="-1"
+            rx="7.5"
+            ry="16"
+            fill="#381354"
+            stroke="#4ff4ff"
+            strokeWidth="2.8"
+            filter={`url(#${glow})`}
+          />
+          <ellipse cx={i ? 3 : -3} cy="-1" rx="4.6" ry="12" fill="#c937ed" />
+          <path
+            d="M-2 -11 V7 M2 -8 V10"
+            stroke="#fee5ff"
+            opacity=".7"
+            strokeWidth="1.2"
             className={animated ? "cosmetic-anim" : undefined}
-            style={animated ? { animation: `cosmetic-pulse 1.8s ease-in-out infinite ${i * 0.3}s` } : undefined}
+            style={
+              animated
+                ? { animation: "cosmetic-pulse 1.7s ease-in-out infinite" }
+                : undefined
+            }
           />
         </g>
       ))}
-
-      {[{ x: 88, y: 20, s: 2.1 }, { x: 94, y: 30, s: 1.4 }].map((n, i) => (
-        <text
-          key={i}
-          x={n.x}
-          y={n.y}
-          fontSize={n.s * 2.4}
-          fill="#f0abfc"
-          className={animated ? "cosmetic-anim" : undefined}
-          style={animated ? { animation: `cosmetic-float-y ${2.4 + i * 0.5}s ease-in-out infinite ${i * 0.6}s` } : undefined}
-        >
-          ♪
-        </text>
+      {[
+        [-28, 4, "#fc70ee"],
+        [126, 7, "#42efff"],
+        [133, 65, "#f777ed"],
+      ].map(([x, y, color], i) => (
+        <g key={i} transform={`translate(${x} ${y})`}>
+          <g
+            className={animated ? "cosmetic-anim" : undefined}
+            style={bob(animated, -i)}
+          >
+            <path
+              d="M0 9 V-7 L9 -10 V5 M0 -4 L9 -7"
+              fill="none"
+              stroke={String(color)}
+              strokeWidth="2"
+              filter={`url(#${glow})`}
+            />
+            <ellipse cx="-2.5" cy="10" rx="3.8" ry="2.8" fill={String(color)} />
+            <ellipse cx="6.5" cy="6" rx="3.8" ry="2.8" fill={String(color)} />
+          </g>
+        </g>
       ))}
     </>
   );

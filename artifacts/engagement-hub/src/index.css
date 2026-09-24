@@ -439,6 +439,20 @@ body.tab-hidden .progress-shimmer::after {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
+@keyframes cosmetic-orbit { to { transform: rotate(360deg); } }
+.cosmetic-orbit { animation: cosmetic-orbit 12s linear infinite; }
+@keyframes cosmetic-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes cosmetic-wing {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(.93); }
+}
+@keyframes cosmetic-thrust {
+  0%, 100% { transform: scaleY(.85); opacity: .8; }
+  50% { transform: scaleY(1.1); opacity: 1; }
+}
 @keyframes cosmetic-twinkle {
   0%, 100% { opacity: 0.25; transform: scale(0.7); }
   50% { opacity: 1; transform: scale(1.15); }

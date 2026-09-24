@@ -1,32 +1,55 @@
 import type { CosmeticRenderProps } from "../geometry";
+import { Glow, bob } from "../details";
 
 const HEARTS = [
-  { x: 22, y: 22, scale: 1, delay: "0s", dur: "3.2s" },
-  { x: 80, y: 26, scale: 0.75, delay: "0.9s", dur: "3.6s" },
-  { x: 52, y: 8, scale: 0.6, delay: "1.6s", dur: "2.8s" },
-];
-
-export function FloatingHeartsAccessory({ uid, animated }: CosmeticRenderProps) {
-  const gradId = `fh-grad-${uid}`;
-  const heartPath = "M 0 3 C -4 -2 -8 1 -8 4 C -8 8 -3 11 0 14 C 3 11 8 8 8 4 C 8 1 4 -2 0 3 Z";
-
+  [-23, 23, 1.15],
+  [18, -19, 0.8],
+  [65, -34, 0.95],
+  [116, 9, 1.05],
+  [128, 66, 0.95],
+  [-17, 80, 0.9],
+  [102, 101, 0.55],
+] as const;
+export function FloatingHeartsAccessory({
+  uid,
+  animated,
+}: CosmeticRenderProps) {
+  const color = `fh-color-${uid}`,
+    glow = `fh-glow-${uid}`;
   return (
     <>
       <defs>
-        <radialGradient id={gradId} cx="35%" cy="30%" r="80%">
-          <stop offset="0%" stopColor="#ffe4f0" />
-          <stop offset="100%" stopColor="#ec4899" />
+        <radialGradient id={color} cx="30%" cy="20%" r="85%">
+          <stop stopColor="#fff2fc" />
+          <stop offset=".32" stopColor="#ff78c5" />
+          <stop offset="1" stopColor="#f00072" />
         </radialGradient>
+        <Glow id={glow} />
       </defs>
-
-      {HEARTS.map((h, i) => (
+      {HEARTS.map(([x, y, size], i) => (
         <g
           key={i}
-          transform={`translate(${h.x} ${h.y}) scale(${h.scale})`}
-          className={animated ? "cosmetic-anim" : undefined}
-          style={animated ? { animation: `cosmetic-float-y ${h.dur} ease-in-out infinite ${h.delay}` } : undefined}
+          transform={`translate(${x} ${y}) rotate(${i % 2 ? 15 : -15}) scale(${size})`}
         >
-          <path d={heartPath} fill={`url(#${gradId})`} />
+          <g
+            className={animated ? "cosmetic-anim" : undefined}
+            style={bob(animated, -i * 0.6)}
+          >
+            <path
+              d="M0 12 C-20 0 -13 -16 -3 -9 L0 -6 L3 -9 C13 -16 20 0 0 12Z"
+              fill={`url(#${color})`}
+              stroke="#ff9bdc"
+              strokeWidth="1"
+              filter={`url(#${glow})`}
+            />
+            <path
+              d="M-10 -3 Q-10 -8 -6 -7"
+              fill="none"
+              stroke="#fff0f9"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+            />
+          </g>
         </g>
       ))}
     </>

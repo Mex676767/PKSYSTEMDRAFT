@@ -1,40 +1,86 @@
 import type { CosmeticRenderProps } from "../geometry";
+import { Glow, Sparkles, STAR } from "../details";
 
 export function WizardHatAccessory({ uid, animated }: CosmeticRenderProps) {
-  const hatGrad = `wh-hat-${uid}`;
-
+  const cloth = `wh-cloth-${uid}`,
+    brim = `wh-brim-${uid}`,
+    glow = `wh-glow-${uid}`;
   return (
     <>
       <defs>
-        <linearGradient id={hatGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#c084fc" />
-          <stop offset="100%" stopColor="#6d28d9" />
+        <linearGradient id={cloth}>
+          <stop stopColor="#21052f" />
+          <stop offset=".5" stopColor="#6b1bad" />
+          <stop offset="1" stopColor="#270747" />
         </linearGradient>
+        <linearGradient id={brim} x2="0" y2="1">
+          <stop stopColor="#a52ce3" />
+          <stop offset=".45" stopColor="#431263" />
+          <stop offset="1" stopColor="#170721" />
+        </linearGradient>
+        <Glow id={glow} blur={1} />
       </defs>
-
-      <g transform="translate(50 6) rotate(-6)">
-        <path d="M -3 24 C -3 24 -1 -6 1 -6 C 3 -6 5 24 5 24 Z" fill={`url(#${hatGrad})`} stroke="#4c1d95" strokeWidth={0.3} />
-        <ellipse cx={1} cy={24} rx={13} ry={3} fill={`url(#${hatGrad})`} stroke="#4c1d95" strokeWidth={0.3} />
-        <path d="M -8 20 C -6 20 8 20 10 20 L 8 17 L -6 17 Z" fill="#facc15" opacity={0.9} />
-        <text x={-1} y={5} fontSize={3.6} fill="#facc15" textAnchor="middle">
-          ★
-        </text>
-        <text x={4} y={13} fontSize={2.4} fill="#e9d5ff" textAnchor="middle">
-          ☽
-        </text>
-      </g>
-
-      {[{ x: 68, y: 10, d: "0s" }, { x: 76, y: 22, d: "0.5s" }, { x: 30, y: 14, d: "1s" }].map((s, i) => (
-        <circle
-          key={i}
-          cx={s.x}
-          cy={s.y}
-          r={0.9}
-          fill="#fde68a"
-          className={animated ? "cosmetic-anim" : undefined}
-          style={animated ? { animation: `cosmetic-twinkle ${1.8 + i * 0.4}s ease-in-out infinite ${s.d}` } : undefined}
+      <g transform="rotate(-12 50 4)">
+        <ellipse
+          cx="50"
+          cy="8"
+          rx="70"
+          ry="14"
+          fill={`url(#${brim})`}
+          stroke="#bf53ef"
+          strokeWidth="1.5"
         />
-      ))}
+        <path
+          d="M5 5 Q27 -27 20 -55 Q8 -68 -6 -45 Q-1 -86 23 -72 Q45 -62 87 5Z"
+          fill={`url(#${cloth})`}
+          stroke="#b249d9"
+          strokeWidth="1.3"
+        />
+        <path
+          d="M8 3 Q43 -8 85 2"
+          fill="none"
+          stroke="#ba54f8"
+          strokeWidth="4"
+        />
+        <path
+          d="M13 0 Q45 -8 80 0"
+          fill="none"
+          stroke="#ffd374"
+          strokeWidth="1.2"
+        />
+        <path
+          d="M57 -47 A12 12 0 1 0 65 -27 A11 11 0 0 1 57 -47"
+          fill="#ffd667"
+          filter={`url(#${glow})`}
+        />
+        <path d={STAR} transform="translate(30 -24) scale(.9)" fill="#ffe394" />
+        <path
+          d={STAR}
+          transform="translate(24 -62) scale(.45)"
+          fill="#ffe394"
+        />
+        <path
+          d={STAR}
+          transform="translate(72 -11) scale(.45)"
+          fill="#ffe394"
+        />
+        <circle cx="37" cy="-44" r="1.1" fill="#d477ff" />
+        <circle cx="46" cy="-17" r="1.4" fill="#e79aff" />
+        <path
+          d="M-17 9 Q48 -9 118 9"
+          fill="none"
+          stroke="#d570fa"
+          strokeWidth="1.5"
+        />
+      </g>
+      <Sparkles
+        animated={animated}
+        points={[
+          [-21, -20, 0.9],
+          [116, -5, 0.8],
+          [-9, 39, 0.6],
+        ]}
+      />
     </>
   );
 }

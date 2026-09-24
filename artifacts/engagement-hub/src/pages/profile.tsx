@@ -10,8 +10,6 @@ import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camer
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { TITLE_CATALOG } from "@/lib/titles";
 import { BORDER_KEYS, BORDER_META, ACCESSORY_KEYS, ACCESSORY_META } from "@/lib/cosmetics";
-import { BorderDecoration } from "@/components/border-decoration";
-import { AccessoryDecoration } from "@/components/accessory-decoration";
 import { AVATAR_PRESETS, avatarPresetDataUri, presetIdFromAvatarUrl } from "@/lib/avatar-presets";
 import {
   useSetActiveAccessory,
@@ -240,7 +238,7 @@ export default function Profile() {
             <CardDescription>Free for everyone — pick a little flair for your avatar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {ACCESSORY_KEYS.map((key) => {
                 const meta = ACCESSORY_META[key];
                 const equipped = profile.active_accessory === key;
@@ -253,9 +251,14 @@ export default function Profile() {
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="relative w-10 h-10 shrink-0">
-                      <div className="absolute inset-0 rounded-full bg-muted border-2 border-background" />
-                      <AccessoryDecoration accessory={key} />
+                    <div className="h-32 w-full flex items-center justify-center">
+                      <UserAvatar
+                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        photoUrl={profile.avatar_url}
+                        accessory={key}
+                        border={profile.active_border}
+                        className="w-12 h-12"
+                      />
                     </div>
                     <div className="text-xs font-semibold">{meta.name}</div>
                     <Button
@@ -268,7 +271,7 @@ export default function Profile() {
                       {equipped ? (
                         <><Check className="w-3 h-3 mr-1" /> Equipped</>
                       ) : (
-                        "Equip"
+                        "Free · Equip"
                       )}
                     </Button>
                   </div>
@@ -289,7 +292,7 @@ export default function Profile() {
             <CardDescription>Free for everyone — pick a border for your avatar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {BORDER_KEYS.map((key) => {
                 const meta = BORDER_META[key];
                 const equipped = profile.active_border === key;
@@ -302,9 +305,14 @@ export default function Profile() {
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="relative w-10 h-10">
-                      <BorderDecoration border={key} />
-                      <div className="absolute inset-0 z-10 rounded-full bg-muted border-2 border-background" />
+                    <div className="h-32 w-full flex items-center justify-center">
+                      <UserAvatar
+                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        photoUrl={profile.avatar_url}
+                        border={key}
+                        accessory={profile.active_accessory}
+                        className="w-12 h-12"
+                      />
                     </div>
                     <div className="text-xs font-semibold">{meta.name}</div>
                     <Button
@@ -314,7 +322,7 @@ export default function Profile() {
                       disabled={setBorder.isPending}
                       onClick={() => setBorder.mutate(equipped ? null : key)}
                     >
-                      {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Equip"}
+                      {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Free · Equip"}
                     </Button>
                   </div>
                 );

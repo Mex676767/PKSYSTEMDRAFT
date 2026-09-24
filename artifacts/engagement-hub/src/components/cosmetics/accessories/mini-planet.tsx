@@ -1,45 +1,105 @@
 import type { CosmeticRenderProps } from "../geometry";
-import { polar } from "../geometry";
+import { Glow, Sparkles, bob } from "../details";
 
 export function MiniPlanetAccessory({ uid, animated }: CosmeticRenderProps) {
-  const planetGrad = `mp-planet-${uid}`;
-  const moonGrad = `mp-moon-${uid}`;
-  const px = 80;
-  const py = 78;
-
+  const planet = `mp-planet-${uid}`,
+    moon = `mp-moon-${uid}`,
+    glow = `mp-glow-${uid}`,
+    clip = `mp-clip-${uid}`;
   return (
     <>
       <defs>
-        <radialGradient id={planetGrad} cx="35%" cy="30%" r="75%">
-          <stop offset="0%" stopColor="#fde68a" />
-          <stop offset="55%" stopColor="#fb923c" />
-          <stop offset="100%" stopColor="#c2410c" />
-        </radialGradient>
-        <radialGradient id={moonGrad} cx="35%" cy="30%" r="75%">
-          <stop offset="0%" stopColor="#e0f2fe" />
-          <stop offset="100%" stopColor="#38bdf8" />
-        </radialGradient>
+        <linearGradient id={planet} x2=".8" y2="1">
+          <stop stopColor="#ffe899" />
+          <stop offset=".3" stopColor="#f88c7e" />
+          <stop offset=".7" stopColor="#be4aed" />
+          <stop offset="1" stopColor="#4821b1" />
+        </linearGradient>
+        <linearGradient id={moon} x2=".8" y2="1">
+          <stop stopColor="#66faff" />
+          <stop offset=".5" stopColor="#9071ff" />
+          <stop offset="1" stopColor="#f16bca" />
+        </linearGradient>
+        <clipPath id={clip}>
+          <circle r="21" />
+        </clipPath>
+        <Glow id={glow} blur={1} />
       </defs>
-
-      <g transform={`translate(${px} ${py}) rotate(-18)`}>
-        <ellipse cx={0} cy={0} rx={7.5} ry={2.3} fill="none" stroke="#fde68a" strokeWidth={1.1} opacity={0.9} />
-        <circle cx={0} cy={0} r={4.6} fill={`url(#${planetGrad})`} />
-        <ellipse cx={0} cy={0} rx={7.5} ry={2.3} fill="none" stroke="#fef3c7" strokeWidth={0.5} opacity={0.6} />
+      <g transform="translate(50 -27) rotate(-18)">
+        <g
+          className={animated ? "cosmetic-anim" : undefined}
+          style={bob(animated)}
+        >
+          <ellipse
+            rx="38"
+            ry="10"
+            fill="none"
+            stroke="#bf5fff"
+            strokeWidth="3.5"
+            filter={`url(#${glow})`}
+          />
+          <circle
+            r="21"
+            fill={`url(#${planet})`}
+            stroke="#dea5ff"
+            strokeWidth="1"
+          />
+          <g
+            clipPath={`url(#${clip})`}
+            fill="none"
+            stroke="#ffc996"
+            strokeWidth="3"
+            opacity=".7"
+          >
+            <path d="M-24 -10 Q0 3 24 -10 M-24 0 Q0 13 24 0 M-24 12 Q0 23 24 12" />
+          </g>
+          <path
+            d="M-38 0 A38 10 0 0 0 38 0"
+            fill="none"
+            stroke="#e37aff"
+            strokeWidth="4"
+            filter={`url(#${glow})`}
+          />
+          <path
+            d="M-38 0 A38 10 0 0 0 18 9"
+            fill="none"
+            stroke="#63f6ff"
+            strokeWidth="1.8"
+          />
+        </g>
       </g>
-
-      <g>
-        {animated && (
-          <animateTransform attributeName="transform" type="rotate" from={`0 ${px} ${py}`} to={`360 ${px} ${py}`} dur="8s" repeatCount="indefinite" />
-        )}
-        <circle cx={polar(px, py, 11, 0).x} cy={polar(px, py, 11, 0).y} r={1.6} fill={`url(#${moonGrad})`} />
-      </g>
-
-      <g
-        className={animated ? "cosmetic-anim" : undefined}
-        style={animated ? { animation: "cosmetic-twinkle 2.4s ease-in-out infinite" } : undefined}
-      >
-        <circle cx={18} cy={20} r={0.8} fill="#fff" />
-      </g>
+      {[
+        [-18, 18, 8],
+        [116, 26, 9],
+      ].map(([x, y, r], i) => (
+        <g key={i} transform={`translate(${x} ${y})`}>
+          <g
+            className={animated ? "cosmetic-anim" : undefined}
+            style={bob(animated, -i - 1)}
+          >
+            <circle
+              r={r}
+              fill={`url(#${moon})`}
+              stroke="#92d9ff"
+              strokeWidth=".8"
+            />
+            <path
+              d={`M${-r * 0.8} -3 Q0 3 ${r * 0.8} 2`}
+              fill="none"
+              stroke="#bdfaff"
+              strokeWidth="1"
+            />
+          </g>
+        </g>
+      ))}
+      <Sparkles
+        animated={animated}
+        points={[
+          [100, -17, 0.7],
+          [-19, 78, 0.8],
+          [119, 74, 0.8],
+        ]}
+      />
     </>
   );
 }

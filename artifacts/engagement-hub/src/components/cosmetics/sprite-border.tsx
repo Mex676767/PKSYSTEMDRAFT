@@ -47,7 +47,7 @@ export function SpriteBorder({
             {/* Keep saturated neon as well as white highlights; remove dark ink. */}
             <feColorMatrix
               type="matrix"
-              values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.5 1.5 1.5 0 -0.6"
+              values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2 2 2 0 -1.2"
             />
           </filter>
           <mask
@@ -65,7 +65,9 @@ export function SpriteBorder({
               height={BORDER_SPRITE.height}
               filter={`url(#${ink})`}
             />
-            <circle cx={c.cx} cy={c.cy} r={c.r - 1} fill="black" />
+            {/* Remove the reference person, preserving artwork that overlaps
+                the photo near its edge (planets, petals and orbit trails). */}
+            <circle cx={c.cx} cy={c.cy} r={c.r - 10} fill="black" />
           </mask>
         </defs>
         <image
