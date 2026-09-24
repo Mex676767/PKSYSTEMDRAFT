@@ -252,7 +252,7 @@ function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: st
   if (canScore) blocks.push(<ScoreForm key="score" pk={pk} onError={setError} />);
 
   const canCancel = (isCreator || isAdmin) && PK_SETUP.includes(pk.status);
-  const canRemove = isAdmin && !pk.approved_at;
+  const canRemove = isAdmin;
   if (canCancel || canRemove) {
     blocks.push(
       <div key="manage" className="flex gap-3 text-xs">
@@ -262,7 +262,7 @@ function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: st
         )}
         {canRemove && (
           <button className="text-muted-foreground hover:text-destructive flex items-center gap-1" disabled={remove.isPending}
-            onClick={() => window.confirm("Delete this PK for good? Only do this for test or mistaken PKs.") &&
+            onClick={() => window.confirm("Delete this PK for good? Its scores, proof and history go with it.") &&
               run(() => remove.mutateAsync(pk.id).then(() => navigate("/challenges")))}>
             <Trash2 className="w-3 h-3" /> Delete (admin)
           </button>
