@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { PERMISSIONS, PERMISSION_KEYS, type Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
+import { BirthdayEmailSettingsCard } from "@/components/birthday-email-settings-card";
 
 export default function Admin() {
   const { isAdmin, session } = useAuth();
@@ -49,6 +50,8 @@ export default function Admin() {
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground mt-1">Roles, permissions, and account status.</p>
       </div>
+
+      <BirthdayEmailSettingsCard />
 
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
