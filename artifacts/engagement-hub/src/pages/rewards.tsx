@@ -183,7 +183,7 @@ function MissionCard({ mission: m, busy, error, onClaim }: { mission: MyMission;
                 <p className="text-xs text-destructive flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Not approved last time; you can submit again.</p>
               )}
               <Button size="sm" variant="outline" onClick={onClaim} disabled={busy} className="w-full">
-                {busy ? "Submitting..." : "I did this — submit for approval"}
+                {busy ? "Submitting..." : "I did this, submit for approval"}
               </Button>
             </div>
           ) : (

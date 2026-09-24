@@ -165,7 +165,7 @@ export function CommentSection({
       {(loadError || addComment.error || deleteComment.error) && <p role="alert" className={cn("text-xs", onDark ? "text-red-200" : "text-destructive")}>{getErrorMessage(loadError ?? addComment.error ?? deleteComment.error)}</p>}
       {!isLoading && !loadError && comments.length === 0 && (
         <p className={cn("text-xs", onDark ? "text-white/70" : "text-muted-foreground")}>
-          No comments yet — be the first.
+          No comments yet. Be the first!
         </p>
       )}
 

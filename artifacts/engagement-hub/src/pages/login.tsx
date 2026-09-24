@@ -134,7 +134,7 @@ export default function Login() {
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
-                No account yet? Use Google above — password sign-in is for existing accounts only.
+                No account yet? Use Google above. Password sign-in is for existing accounts only.
               </p>
             </form>
           </CardContent>

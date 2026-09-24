@@ -199,7 +199,7 @@ export default function WordleGame() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>{entry.guess_count} guess{entry.guess_count === 1 ? "" : "es"}</span>
                         <span className="font-semibold text-foreground">
-                          {entry.duration_seconds != null ? formatDuration(entry.duration_seconds) : "—"}
+                          {entry.duration_seconds != null ? formatDuration(entry.duration_seconds) : "-"}
                         </span>
                       </div>
                     </motion.div>

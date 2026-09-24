@@ -27,6 +27,7 @@ import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { ImagePickerButton } from "@/components/image-picker-button";
 import { format } from "date-fns";
+import { SearchableSelect } from "@/components/searchable-select";
 
 export default function Profile() {
   const { profile } = useAuth();
@@ -206,7 +207,7 @@ export default function Profile() {
                 None
               </button>
               {unlockedTitles.length === 0 && (
-                <p className="text-xs text-muted-foreground py-1.5">No titles unlocked yet — complete a goal, hit a streak, or claim a record.</p>
+                <p className="text-xs text-muted-foreground py-1.5">No titles unlocked yet. Complete a goal, hit a streak, or claim a record.</p>
               )}
               {unlockedTitles.map((key) => (
                 <button
@@ -236,7 +237,7 @@ export default function Profile() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShoppingBag className="w-5 h-5 text-accent" /> Accessory Shop
             </CardTitle>
-            <CardDescription>Free for everyone — pick a little flair for your avatar</CardDescription>
+            <CardDescription>Free for everyone. Pick a little flair for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -290,7 +291,7 @@ export default function Profile() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <CircleDashed className="w-5 h-5 text-secondary" /> Profile Borders
             </CardTitle>
-            <CardDescription>Free for everyone — pick a border for your avatar</CardDescription>
+            <CardDescription>Free for everyone. Pick a border for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -342,7 +343,7 @@ export default function Profile() {
             </CardTitle>
             <CardDescription>
               {profile.birthday
-                ? "Set once — ask an admin if you need to change it."
+                ? "Set once. Ask an admin if you need to change it."
                 : "Set it once so the team can celebrate with you. You can't change it yourself afterward."}
             </CardDescription>
           </CardHeader>
@@ -361,7 +362,7 @@ export default function Profile() {
             </CardTitle>
             <CardDescription>
               {profile.role || profile.department
-                ? "Set once — ask an admin if you need to change it."
+                ? "Set once. Ask an admin if you need to change it."
                 : "Set it once so the team knows where you fit. You can't change it yourself afterward."}
             </CardDescription>
           </CardHeader>
@@ -455,24 +456,24 @@ function RoleDepartmentField({ role, department }: { role: string | null; depart
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
-      <select
+      <SearchableSelect
         value={roleValue}
-        onChange={(e) => setRoleValue(e.target.value as Role)}
-        required
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-      >
-        <option value="">Role...</option>
-        {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-      </select>
-      <select
+        onValueChange={(v) => setRoleValue(v as Role)}
+        options={ROLES.map((r) => ({ value: r, label: r }))}
+        placeholder="Role..."
+        searchPlaceholder="Search roles..."
+        aria-label="Role"
+        className="w-auto min-w-[8rem]"
+      />
+      <SearchableSelect
         value={deptValue}
-        onChange={(e) => setDeptValue(e.target.value as Department)}
-        required
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-      >
-        <option value="">Department...</option>
-        {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-      </select>
+        onValueChange={(v) => setDeptValue(v as Department)}
+        options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+        placeholder="Department..."
+        searchPlaceholder="Search departments..."
+        aria-label="Department"
+        className="w-auto min-w-[11rem]"
+      />
       <Button type="submit" size="sm" disabled={!roleValue || !deptValue || setRoleDept.isPending}>
         {setRoleDept.isPending ? "Saving..." : "Set Role & Department"}
       </Button>

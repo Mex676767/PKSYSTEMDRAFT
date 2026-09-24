@@ -2,6 +2,9 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllUsernames } from "@/hooks/use-guinness-records";
+import { useDirectory } from "@/hooks/use-mentors";
+import { SearchableSelect, type SelectOption } from "@/components/searchable-select";
+import { personOption } from "@/components/person-option";
 import {
   useManageAwards,
   useDeletionLogs,
@@ -21,8 +24,31 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 
+// Deletion snapshots store people as bare UUIDs; show who they were. Any
+// object with a user_id gets "username" right under its "id", and other
+// *_id / *_by person keys get a "<key>_username" next to them.
+const PERSON_KEYS = new Set(["holder_id", "owner_id", "author_id", "created_by", "deleted_by", "updated_by", "excluded_by", "reviewed_by"]);
+
+function withUsernames(value: unknown, names: Map<string, string>): unknown {
+  if (Array.isArray(value)) return value.map((v) => withUsernames(v, names));
+  if (!value || typeof value !== "object") return value;
+  const obj = value as Record<string, unknown>;
+  const nameFor = (id: unknown) => (typeof id === "string" && names.has(id) ? `@${names.get(id)}` : undefined);
+  const out: Record<string, unknown> = {};
+  const userName = nameFor(obj.user_id);
+  if (userName && !("id" in obj)) out.username = userName;
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = withUsernames(v, names);
+    if (k === "id" && userName) out.username = userName;
+    if (PERSON_KEYS.has(k) && nameFor(v)) out[`${k}_username`] = nameFor(v);
+  }
+  return out;
+}
+
 export function DeletionLogs() {
   const { hasPermission } = useAuth();
+  const usernames = useAllUsernames();
+  const names = new Map((usernames.data ?? []).map((u) => [u.id, u.username]));
   const logs = useDeletionLogs(
     hasPermission("manage_hof_awards") || hasPermission("manage_hall_of_fame"),
   );
@@ -51,14 +77,14 @@ export function DeletionLogs() {
                 log.snapshot.achievement ??
                 "Winner selection",
             ) || "Winner selection"}{" "}
-            — {log.deleted_by_name ?? "Database administrator"} ·{" "}
+            · {log.deleted_by_name ?? "Database administrator"} ·{" "}
             {format(new Date(log.deleted_at), "dd MMM yyyy, HH:mm")}
           </summary>
           <p className="mt-2 text-xs text-muted-foreground">
             {log.entity_type} · {log.entity_id}
           </p>
           <pre className="mt-2 whitespace-pre-wrap break-all text-xs">
-            {JSON.stringify(log.snapshot, null, 2)}
+            {JSON.stringify(withUsernames(log.snapshot, names), null, 2)}
           </pre>
         </details>
       ))}
@@ -95,7 +121,8 @@ function CategoryEditor({
   month: string;
   winners: AwardWinner[];
 }) {
-  const users = useAllUsernames();
+  const people = useDirectory();
+  const directory = people.data ?? [];
   const mutation = useManageAwards();
   const [name, setName] = useState(category.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -107,6 +134,26 @@ function CategoryEditor({
       achievement: winners.find((w) => w.rank === rank)?.achievement ?? "",
     })),
   );
+  // Each department's Hall of Fame only picks from that department. Anyone
+  // already saved as a winner stays listed (flagged) even if they've since
+  // moved department, so an existing pick never silently disappears.
+  const inDepartment = directory.filter((p) => p.username && p.department === category.department);
+  const winnerOptions = (index: number): SelectOption[] => {
+    const takenElsewhere = new Set(draft.filter((_, i) => i !== index).map((w) => w.user_id).filter(Boolean));
+    const current = draft[index].user_id;
+    const extra = current && !inDepartment.some((p) => p.id === current)
+      ? directory.filter((p) => p.id === current).map((p) => ({ ...personOption(p), description: `Not in ${category.department}` }))
+      : [];
+    return [
+      { value: "", label: "Unassigned" },
+      ...extra,
+      ...inDepartment.map((p) => ({
+        ...personOption(p),
+        disabled: takenElsewhere.has(p.id),
+        description: takenElsewhere.has(p.id) ? "Already picked for another place" : p.role ?? undefined,
+      })),
+    ];
+  };
   const duplicates = draft
     .filter((w) => w.user_id)
     .some(
@@ -170,26 +217,23 @@ function CategoryEditor({
             >
               Place {winner.rank}
             </label>
-            <select
+            <SearchableSelect
               id={`${category.id}-${index}`}
-              className="w-full bg-background border rounded-md p-2 text-sm"
               value={winner.user_id}
-              onChange={(e) => {
+              onValueChange={(v) => {
                 setSaved("");
                 setDraft((rows) =>
                   rows.map((row, i) =>
-                    i === index ? { ...row, user_id: e.target.value } : row,
+                    i === index ? { ...row, user_id: v } : row,
                   ),
                 );
               }}
-            >
-              <option value="">Unassigned</option>
-              {users.data?.map((user) => (
-                <option key={user.id} value={user.id}>
-                  @{user.username}
-                </option>
-              ))}
-            </select>
+              options={winnerOptions(index)}
+              placeholder="Unassigned"
+              searchPlaceholder={`Search ${category.department}...`}
+              emptyText={`No one in ${category.department} matches`}
+              aria-label={`Place ${winner.rank}`}
+            />
             <Input
               aria-label={`Place ${winner.rank} score or achievement`}
               placeholder="Score or achievement (optional)"
@@ -205,9 +249,9 @@ function CategoryEditor({
             />
           </div>
         ))}
-        {users.error && (
+        {people.error && (
           <p role="alert" className="text-destructive">
-            {getErrorMessage(users.error)}
+            {getErrorMessage(people.error)}
           </p>
         )}
         {duplicates && (
@@ -217,7 +261,7 @@ function CategoryEditor({
         )}
         <Button
           disabled={
-            mutation.isPending || duplicates || users.isLoading || !!users.error
+            mutation.isPending || duplicates || people.isLoading || !!people.error
           }
         >
           {mutation.isPending ? "Saving…" : "Save monthly winners"}

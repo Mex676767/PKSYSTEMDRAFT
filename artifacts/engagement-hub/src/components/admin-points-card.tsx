@@ -28,11 +28,10 @@ import {
 } from "@/hooks/use-rewards";
 import { CADENCE_LABEL, MISSION_KINDS, missionKindLabel, missionUnit, type MissionCadence } from "@/lib/missions";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
 
 type Section = "approvals" | "missions" | "rewards";
 
-const selectClass =
-  "w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AdminPointsCard() {
   const { data: settings, error: settingsError } = usePointsSettings();
@@ -290,11 +289,13 @@ function MissionDialog({ value, onClose }: { value: MissionInput & { id?: string
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="m-cadence">Repeats</Label>
-              <select id="m-cadence" className={selectClass} value={m.cadence} onChange={(e) => set("cadence", e.target.value as MissionCadence)}>
-                {(Object.keys(CADENCE_LABEL) as MissionCadence[]).map((c) => (
-                  <option key={c} value={c}>{c === "special" ? "Special (once, set dates)" : CADENCE_LABEL[c]}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                id="m-cadence"
+                value={m.cadence}
+                onValueChange={(v) => set("cadence", v as MissionCadence)}
+                options={(Object.keys(CADENCE_LABEL) as MissionCadence[]).map((c) => ({ value: c, label: c === "special" ? "Special (once, set dates)" : CADENCE_LABEL[c] }))}
+                searchable={false}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="m-points">Points reward</Label>
@@ -304,9 +305,13 @@ function MissionDialog({ value, onClose }: { value: MissionInput & { id?: string
           <div className="grid grid-cols-[1fr_auto] gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="m-kind">What they do</Label>
-              <select id="m-kind" className={selectClass} value={m.kind} onChange={(e) => set("kind", e.target.value)}>
-                {MISSION_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
-              </select>
+              <SearchableSelect
+                id="m-kind"
+                value={m.kind}
+                onValueChange={(v) => set("kind", v)}
+                options={MISSION_KINDS.map((k) => ({ value: k.key, label: k.label, description: k.help }))}
+                searchPlaceholder="Search activities..."
+              />
             </div>
             {m.kind !== "manual" && (
               <div className="space-y-1.5 w-24">

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 import { BirthdayEmailSettingsCard } from "@/components/birthday-email-settings-card";
 import { AdminPointsCard } from "@/components/admin-points-card";
+import { SearchableSelect } from "@/components/searchable-select";
 
 export default function Admin() {
   const { isAdmin, session } = useAuth();
@@ -313,22 +314,24 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
           <Briefcase className="w-3.5 h-3.5 shrink-0" />
           {editingRoleDept ? (
             <>
-              <select
+              <SearchableSelect
                 value={roleInput}
-                onChange={(e) => setRoleInput(e.target.value as Role)}
-                className="h-7 rounded border border-input bg-background px-2 text-xs"
-              >
-                <option value="">Role...</option>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <select
+                onValueChange={(v) => setRoleInput(v as Role)}
+                options={ROLES.map((r) => ({ value: r, label: r }))}
+                placeholder="Role..."
+                searchPlaceholder="Search roles..."
+                aria-label="Role"
+                className="h-7 w-auto min-w-[6.5rem] text-xs px-2"
+              />
+              <SearchableSelect
                 value={deptInput}
-                onChange={(e) => setDeptInput(e.target.value as Department)}
-                className="h-7 rounded border border-input bg-background px-2 text-xs"
-              >
-                <option value="">Department...</option>
-                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+                onValueChange={(v) => setDeptInput(v as Department)}
+                options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+                placeholder="Department..."
+                searchPlaceholder="Search departments..."
+                aria-label="Department"
+                className="h-7 w-auto min-w-[9rem] text-xs px-2"
+              />
               <button
                 disabled={(!roleInput && !deptInput) || adminSetRoleDept.isPending}
                 onClick={() =>

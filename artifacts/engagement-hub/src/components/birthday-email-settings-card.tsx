@@ -95,7 +95,7 @@ export function BirthdayEmailSettingsCard() {
             <h2 className="font-semibold">Birthday Email</h2>
             <p className="text-xs text-muted-foreground">
               The announcement emailed to every employee on someone's birthday. Automatic sending isn't switched on
-              yet — what you save here is what it will use.
+              yet. What you save here is what it will use.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -213,7 +213,7 @@ export function BirthdayEmailSettingsCard() {
                   {p.key}
                 </code>
               ))}
-              <span>— filled in when the email is sent.</span>
+              <span>These are filled in when the email is sent.</span>
             </div>
           </div>
         )}

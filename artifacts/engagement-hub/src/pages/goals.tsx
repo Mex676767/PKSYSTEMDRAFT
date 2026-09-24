@@ -26,6 +26,7 @@ import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { ImagePickerButton } from "@/components/image-picker-button";
 import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
@@ -287,7 +288,7 @@ export default function Goals() {
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <p className="text-xs text-muted-foreground -mt-2">
-                Mix Personal and Career goals in one go -- each one below picks its own category.
+                Mix Personal and Career goals in one go. Each one below picks its own category.
               </p>
 
               <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
@@ -304,24 +305,22 @@ export default function Goals() {
                     )}
                     <div className="flex items-center gap-2 pr-6">
                       <span className="text-xs font-semibold text-muted-foreground shrink-0">Goal {i + 1}</span>
-                      <select
+                      <SearchableSelect
                         value={d.category}
-                        onChange={(e) => updateDraft(d.key, { category: e.target.value as GoalCategory })}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs ml-auto"
-                      >
-                        {CATEGORY_ORDER.map((c) => (
-                          <option key={c} value={c}>{GOAL_CATEGORY_META[c].label}</option>
-                        ))}
-                      </select>
-                      <select
+                        onValueChange={(v) => updateDraft(d.key, { category: v as GoalCategory })}
+                        options={CATEGORY_ORDER.map((c) => ({ value: c, label: GOAL_CATEGORY_META[c].label }))}
+                        searchable={false}
+                        aria-label="Category"
+                        className="h-8 w-auto min-w-[7rem] text-xs ml-auto"
+                      />
+                      <SearchableSelect
                         value={d.term}
-                        onChange={(e) => updateDraft(d.key, { term: e.target.value as GoalTerm })}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                      >
-                        {TERM_ORDER.map((term) => (
-                          <option key={term} value={term}>{GOAL_TERM_META[term].label}</option>
-                        ))}
-                      </select>
+                        onValueChange={(v) => updateDraft(d.key, { term: v as GoalTerm })}
+                        options={TERM_ORDER.map((term) => ({ value: term, label: GOAL_TERM_META[term].label }))}
+                        searchable={false}
+                        aria-label="Term"
+                        className="h-8 w-auto min-w-[7rem] text-xs"
+                      />
                     </div>
                     <input
                       type="text"
@@ -341,14 +340,14 @@ export default function Goals() {
                       <textarea
                         value={d.accountability}
                         onChange={(e) => updateDraft(d.key, { accountability: e.target.value })}
-                        placeholder="Accountability action -- what will you actually do to hold yourself to this?"
+                        placeholder="Accountability action: what will you actually do to hold yourself to this?"
                         className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       />
                     )}
                     <textarea
                       value={d.actionPlan}
                       onChange={(e) => updateDraft(d.key, { actionPlan: e.target.value })}
-                      placeholder="Action plan (optional) -- how are you going to get there?"
+                      placeholder="Action plan (optional): how are you going to get there?"
                       className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                     <div className="flex items-center gap-1.5">

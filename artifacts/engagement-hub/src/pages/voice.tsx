@@ -63,7 +63,7 @@ export default function Voice() {
           <p className="text-muted-foreground mt-1">Talk to your team without leaving the app.</p>
         </div>
         <Badge variant="outline" className="shrink-0 flex items-center gap-1.5 border-primary/40 text-primary bg-primary/10">
-          <Sparkles className="w-3 h-3" /> Early Preview -- Admins Only
+          <Sparkles className="w-3 h-3" /> Early Preview · Admins Only
         </Badge>
       </div>
 
@@ -78,7 +78,7 @@ export default function Voice() {
           onClick={unlockAudio}
           className="w-full p-3 rounded-lg bg-amber-500/10 border border-amber-500/40 text-sm text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2 font-medium hover:bg-amber-500/20 transition-colors animate-pulse"
         >
-          <Volume2 className="w-4 h-4" /> Tap here to enable audio -- your browser is blocking playback
+          <Volume2 className="w-4 h-4" /> Tap here to enable audio. Your browser is blocking playback.
         </button>
       )}
 

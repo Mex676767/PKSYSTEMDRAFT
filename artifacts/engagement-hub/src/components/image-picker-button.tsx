@@ -76,7 +76,7 @@ export function ImagePickerButton(
       <div
         {...pasteZone}
         onClick={() => !disabled && fileInputRef.current?.click()}
-        title={armed ? "Ready — press Ctrl+V, or drop it" : `${label} (or paste with Ctrl+V)`}
+        title={armed ? "Ready! Press Ctrl+V, or drop it here" : `${label} (or paste with Ctrl+V)`}
         className={cn(
           "inline-flex items-center justify-center w-full h-full rounded-xl border-2 border-dashed transition-colors select-none shrink-0",
           disabled
@@ -115,7 +115,7 @@ export function ImagePickerButton(
           <ClipboardPaste className="w-4 h-4" />
         </span>
         <span className={cn("text-xs font-medium", armed ? "text-primary" : "text-muted-foreground")}>
-          {armed ? "Ready — press Ctrl+V, or drop it" : "Paste or drag an image here"}
+          {armed ? "Ready! Press Ctrl+V, or drop it here" : "Paste or drag an image here"}
         </span>
       </div>
       <button

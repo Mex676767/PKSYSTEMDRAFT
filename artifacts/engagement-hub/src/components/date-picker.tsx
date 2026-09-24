@@ -146,7 +146,7 @@ export function DatePicker({
             >
               {calView === "days" && `${MONTH_NAMES[view.month]} ${view.year}`}
               {calView === "months" && view.year}
-              {calView === "years" && `${pageYears[0]}–${pageYears[pageYears.length - 1]}`}
+              {calView === "years" && `${pageYears[0]} to ${pageYears[pageYears.length - 1]}`}
             </button>
             {calView === "days" && (
               <button type="button" onClick={() => navMonth(1)} title="Next month" className={navBtnClass}>›</button>

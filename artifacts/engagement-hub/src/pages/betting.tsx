@@ -19,6 +19,7 @@ import {
   type Bet,
 } from "@/hooks/use-bets";
 import { getErrorMessage, cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
 
 export default function Betting() {
   const { session } = useAuth();
@@ -158,15 +159,15 @@ function BetCard({
 
         {bet.status === "open" && session && !myWager && !isPastClose && (
           <form onSubmit={handleWager} className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/50">
-            <select
+            <SearchableSelect
               value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              required
-              className="h-9 flex-1 min-w-[120px] rounded-md border border-input bg-background px-2 text-sm"
-            >
-              <option value="">Pick an option...</option>
-              {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
+              onValueChange={setSelectedOption}
+              options={options.map((o) => ({ value: o.id, label: o.label }))}
+              placeholder="Pick an option..."
+              searchPlaceholder="Search options..."
+              aria-label="Your pick"
+              className="h-9 flex-1 min-w-[120px] w-auto"
+            />
             <input
               type="number"
               min={1}
@@ -193,14 +194,15 @@ function BetCard({
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
             {canResolve && (
               <>
-                <select
+                <SearchableSelect
                   value={resolvingOption}
-                  onChange={(e) => setResolvingOption(e.target.value)}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                >
-                  <option value="">Pick winner to resolve...</option>
-                  {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-                </select>
+                  onValueChange={setResolvingOption}
+                  options={options.map((o) => ({ value: o.id, label: o.label }))}
+                  placeholder="Pick winner to resolve..."
+                  searchPlaceholder="Search options..."
+                  aria-label="Winning option"
+                  className="h-8 w-auto min-w-[12rem] text-xs"
+                />
                 <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!resolvingOption || resolveBet.isPending} onClick={handleResolve}>
                   Resolve
                 </Button>
@@ -269,7 +271,7 @@ function NewBetDialog({ disabled }: { disabled: boolean }) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Options (write your own — not just yes/no)</label>
+            <label className="text-sm font-medium">Options (write your own, not just yes/no)</label>
             {options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input

@@ -40,6 +40,7 @@ import {
   type GoalCategory,
 } from "@/hooks/use-goals";
 import { getErrorMessage, cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
 
 const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
@@ -399,24 +400,22 @@ export function EditGoalDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="flex items-center gap-2">
-            <select
+            <SearchableSelect
               value={category}
-              onChange={(e) => setCategory(e.target.value as GoalCategory)}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              {CATEGORY_ORDER.map((c) => (
-                <option key={c} value={c}>{GOAL_CATEGORY_META[c].label}</option>
-              ))}
-            </select>
-            <select
+              onValueChange={(v) => setCategory(v as GoalCategory)}
+              options={CATEGORY_ORDER.map((c) => ({ value: c, label: GOAL_CATEGORY_META[c].label }))}
+              searchable={false}
+              aria-label="Category"
+              className="h-9 w-auto min-w-[8rem]"
+            />
+            <SearchableSelect
               value={term}
-              onChange={(e) => setTerm(e.target.value as GoalTerm)}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              {TERM_ORDER.map((t) => (
-                <option key={t} value={t}>{GOAL_TERM_META[t].label}</option>
-              ))}
-            </select>
+              onValueChange={(v) => setTerm(v as GoalTerm)}
+              options={TERM_ORDER.map((t) => ({ value: t, label: GOAL_TERM_META[t].label }))}
+              searchable={false}
+              aria-label="Term"
+              className="h-9 w-auto min-w-[8rem]"
+            />
           </div>
           <input
             type="text"
@@ -447,7 +446,7 @@ export function EditGoalDialog({
             <textarea
               value={accountability}
               onChange={(e) => setAccountability(e.target.value)}
-              placeholder="Accountability action -- what will you actually do to hold yourself to this?"
+              placeholder="Accountability action: what will you actually do to hold yourself to this?"
               className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           )}

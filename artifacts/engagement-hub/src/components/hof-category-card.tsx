@@ -21,6 +21,8 @@ import {
 } from "@/hooks/use-guinness-records";
 import { getHofIcon } from "@/lib/icon-map";
 import { getErrorMessage } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
+import { personOption } from "@/components/person-option";
 
 export function HofCategoryCard({ category, current }: { category: HofCategory; current: HofRecord | null }) {
   const { session, hasPermission } = useAuth();
@@ -138,17 +140,14 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
                 <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Record holder</label>
-                    <select
+                    <SearchableSelect
                       value={holderId}
-                      onChange={(e) => setHolderId(e.target.value)}
-                      required
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="">Select someone...</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>@{u.username}</option>
-                      ))}
-                    </select>
+                      onValueChange={setHolderId}
+                      options={users.map(personOption)}
+                      placeholder="Select someone..."
+                      searchPlaceholder="Search people..."
+                      aria-label="Record holder"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Achievement</label>

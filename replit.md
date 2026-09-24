@@ -34,7 +34,11 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Dropdowns: never use a native `<select>`. Use `SearchableSelect`
+  (`artifacts/engagement-hub/src/components/searchable-select.tsx`): themed, with a
+  search box. For people, build options with `personOption()` from `person-option.tsx`.
+- Copy: don't use em dashes (—) or " -- " in user-facing text. Use a full stop, colon
+  or comma instead.
 
 ## Gotchas
 

@@ -22,6 +22,8 @@ import {
 } from "@/hooks/use-mentors";
 import { DEPARTMENTS, type Department } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
+import { personOption } from "@/components/person-option";
 
 function PersonChip({
   id,
@@ -378,10 +380,14 @@ function AddMenteeButton(
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Mentee</label>
-            <select value={menteeId} onChange={(e) => setMenteeId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">Select...</option>
-              {options.map((p) => <option key={p.id} value={p.id}>@{p.username}</option>)}
-            </select>
+            <SearchableSelect
+              value={menteeId}
+              onValueChange={setMenteeId}
+              options={options.map(personOption)}
+              placeholder="Select..."
+              searchPlaceholder="Search people..."
+              aria-label="Mentee"
+            />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={createMentorship.isPending}>
@@ -522,15 +528,14 @@ function DepartmentSection({
                   {canManage && (
                     editingId === p.id ? (
                       <div className="flex items-center gap-1 shrink-0">
-                        <select
-                          autoFocus
+                        <SearchableSelect
                           value={deptInput}
-                          onChange={(e) => setDeptInput(e.target.value as Department)}
-                          className="w-28 h-7 text-xs rounded border border-input bg-background px-1"
-                        >
-                          <option value="">Unassigned</option>
-                          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                          onValueChange={(v) => setDeptInput(v as Department)}
+                          options={[{ value: "", label: "Unassigned" }, ...DEPARTMENTS.map((d) => ({ value: d, label: d }))]}
+                          searchPlaceholder="Search departments..."
+                          aria-label="Department"
+                          className="w-36 h-7 text-xs px-2"
+                        />
                         <button onClick={() => saveEdit(p.id)} className="text-emerald-600"><ArrowRight className="w-3.5 h-3.5" /></button>
                         <button onClick={() => setEditingId(null)} className="text-muted-foreground"><X className="w-3.5 h-3.5" /></button>
                       </div>
@@ -591,17 +596,25 @@ function NewPairingButton({ directory }: { directory: DirectoryProfileLike[] }) 
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Mentor</label>
-              <select value={mentorId} onChange={(e) => setMentorId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Select...</option>
-                {directory.map((p) => <option key={p.id} value={p.id}>@{p.username}</option>)}
-              </select>
+              <SearchableSelect
+                value={mentorId}
+                onValueChange={setMentorId}
+                options={directory.map(personOption)}
+                placeholder="Select..."
+                searchPlaceholder="Search people..."
+                aria-label="Mentor"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Mentee</label>
-              <select value={menteeId} onChange={(e) => setMenteeId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Select...</option>
-                {directory.map((p) => <option key={p.id} value={p.id}>@{p.username}</option>)}
-              </select>
+              <SearchableSelect
+                value={menteeId}
+                onValueChange={setMenteeId}
+                options={directory.map(personOption)}
+                placeholder="Select..."
+                searchPlaceholder="Search people..."
+                aria-label="Mentee"
+              />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={createMentorship.isPending}>

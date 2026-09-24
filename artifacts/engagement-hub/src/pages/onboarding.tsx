@@ -10,6 +10,7 @@ import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
 import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
 
 function sanitizeUsername(raw: string) {
   return raw.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
@@ -168,27 +169,27 @@ function RoleStep() {
         <label className="text-sm font-medium flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-primary" /> Role
         </label>
-        <select
+        <SearchableSelect
           value={role}
-          onChange={(e) => setRole(e.target.value as Role)}
-          required
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">Select a role...</option>
-          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
+          onValueChange={(v) => setRole(v as Role)}
+          options={ROLES.map((r) => ({ value: r, label: r }))}
+          placeholder="Select a role..."
+          searchPlaceholder="Search roles..."
+          aria-label="Role"
+          className="h-11"
+        />
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Department</label>
-        <select
+        <SearchableSelect
           value={department}
-          onChange={(e) => setDepartment(e.target.value as Department)}
-          required
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">Select a department...</option>
-          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
+          onValueChange={(v) => setDepartment(v as Department)}
+          options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+          placeholder="Select a department..."
+          searchPlaceholder="Search departments..."
+          aria-label="Department"
+          className="h-11"
+        />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full h-11" disabled={!role || !department || setRoleDept.isPending}>

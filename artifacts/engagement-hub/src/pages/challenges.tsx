@@ -30,6 +30,8 @@ import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
+import { SearchableSelect } from "@/components/searchable-select";
+import { personOption } from "@/components/person-option";
 
 const NEW_CHALLENGE_DRAFT_KEY = "c9myr:new-challenge-draft";
 
@@ -436,13 +438,14 @@ function NewChallengeDialog({ disabled }: { disabled: boolean }) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto pr-1">
           <div className="space-y-2">
             <label className="text-sm font-medium">Opponent</label>
-            <select value={opponentId} onChange={(e) => setOpponentId(e.target.value)} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">Select...</option>
-              {directory.map((p) => {
-                const meta = [p.role, p.department].filter(Boolean).join(" · ");
-                return <option key={p.id} value={p.id}>@{p.username}{meta ? ` (${meta})` : ""}</option>;
-              })}
-            </select>
+            <SearchableSelect
+              value={opponentId}
+              onValueChange={setOpponentId}
+              options={directory.map(personOption)}
+              placeholder="Select..."
+              searchPlaceholder="Search by name, role or department..."
+              aria-label="Opponent"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Topic</label>

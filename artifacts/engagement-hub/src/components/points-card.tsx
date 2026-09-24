@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from "@/hooks/use-auth";
 import { usePointHistory, useGiftableProfiles, useGiftPoints } from "@/hooks/use-points";
 import { getErrorMessage } from "@/lib/utils";
+import { SearchableSelect } from "@/components/searchable-select";
+import { personOption } from "@/components/person-option";
 
 export function PointsCard() {
   const { session, profile } = useAuth();
@@ -66,17 +68,14 @@ export function PointsCard() {
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">To</label>
-                <select
+                <SearchableSelect
                   value={recipientId}
-                  onChange={(e) => setRecipientId(e.target.value)}
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">Select someone...</option>
-                  {giftable.map((p) => (
-                    <option key={p.id} value={p.id}>@{p.username}</option>
-                  ))}
-                </select>
+                  onValueChange={setRecipientId}
+                  options={giftable.map(personOption)}
+                  placeholder="Select someone..."
+                  searchPlaceholder="Search people..."
+                  aria-label="Recipient"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Amount</label>

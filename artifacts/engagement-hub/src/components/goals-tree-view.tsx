@@ -146,7 +146,7 @@ function TreePersonNode(
       style={slot ? { left: slot.x, top: slot.y } : { left: 0, top: 0 }}
       aria-hidden={slot ? undefined : true}
       tabIndex={slot ? undefined : -1}
-      title={`@${person.username} -- ${completion}% of goals`}
+      title={`@${person.username}: ${completion}% of goals`}
     >
       <span className="relative shrink-0 rounded-full">
         {selected && (
