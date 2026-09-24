@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "wouter";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { Clock, Crown, DollarSign, Gift, Megaphone, Skull, Trash2 } from "lucide-react";
@@ -56,6 +57,28 @@ export function PkSideBlock({ people, align, placeholder }: { people: PkParticip
   );
 }
 
+/** Result presentation follows verified outcomes, never provisional scores. */
+export function PkMatchStage({ pk, viewerId }: { pk: Pk; viewerId?: string }) {
+  const viewer = pk.participants.find((p) => p.user_id === viewerId);
+  const settled = pk.status === "settled";
+  const defeat = settled && !!pk.winner_side && !!viewer && viewer.side !== pk.winner_side;
+  const mode = settled ? (pk.winner_side ? (defeat ? "defeat" : "victory") : "draw") : pk.status === "active" ? "fight" : "waiting";
+  const label = mode === "fight" ? "FIGHT!" : mode === "victory" ? "VICTORY" : mode === "defeat" ? "DEFEAT" : mode === "draw" ? "DRAW" : PK_STATUS_LABEL[pk.status];
+  return <div className={cn("pk-match-stage", "pk-match-" + mode)}>
+    {mode === "victory" && <div className="pk-fireworks" aria-hidden="true">{Array.from({ length: 5 }, (_, burst) => <div className="pk-burst" key={burst} style={{ left: (12 + burst * 19) + "%", top: (burst % 2 ? 25 : 65) + "%" }}>{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--dx": Math.cos(i * Math.PI / 6) * 48 + "px", "--dy": Math.sin(i * Math.PI / 6) * 48 + "px", "--delay": burst * .22 + "s", "--spark": ["#ffca72", "#ff8dcc", "#70ded7"][burst % 3] } as CSSProperties} />)}</div>)}</div>}
+    <div className="pk-stage-caption">{settled ? "Verified result" : pk.status === "active" ? "Live match" : "Battle Arena"}</div>
+    <div className="pk-stage-duel">
+      {(["A", "B"] as const).map((side, index) => <div key={side} className={cn("pk-stage-person", index === 1 && "pk-stage-right", settled && pk.winner_side === side && "pk-stage-winner")}>
+        {settled && pk.winner_side === side && <Crown className="pk-stage-crown" aria-label="Winner" />}
+        <div className="pk-stage-avatars">{pkSide(pk, side).slice(0, 5).map((person) => <PkAvatar key={person.user_id} p={person} className="w-12 h-12 text-sm" />)}</div>
+        <strong>{pkSide(pk, side)[0]?.profile?.username ?? "Open slot"}{pkSide(pk, side).length > 1 ? " +" + (pkSide(pk, side).length - 1) : ""}</strong>
+        <span>{settled && pk.winner_side === side ? "Winner" : side === "A" ? "Challenger" : "Opponent"}</span>
+      </div>)}
+      <div className="pk-stage-title"><div>{label}</div><span>{mode === "fight" ? "Make your move" : mode === "defeat" ? "Reset. Learn. Return." : mode === "victory" ? "Match complete" : mode === "draw" ? "Honours shared" : ""}</span></div>
+    </div>
+  </div>;
+}
+
 /** What the viewer needs to do on this PK, if anything. */
 export function pkNextStep(pk: Pk, viewerId: string | undefined, canApprove: boolean): string | null {
   const me = pk.participants.find((p) => p.user_id === viewerId);
@@ -97,7 +120,8 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
 
   return (
     <Link href={`/challenges/${pk.id}`}>
-      <Card className={cn("shadow-sm cursor-pointer transition-colors hover:border-secondary/60", involved && "border-secondary/30", next && "ring-1 ring-amber-500/50")}>
+      <Card className={cn("shadow-sm overflow-hidden cursor-pointer transition-colors hover:border-secondary/60", involved && "border-secondary/30", next && "ring-1 ring-amber-500/50")}>
+        <PkMatchStage pk={pk} viewerId={viewerId} />
         <CardContent className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
