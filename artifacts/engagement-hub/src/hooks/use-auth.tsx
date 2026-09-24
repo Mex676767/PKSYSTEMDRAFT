@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { disablePush } from "@/lib/push";
 
 export type Profile = {
   id: string;
@@ -175,6 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Stop this device's push notifications first, while still signed in to
+    // delete the subscription, so the next person here doesn't get them.
+    await disablePush().catch(() => {});
     await supabase.auth.signOut();
   };
 

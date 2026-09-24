@@ -3,7 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
-export type NotificationType = "comment" | "reply" | "reaction" | "challenge" | "dm";
+export type NotificationType =
+  | "comment"
+  | "reply"
+  | "reaction"
+  | "challenge"
+  | "dm"
+  | "birthday"
+  | "goal"
+  | "points"
+  | "achievement";
 
 export type AppNotification = {
   id: string;

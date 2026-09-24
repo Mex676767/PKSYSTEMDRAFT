@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, MessageCircle, Reply, Heart, Swords, MessageSquare, type LucideIcon } from "lucide-react";
+import { Bell, MessageCircle, Reply, Heart, Swords, MessageSquare, Cake, Target, Coins, Trophy, type LucideIcon } from "lucide-react";
+import { PushToggle } from "@/components/push-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useNotifications,
@@ -17,6 +18,10 @@ const TYPE_ICON: Record<AppNotification["type"], LucideIcon> = {
   reaction: Heart,
   challenge: Swords,
   dm: MessageSquare,
+  birthday: Cake,
+  goal: Target,
+  points: Coins,
+  achievement: Trophy,
 };
 
 const TARGET_LINK: Record<string, string> = {
@@ -26,6 +31,7 @@ const TARGET_LINK: Record<string, string> = {
   hof_record: "/guinness-records",
   challenge: "/challenges",
   dm: "/messages",
+  profile: "/profile",
 };
 
 export function NotificationBell() {
@@ -34,7 +40,25 @@ export function NotificationBell() {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const [isOpen, setIsOpen] = useState(false);
+  // Notifications that were unread when the panel opened (or arrived while it
+  // was open). They're marked read straight away but stay highlighted until
+  // the panel closes, so you can still see what's new.
+  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+  const unreadKey = unreadIds.join(",");
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFreshIds(new Set());
+      return;
+    }
+    if (unreadIds.length === 0 || markAllRead.isPending) return;
+    setFreshIds((prev) => new Set([...prev, ...unreadIds]));
+    markAllRead.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, unreadKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,7 +76,7 @@ export function NotificationBell() {
 
   if (!session) return null;
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = unreadIds.length;
 
   return (
     <div ref={rootRef} className="relative shrink-0">
@@ -73,19 +97,16 @@ export function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-border bg-card shadow-lg z-50">
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-border sticky top-0 bg-card">
             <span className="text-sm font-semibold">Notifications</span>
-            {unreadCount > 0 && (
-              <button onClick={() => markAllRead.mutate()} className="text-xs text-primary hover:underline">
-                Mark all read
-              </button>
-            )}
           </div>
+          <PushToggle />
           {notifications.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No notifications yet.</p>
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((n) => {
-                const Icon = TYPE_ICON[n.type];
+                const Icon = TYPE_ICON[n.type] ?? Bell;
                 const href = TARGET_LINK[n.target_type ?? ""] ?? "/";
+                const isNew = !n.read || freshIds.has(n.id);
                 return (
                   <Link
                     key={n.id}
@@ -96,13 +117,13 @@ export function NotificationBell() {
                     }}
                     className={cn(
                       "flex items-start gap-2.5 px-3 py-2.5 hover:bg-muted/50 transition-colors",
-                      !n.read && "bg-primary/5"
+                      isNew && "bg-primary/5"
                     )}
                   >
                     <div
                       className={cn(
                         "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                        !n.read ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                        isNew ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                       )}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -113,7 +134,7 @@ export function NotificationBell() {
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                       </p>
                     </div>
-                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />}
+                    {isNew && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />}
                   </Link>
                 );
               })}
