@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { addMonths, format, isSameMonth, startOfMonth } from "date-fns";
 import { ChevronLeft, ChevronRight, Trophy, UserX, Settings } from "lucide-react";
-import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
+import { PageTransition } from "@/components/animations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
 import { DepartmentPodium } from "@/components/hof-podium";
 import { useMonthlyPodium, useHofExclusions, useSetHofPodiumExclusion } from "@/hooks/use-hall-of-fame";
 import { useAllUsernames } from "@/hooks/use-guinness-records";
@@ -15,6 +14,7 @@ import { DEPARTMENTS } from "@/lib/roles";
 export default function HallOfFame() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("manage_hof_awards");
+  const [department, setDepartment] = useState<string>(DEPARTMENTS[0]);
   const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()));
   const { data: podium = [], isLoading } = useMonthlyPodium(monthStart);
 
@@ -31,12 +31,12 @@ export default function HallOfFame() {
   }, [podium]);
 
   return (
-    <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+    <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Badge variant="accent" className="mb-2">🏆 Monthly Achievement</Badge>
+          <Badge variant="accent" className="mb-2">✦ Celebrate progress</Badge>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Hall of Fame</h1>
-          <p className="text-muted-foreground mt-1">This month's top point-earners, department by department.</p>
+          <p className="text-muted-foreground mt-1">Monthly achievements, celebrated by department.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -66,23 +66,14 @@ export default function HallOfFame() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Department">
+        {DEPARTMENTS.map(dept => <Button key={dept} variant={department === dept ? "default" : "outline"} aria-pressed={department === dept} onClick={() => setDepartment(dept)} className="rounded-full">{dept}</Button>)}
+      </div>
       {isLoading ? (
-        <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-accent/20" /></div>
+        <div className="p-8 text-center text-muted-foreground">Loading monthly achievements…</div>
       ) : (
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 gap-5"
-        >
-          {DEPARTMENTS.map((dept) => (
-            <motion.div key={dept} variants={slideUp}>
-              <DepartmentPodium department={dept} entries={byDepartment.get(dept) ?? []} />
-            </motion.div>
-          ))}
-        </motion.div>
+        <DepartmentPodium department={department} monthLabel={format(monthStart, "MMMM yyyy")} entries={byDepartment.get(department) ?? []} />
       )}
-
       {!isLoading && podium.length === 0 && (
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
           <Trophy className="w-4 h-4" /> No one earned points company-wide in {format(monthStart, "MMMM yyyy")}.
@@ -135,3 +126,4 @@ function ManageExclusionsDialog() {
     </Dialog>
   );
 }
+

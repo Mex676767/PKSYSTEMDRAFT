@@ -82,6 +82,7 @@ export default function Social() {
                 <UserAvatar
                   user={{ name: profile?.username ?? "unknown", initials: initialsForUsername(profile?.username ?? "?"), color: colorForId(session.user.id) }}
                   photoUrl={profile?.avatar_url}
+                  accessory={profile?.active_accessory}
                   border={profile?.active_border}
                   className="w-10 h-10 shrink-0"
                 />

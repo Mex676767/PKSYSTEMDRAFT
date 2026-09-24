@@ -1,9 +1,12 @@
 import { format } from "date-fns";
-import { Award, Printer, X } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useState } from "react";
+import { Award, Printer, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
-import { initialsForUsername, colorForId } from "@/hooks/use-auth";
+import { initialsForUsername, colorForId, useAuth } from "@/hooks/use-auth";
+import { useDeleteHofRecord } from "@/hooks/use-guinness-records";
+import { getErrorMessage } from "@/lib/utils";
 import type { HofCategory, HofRecord } from "@/hooks/use-guinness-records";
 
 export function CertificateDialog({
@@ -17,18 +20,17 @@ export function CertificateDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { hasPermission } = useAuth();
+  const deleteRecord = useDeleteHofRecord(category.id);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   if (!record) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden certificate-dialog-content">
-        <div className="certificate-print-area relative p-8 bg-gradient-to-br from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-background dark:to-amber-950/40 border-8 border-double border-amber-400/60">
-          <button
-            onClick={() => onOpenChange(false)}
-            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground no-print"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Dialog open={open} onOpenChange={(next) => { setConfirmDelete(false); deleteRecord.reset(); onOpenChange(next); }}>
+      <DialogContent className="max-w-lg p-0 certificate-dialog-content">
+        <DialogTitle className="sr-only">{category.name} certificate</DialogTitle>
+        <DialogDescription className="sr-only">Achievement certificate and record actions.</DialogDescription>
+        <div className="certificate-print-area relative m-3 p-6 pt-10 rounded-lg bg-gradient-to-br from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-background dark:to-amber-950/40 border border-amber-400/60">
 
           <div className="text-center space-y-4">
             <Award className="w-12 h-12 mx-auto text-amber-500" />
@@ -66,10 +68,20 @@ export function CertificateDialog({
           </div>
         </div>
 
-        <div className="p-4 flex justify-center no-print">
+        <div className="px-4 pb-4 flex flex-wrap justify-center gap-2 no-print">
           <Button size="sm" variant="outline" onClick={() => window.print()}>
             <Printer className="w-3.5 h-3.5 mr-1.5" /> Print / Save as PDF
           </Button>
+          {hasPermission("manage_hall_of_fame") && (
+            confirmDelete ? <div className="w-full space-y-3 text-center">
+              <p className="text-sm">Delete this record and its certificate? This cannot be undone.</p>
+              <Button variant="outline" disabled={deleteRecord.isPending} onClick={() => setConfirmDelete(false)}>Cancel</Button>{" "}
+              <Button variant="destructive" disabled={deleteRecord.isPending} onClick={() => deleteRecord.mutate(record.id, { onSuccess: () => { setConfirmDelete(false); onOpenChange(false); } })}>
+                {deleteRecord.isPending ? "Deleting…" : "Delete record"}
+              </Button>
+            </div> : <Button size="sm" variant="destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete record</Button>
+          )}
+          {deleteRecord.error && <p role="alert" className="w-full text-sm text-destructive">{getErrorMessage(deleteRecord.error)}</p>}
         </div>
       </DialogContent>
 
@@ -79,6 +91,7 @@ export function CertificateDialog({
           .certificate-print-area, .certificate-print-area * { visibility: visible; }
           .certificate-print-area { position: fixed; inset: 0; border-width: 4px; }
           .no-print { display: none !important; }
+          .certificate-dialog-content > button { display: none !important; }
         }
       `}</style>
     </Dialog>

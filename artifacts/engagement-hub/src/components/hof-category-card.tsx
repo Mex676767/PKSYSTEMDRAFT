@@ -19,6 +19,7 @@ import {
   type HofRecord,
 } from "@/hooks/use-guinness-records";
 import { getHofIcon } from "@/lib/icon-map";
+import { getErrorMessage } from "@/lib/utils";
 
 export function HofCategoryCard({ category, current }: { category: HofCategory; current: HofRecord | null }) {
   const { session, hasPermission } = useAuth();
@@ -56,6 +57,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
   return (
     <Card className="border-accent/20 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-accent/10 via-card to-card overflow-hidden">
       <CardContent className="p-5 space-y-4">
+        {deleteRecord.error && <p role="alert" className="text-sm text-destructive">{getErrorMessage(deleteRecord.error)}</p>}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="bg-accent/20 text-accent p-2 rounded-xl shrink-0">

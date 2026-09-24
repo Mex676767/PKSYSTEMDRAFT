@@ -123,8 +123,9 @@ export function useDeleteHofRecord(categoryId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (recordId: string) => {
-      const { error } = await supabase.from("hof_records").delete().eq("id", recordId);
+      const { data, error } = await supabase.from("hof_records").delete().eq("id", recordId).eq("category_id", categoryId).select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("Record was not deleted. It may already be removed, or your account lacks database permission. Ask the project owner to apply the record-deletion permission migration.");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hof-current-records"] });
