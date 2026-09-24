@@ -1,5 +1,5 @@
 // Activities a mission can count. Keys match the trigger kinds in
-// supabase/migrations/0018_mission_activity.sql ('manual' = admin approves).
+// supabase/migrations/0020_mission_activity.sql ('manual' = admin approves).
 export const MISSION_KINDS = [
   { key: "login", label: "Log in", unit: "day", help: "Days they open the hub" },
   { key: "post", label: "Create posts", unit: "post", help: "Social posts" },
