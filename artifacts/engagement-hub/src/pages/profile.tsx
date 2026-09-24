@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
+import { ChangePasswordCard } from "@/components/change-password-card";
 import { motion } from "framer-motion";
 import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -369,6 +370,8 @@ export default function Profile() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <ChangePasswordCard />
 
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-destructive/30 shadow-sm">
