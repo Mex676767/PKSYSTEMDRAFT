@@ -18,13 +18,15 @@ declare
 begin
   update profiles set last_seen_at = now() where id = auth.uid();
 
-  select id into open_session_id
-  from login_sessions
-  where user_id = auth.uid()
-    and ended_at is null
-    and last_heartbeat_at > now() - interval '2 minutes'
-  order by started_at desc
-  limit 1;
+  open_session_id := (
+    select id
+    from login_sessions
+    where user_id = auth.uid()
+      and ended_at is null
+      and last_heartbeat_at > now() - interval '2 minutes'
+    order by started_at desc
+    limit 1
+  );
 
   if open_session_id is not null then
     update login_sessions set last_heartbeat_at = now() where id = open_session_id;

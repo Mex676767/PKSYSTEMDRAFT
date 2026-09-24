@@ -1,5 +1,5 @@
 -- Browser push notifications, plus in-app notifications for birthdays, goals,
--- points and achievements. Every row inserted into `notifications` (old types
+-- points and achievements. Every new row in `notifications` (old types
 -- and new) is also pushed to the recipient's subscribed devices by the
 -- send-push edge function. Setup steps: supabase/PUSH-NOTIFICATIONS.md.
 
@@ -98,8 +98,8 @@ declare
   webhook_secret text;
 begin
   begin
-    select decrypted_secret into project_url from vault.decrypted_secrets where name = 'project_url';
-    select decrypted_secret into webhook_secret from vault.decrypted_secrets where name = 'push_webhook_secret';
+    project_url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1);
+    webhook_secret := (select decrypted_secret from vault.decrypted_secrets where name = 'push_webhook_secret' limit 1);
     if project_url is null or webhook_secret is null then
       return new;
     end if;
