@@ -485,3 +485,17 @@ body.tab-hidden .cosmetic-anim {
 @media (prefers-reduced-motion: reduce) {
   .cosmetic-anim { animation: none !important; }
 }
+
+/* Single-element printing (src/lib/print-element.ts). */
+@media screen {
+  #print-root { display: none; }
+}
+@media print {
+  body.printing-element > *:not(#print-root) { display: none !important; }
+  body.printing-element { background: #fff !important; }
+  #print-root { display: block; padding: 0; }
+  #print-root * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-root .no-print { display: none !important; }
+  /* Soft shadows print as hard-edged boxes in PDFs. */
+  #print-root, #print-root * { box-shadow: none !important; text-shadow: none !important; }
+}

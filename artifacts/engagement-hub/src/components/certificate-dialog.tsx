@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { printElement } from "@/lib/print-element";
 import { Award, Printer, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function CertificateDialog({
   const { hasPermission } = useAuth();
   const deleteRecord = useDeleteHofRecord(category.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
   if (!record) return null;
 
   return (
@@ -30,7 +32,7 @@ export function CertificateDialog({
       <DialogContent className="max-w-lg p-0 certificate-dialog-content">
         <DialogTitle className="sr-only">{category.name} certificate</DialogTitle>
         <DialogDescription className="sr-only">Achievement certificate and record actions.</DialogDescription>
-        <div className="certificate-print-area relative m-3 p-6 pt-10 rounded-lg bg-gradient-to-br from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-background dark:to-amber-950/40 border border-amber-400/60">
+        <div ref={certificateRef} className="certificate-print-area relative m-3 p-6 pt-10 rounded-lg bg-gradient-to-br from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-background dark:to-amber-950/40 border border-amber-400/60">
 
           <div className="text-center space-y-4">
             <Award className="w-12 h-12 mx-auto text-amber-500" />
@@ -42,7 +44,8 @@ export function CertificateDialog({
             </div>
 
             <div className="flex flex-col items-center gap-2 py-2">
-              <div>
+              {/* Room above for tall accessories (hats, halos) so they don't cover the title. */}
+              <div className="certificate-avatar mt-5">
                 <UserAvatar
                   user={{
                     name: record.holder?.username ?? "unknown",
@@ -70,7 +73,7 @@ export function CertificateDialog({
         </div>
 
         <div className="px-4 pb-4 flex flex-wrap justify-center gap-2 no-print">
-          <Button size="sm" variant="outline" onClick={() => window.print()}>
+          <Button size="sm" variant="outline" onClick={() => certificateRef.current && printElement(certificateRef.current)}>
             <Printer className="w-3.5 h-3.5 mr-1.5" /> Print / Save as PDF
           </Button>
           {hasPermission("manage_hall_of_fame") && (
@@ -86,13 +89,11 @@ export function CertificateDialog({
         </div>
       </DialogContent>
 
+      {/* Print sizing for the copied certificate; see src/lib/print-element.ts. */}
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .certificate-print-area, .certificate-print-area * { visibility: visible; }
-          .certificate-print-area { position: fixed; inset: 0; border-width: 4px; }
-          .no-print { display: none !important; }
-          .certificate-dialog-content > button { display: none !important; }
+          #print-root .certificate-print-area { margin: 0 auto; max-width: 170mm; border-width: 4px; padding: 16mm 12mm; }
+          #print-root .certificate-avatar { margin-top: 10mm; }
         }
       `}</style>
     </Dialog>
