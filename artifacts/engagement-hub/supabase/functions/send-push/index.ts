@@ -53,6 +53,8 @@ const TARGET_PATH: Record<string, string> = {
   challenge: "challenges",
   dm: "messages",
   profile: "profile",
+  rewards: "rewards",
+  admin: "admin",
 };
 
 function timingSafeEqual(a: string, b: string) {

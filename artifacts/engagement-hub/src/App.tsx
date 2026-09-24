@@ -24,6 +24,7 @@ import Challenges from '@/pages/challenges';
 import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
+import Rewards from '@/pages/rewards';
 import Birthdays from '@/pages/birthdays';
 import Voice from '@/pages/voice';
 import HallOfFame from '@/pages/hall-of-fame';
@@ -49,6 +50,7 @@ function Router() {
           <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />
           <Route path="/profile" component={Profile} />
+          <Route path="/rewards" component={Rewards} />
           <Route path="/games" component={() => <ComingSoon label="Games" icon={Gamepad2} />} />
           <Route path="/games/wordle" component={() => <ComingSoon label="Fastest Wordle Guesser" icon={Gamepad2} />} />
           <Route path="/games/desk-setup" component={() => <ComingSoon label="Best WFH Desk Setup" icon={Gamepad2} />} />

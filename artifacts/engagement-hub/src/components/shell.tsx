@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRevampEnabled } from "@/hooks/use-rewards";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { titleLabel } from "@/lib/titles";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
+  { href: "/rewards", label: "Rewards", icon: ShoppingBag },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/guinness-records", label: "Guinness Records", icon: Medal },
   { href: "/mentors", label: "Mentors", icon: Users },
@@ -42,7 +44,9 @@ const navItems = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
-  const items = navItems;
+  const revampEnabled = useRevampEnabled();
+  // Rewards only appears while an admin has missions + the shop switched on.
+  const items = navItems.filter((item) => item.href !== "/rewards" || revampEnabled);
   const { channelId: voiceChannelId } = useVoiceCall();
   const { unreadCounts } = useConversations();
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0);

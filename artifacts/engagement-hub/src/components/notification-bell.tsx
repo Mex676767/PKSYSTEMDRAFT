@@ -32,6 +32,8 @@ const TARGET_LINK: Record<string, string> = {
   challenge: "/challenges",
   dm: "/messages",
   profile: "/profile",
+  rewards: "/rewards",
+  admin: "/admin",
 };
 
 export function NotificationBell() {

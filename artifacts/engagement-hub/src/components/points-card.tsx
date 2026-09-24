@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Coins, Gift } from "lucide-react";
+import { Coins, Gift, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
+import { useRevampEnabled } from "@/hooks/use-rewards";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,6 +15,7 @@ export function PointsCard() {
   const { data: history = [] } = usePointHistory();
   const { data: giftable = [] } = useGiftableProfiles();
   const giftPoints = useGiftPoints();
+  const revampEnabled = useRevampEnabled();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [recipientId, setRecipientId] = useState("");
@@ -128,6 +131,11 @@ export function PointsCard() {
               </div>
             ))}
           </div>
+        )}
+        {revampEnabled && (
+          <Link href="/rewards" className="mt-3 flex items-center justify-center gap-1 text-sm font-semibold text-primary hover:underline">
+            Missions & rewards shop <ChevronRight className="w-4 h-4" />
+          </Link>
         )}
       </CardContent>
     </Card>
