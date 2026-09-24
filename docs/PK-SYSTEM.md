@@ -223,3 +223,37 @@ smallest change that gets Phase 1 working, and don't over-engineer.
   departments; reward points ledger guarded so points only come from missions
   and admins; missions (challenge activity deliberately not tracked yet);
   notifications + push; SearchableSelect for all dropdowns.
+
+## Decisions (confirmed 24 Sep 2026)
+
+| Question | Decision |
+|---|---|
+| PK points vs reward points | **Separate.** PK points are leaderboard-only (can go negative, reset each period) and never touch the reward-points ledger, which carries money value. |
+| PK Money | **Tracked only.** The site records stakes, monthly allowance, used and remaining, and who owes whom; cash changes hands outside the site. |
+| Team PK | **In Phase 1**, as the handbook says. |
+| vs Upline | A 1v1 against someone more senior. Workable for the MVP. |
+| Evidence | **Required on every score update.** |
+| Leaderboard period | **Calendar quarters** (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec). The handbook doesn't specify. |
+
+## Working defaults (not in the handbook; change here if they're wrong)
+
+- **Team PK:** 2 to 5 people per side, same department, both sides the same size.
+  The creator names both teams, and every member must accept the terms (a
+  penalty can't be imposed on anyone). The opposing captain can counter-propose.
+  Each member updates their own score. Team result:
+  absolute = sum of members' values; improvement = sum of each member's gain
+  over their own baseline; completion rate = team total ÷ team total target.
+  Team PKs are named, not open, in Phase 1.
+- **Open challenges** are 1v1 only in Phase 1.
+- **Self-declaration** is 1v1 only: one declarer, one acceptor.
+- **1v1 vs vs Upline:** a 1v1 between two different ranks counts as vs
+  Upline (for both people's limits); same rank counts as 1v1.
+- **Active-PK limits** count challenges awaiting approval as well as active
+  ones, so nobody can queue up more than their limit.
+- **Approver:** anyone in the same department whose rank is at least one level
+  above the most senior participant, and at least ATL, who isn't a participant.
+  Admins can always approve. If nobody qualifies, it goes to admins.
+- **PK Money month:** a stake counts against the month the PK starts in.
+  "Above TL" roles get USD 200; ATL/TL USD 100; everyone else USD 50.
+- **Improvement rule:** every target must beat the person's baseline (higher
+  for higher-wins metrics, lower for lower-wins).
