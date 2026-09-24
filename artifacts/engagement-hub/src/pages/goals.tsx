@@ -205,10 +205,15 @@ export default function Goals() {
       const idx = ROLES.indexOf(role as (typeof ROLES)[number]);
       return idx === -1 ? ROLES.length : idx;
     };
+    // Your own card always comes first (for you only); everyone else by role, then name.
+    const me = session?.user.id;
     return [...filtered].sort(
-      (a, b) => rankOf(a.role) - rankOf(b.role) || a.username.localeCompare(b.username)
+      (a, b) =>
+        Number(b.id === me) - Number(a.id === me) ||
+        rankOf(a.role) - rankOf(b.role) ||
+        a.username.localeCompare(b.username)
     );
-  }, [filtered]);
+  }, [filtered, session?.user.id]);
 
   if (goalsLoading || directoryLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
