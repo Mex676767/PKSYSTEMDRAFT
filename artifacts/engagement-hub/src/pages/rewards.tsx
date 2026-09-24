@@ -61,7 +61,7 @@ export default function Rewards() {
       {!settings?.revamp_enabled ? (
         <Card className="border-dashed">
           <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            Missions and the rewards shop aren't open right now. You still earn points from your daily login bonus.
+            Missions and the rewards shop aren't open right now. Check back soon!
           </CardContent>
         </Card>
       ) : (

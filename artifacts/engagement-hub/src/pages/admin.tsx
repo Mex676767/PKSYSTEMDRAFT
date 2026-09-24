@@ -18,7 +18,7 @@ import {
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
 import { useAdminSetRoleDepartment } from "@/hooks/use-role-department";
-import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
+import { type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { format } from "date-fns";
 import { PERMISSIONS, PERMISSION_KEYS, type Permission } from "@/lib/permissions";
@@ -26,7 +26,10 @@ import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 import { BirthdayEmailSettingsCard } from "@/components/birthday-email-settings-card";
 import { AdminPointsCard } from "@/components/admin-points-card";
+import { AdminOrgCard } from "@/components/admin-org-card";
+import { AdminAchievementsCard } from "@/components/admin-achievements-card";
 import { SearchableSelect } from "@/components/searchable-select";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 export default function Admin() {
   const { isAdmin, session } = useAuth();
@@ -54,6 +57,10 @@ export default function Admin() {
       </div>
 
       <AdminPointsCard />
+
+      <AdminAchievementsCard />
+
+      <AdminOrgCard />
 
       <BirthdayEmailSettingsCard />
 
@@ -86,6 +93,7 @@ export default function Admin() {
 }
 
 function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
+  const { roles, departments } = useOrgStructure();
   const setAdmin = useSetUserAdmin();
   const setPermissions = useSetUserPermissions();
   const deactivate = useDeactivateUser();
@@ -317,7 +325,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               <SearchableSelect
                 value={roleInput}
                 onValueChange={(v) => setRoleInput(v as Role)}
-                options={ROLES.map((r) => ({ value: r, label: r }))}
+                options={roles.map((r) => ({ value: r, label: r }))}
                 placeholder="Role..."
                 searchPlaceholder="Search roles..."
                 aria-label="Role"
@@ -326,7 +334,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               <SearchableSelect
                 value={deptInput}
                 onValueChange={(v) => setDeptInput(v as Department)}
-                options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+                options={departments.map((d) => ({ value: d, label: d }))}
                 placeholder="Department..."
                 searchPlaceholder="Search departments..."
                 aria-label="Department"

@@ -7,12 +7,14 @@ import { DepartmentPodium } from "@/components/hof-podium";
 import { AwardEditPanel } from "@/components/hof-edit-panel";
 import { useAwardCategories, useAwardWinners } from "@/hooks/use-hall-of-fame";
 import { useAuth } from "@/hooks/use-auth";
-import { DEPARTMENTS } from "@/lib/roles";
+
 import { getErrorMessage } from "@/lib/utils";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 export default function HallOfFame() {
+  const { departments } = useOrgStructure();
   const { hasPermission } = useAuth();
-  const [department, setDepartment] = useState<string>(DEPARTMENTS[0]);
+  const [department, setDepartment] = useState<string>(departments[0]);
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const monthKey = format(month, "yyyy-MM-01");
   const categories = useAwardCategories(department);
@@ -64,7 +66,7 @@ export default function HallOfFame() {
         </div>
       </header>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Team">
-        {DEPARTMENTS.map((team) => (
+        {departments.map((team) => (
           <Button
             key={team}
             className="rounded-full"

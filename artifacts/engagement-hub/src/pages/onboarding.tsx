@@ -8,9 +8,10 @@ import { DatePicker } from "@/components/date-picker";
 import { useAuth } from "@/hooks/use-auth";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
-import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
+import { type Role, type Department } from "@/lib/roles";
 import { getErrorMessage } from "@/lib/utils";
 import { SearchableSelect } from "@/components/searchable-select";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 function sanitizeUsername(raw: string) {
   return raw.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
@@ -151,6 +152,7 @@ function BirthdayStep() {
 }
 
 function RoleStep() {
+  const { roles, departments } = useOrgStructure();
   const setRoleDept = useSetMyRoleDepartment();
   const [role, setRole] = useState<Role | "">("");
   const [department, setDepartment] = useState<Department | "">("");
@@ -172,7 +174,7 @@ function RoleStep() {
         <SearchableSelect
           value={role}
           onValueChange={(v) => setRole(v as Role)}
-          options={ROLES.map((r) => ({ value: r, label: r }))}
+          options={roles.map((r) => ({ value: r, label: r }))}
           placeholder="Select a role..."
           searchPlaceholder="Search roles..."
           aria-label="Role"
@@ -184,7 +186,7 @@ function RoleStep() {
         <SearchableSelect
           value={department}
           onValueChange={(v) => setDepartment(v as Department)}
-          options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+          options={departments.map((d) => ({ value: d, label: d }))}
           placeholder="Select a department..."
           searchPlaceholder="Search departments..."
           aria-label="Department"

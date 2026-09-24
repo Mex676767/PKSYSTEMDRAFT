@@ -20,10 +20,11 @@ import {
   useSetDepartment,
   type DirectoryProfile,
 } from "@/hooks/use-mentors";
-import { DEPARTMENTS, type Department } from "@/lib/roles";
+import { type Department } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/searchable-select";
 import { personOption } from "@/components/person-option";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 function PersonChip({
   id,
@@ -482,6 +483,7 @@ function DepartmentSection({
   directory: ReturnType<typeof useDirectory>["data"];
   canManage: boolean;
 }) {
+  const { departments } = useOrgStructure();
   const list = directory ?? [];
   const setDepartment = useSetDepartment();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -531,7 +533,7 @@ function DepartmentSection({
                         <SearchableSelect
                           value={deptInput}
                           onValueChange={(v) => setDeptInput(v as Department)}
-                          options={[{ value: "", label: "Unassigned" }, ...DEPARTMENTS.map((d) => ({ value: d, label: d }))]}
+                          options={[{ value: "", label: "Unassigned" }, ...departments.map((d) => ({ value: d, label: d }))]}
                           searchPlaceholder="Search departments..."
                           aria-label="Department"
                           className="w-36 h-7 text-xs px-2"

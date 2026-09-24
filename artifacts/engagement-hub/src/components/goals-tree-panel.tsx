@@ -5,9 +5,9 @@ import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
 import { GOAL_TERM_META, GOAL_CATEGORY_META, useDeleteGoal, useUpdateGoal, type Goal, type GoalTerm } from "@/hooks/use-goals";
 import { EditGoalDialog } from "@/components/goal-card";
-import { titleLabel } from "@/lib/titles";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
+import { useAchievements } from "@/hooks/use-achievements";
 
 const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
 
@@ -117,6 +117,7 @@ export function TreeDetailPanel(
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   const position = [person.role, person.department].filter(Boolean).join(" - ") || "No team";
+  const { label: titleLabel } = useAchievements();
   const badgeLabel = person.active_title ? titleLabel(person.active_title) : null;
 
   const handleAddComment = (e: React.FormEvent) => {

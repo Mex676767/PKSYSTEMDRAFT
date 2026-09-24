@@ -24,9 +24,9 @@ import { ReactionBar } from "@/components/social/reaction-bar";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { ImagePickerButton } from "@/components/image-picker-button";
-import { ROLES } from "@/lib/roles";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { SearchableSelect } from "@/components/searchable-select";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 const TERM_ORDER: GoalTerm[] = ["long", "mid", "short"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
@@ -98,6 +98,7 @@ function clearStoredDrafts() {
 
 export default function Goals() {
   const { session } = useAuth();
+  const { roles } = useOrgStructure();
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
@@ -202,8 +203,8 @@ export default function Goals() {
 
   const sortedPeople = useMemo(() => {
     const rankOf = (role: string | null) => {
-      const idx = ROLES.indexOf(role as (typeof ROLES)[number]);
-      return idx === -1 ? ROLES.length : idx;
+      const idx = role ? roles.indexOf(role) : -1;
+      return idx === -1 ? roles.length : idx;
     };
     // Your own card always comes first (for you only); everyone else by role, then name.
     const me = session?.user.id;
@@ -213,7 +214,7 @@ export default function Goals() {
         rankOf(a.role) - rankOf(b.role) ||
         a.username.localeCompare(b.username)
     );
-  }, [filtered, session?.user.id]);
+  }, [filtered, session?.user.id, roles]);
 
   if (goalsLoading || directoryLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;

@@ -54,7 +54,7 @@ export function AdminPointsCard() {
             <p className="text-xs text-muted-foreground">
               {enabled
                 ? "On: members see missions and the rewards shop."
-                : "Off: only the existing points system runs (daily login bonus, gifts). You can still set things up here first."}
+                : "Off: members don't see missions or the shop. Points still come only from admin adjustments (and gifts between people). You can set things up here first."}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

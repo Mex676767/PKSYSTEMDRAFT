@@ -9,7 +9,7 @@ import { ChangePasswordCard } from "@/components/change-password-card";
 import { motion } from "framer-motion";
 import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { TITLE_CATALOG } from "@/lib/titles";
+import { useAchievements } from "@/hooks/use-achievements";
 import { BORDER_KEYS, BORDER_META, ACCESSORY_KEYS, ACCESSORY_META } from "@/lib/cosmetics";
 import { AVATAR_PRESETS, avatarPresetDataUri, presetIdFromAvatarUrl } from "@/lib/avatar-presets";
 import {
@@ -22,14 +22,16 @@ import {
 import { useDeleteOwnAccount } from "@/hooks/use-admin";
 import { useSetMyBirthday } from "@/hooks/use-birthdays";
 import { useSetMyRoleDepartment } from "@/hooks/use-role-department";
-import { ROLES, DEPARTMENTS, type Role, type Department } from "@/lib/roles";
+import { type Role, type Department } from "@/lib/roles";
 import { DatePicker } from "@/components/date-picker";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { ImagePickerButton } from "@/components/image-picker-button";
 import { format } from "date-fns";
 import { SearchableSelect } from "@/components/searchable-select";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 export default function Profile() {
+  const { label: achievementLabel, description: achievementDescription } = useAchievements();
   const { profile } = useAuth();
   const setAccessory = useSetActiveAccessory();
   const setTitle = useSetActiveTitle();
@@ -155,7 +157,7 @@ export default function Profile() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
-            {profile.active_title ? TITLE_CATALOG[profile.active_title]?.label ?? profile.active_title : "No title set"}
+            {profile.active_title ? achievementLabel(profile.active_title) : "No title set"}
             {" · "}{profile.points} pts
           </p>
         </div>
@@ -214,7 +216,7 @@ export default function Profile() {
                   key={key}
                   onClick={() => setTitle.mutate(key)}
                   disabled={setTitle.isPending}
-                  title={TITLE_CATALOG[key]?.description}
+                  title={achievementDescription(key)}
                   className={cn(
                     "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
                     profile.active_title === key
@@ -222,7 +224,7 @@ export default function Profile() {
                       : "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted"
                   )}
                 >
-                  {TITLE_CATALOG[key]?.label ?? key}
+                  {achievementLabel(key)}
                 </button>
               ))}
             </CardContent>
@@ -431,6 +433,7 @@ function BirthdayField({ birthday }: { birthday: string | null }) {
 }
 
 function RoleDepartmentField({ role, department }: { role: string | null; department: string | null }) {
+  const { roles, departments } = useOrgStructure();
   const setRoleDept = useSetMyRoleDepartment();
   const [roleValue, setRoleValue] = useState<Role | "">("");
   const [deptValue, setDeptValue] = useState<Department | "">("");
@@ -459,7 +462,7 @@ function RoleDepartmentField({ role, department }: { role: string | null; depart
       <SearchableSelect
         value={roleValue}
         onValueChange={(v) => setRoleValue(v as Role)}
-        options={ROLES.map((r) => ({ value: r, label: r }))}
+        options={roles.map((r) => ({ value: r, label: r }))}
         placeholder="Role..."
         searchPlaceholder="Search roles..."
         aria-label="Role"
@@ -468,7 +471,7 @@ function RoleDepartmentField({ role, department }: { role: string | null; depart
       <SearchableSelect
         value={deptValue}
         onValueChange={(v) => setDeptValue(v as Department)}
-        options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+        options={departments.map((d) => ({ value: d, label: d }))}
         placeholder="Department..."
         searchPlaceholder="Search departments..."
         aria-label="Department"

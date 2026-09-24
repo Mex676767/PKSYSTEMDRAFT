@@ -32,6 +32,7 @@ import { getErrorMessage, cn } from "@/lib/utils";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
 import { SearchableSelect } from "@/components/searchable-select";
 import { personOption } from "@/components/person-option";
+import { useOrgStructure } from "@/hooks/use-org-structure";
 
 const NEW_CHALLENGE_DRAFT_KEY = "c9myr:new-challenge-draft";
 
@@ -161,6 +162,7 @@ function PersonBadge({
 }
 
 function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewerId: string | undefined }) {
+  const { roles } = useOrgStructure();
   const { isAdmin } = useAuth();
   const respond = useRespondChallenge();
   const cancel = useCancelChallenge();
@@ -176,7 +178,7 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
   const isOpponent = c.opponent_id === viewerId;
   const isParticipant = isCreator || isOpponent;
   const myScore = isCreator ? c.score_creator : c.score_opponent;
-  const direction = challengeDirection(c.creator?.role, c.opponent?.role);
+  const direction = challengeDirection(c.creator?.role, c.opponent?.role, roles);
   const canDelete = (isCreator || isAdmin) && (c.status === "declined" || c.status === "completed");
 
   const run = (fn: () => Promise<void> | void) => {

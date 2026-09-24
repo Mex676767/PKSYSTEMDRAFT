@@ -4,7 +4,6 @@ import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, G
 import { cn } from "@/lib/utils";
 import { useRevampEnabled } from "@/hooks/use-rewards";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { titleLabel } from "@/lib/titles";
 import { LOCKED_ROUTES } from "@/lib/feature-flags";
 import { useConversations } from "@/hooks/use-dm";
 import { useVoiceCall } from "@/hooks/use-voice-call";
@@ -25,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAchievements } from "@/hooks/use-achievements";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -45,6 +45,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
   const revampEnabled = useRevampEnabled();
+  const { label: titleLabel } = useAchievements();
   // Rewards only appears while an admin has missions + the shop switched on.
   const items = navItems.filter((item) => item.href !== "/rewards" || revampEnabled);
   const { channelId: voiceChannelId } = useVoiceCall();
