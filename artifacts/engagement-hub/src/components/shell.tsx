@@ -106,8 +106,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <CursorSparkleTrail />
       <Fireflies />
 
-      <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 sm:block sm:h-14">
-        <div className="flex items-center justify-start sm:absolute sm:inset-y-0 sm:left-0 sm:right-[280px] sm:justify-center">
+      <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 xl:block xl:h-14">
+        <div className="flex items-center justify-center xl:absolute xl:inset-y-0 xl:left-[280px] xl:right-[280px]">
         <div data-tree-obstacle className="flex items-center max-w-[min(88vw,52rem)] min-w-0 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg px-2">
           <button type="button" onClick={scrollNavLeft} disabled={!canScrollLeft} aria-label="Scroll navigation left" className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
           <nav ref={navRef} aria-label="Main navigation" className="relative min-w-0 flex items-center gap-1 px-1 py-2 overflow-x-auto">
@@ -151,7 +151,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         </div>
 
-        <div data-tree-obstacle className="flex items-center justify-end gap-2 sm:absolute sm:right-0 sm:top-0">
+        <div data-tree-obstacle className="flex items-center justify-end gap-2 xl:absolute xl:right-0 xl:top-0">
         {isAdmin && (
           <Link
             href="/voice"
