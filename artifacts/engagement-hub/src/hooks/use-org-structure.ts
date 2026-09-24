@@ -4,7 +4,7 @@ import { DEFAULT_DEPARTMENTS, DEFAULT_ROLES } from "@/lib/roles";
 
 export type OrgKind = "role" | "department";
 
-/** Roles (most senior first) and departments, as managed in Admin. */
+/** Roles (most senior first) and departments (A to Z), as managed in Admin. */
 export function useOrgStructure() {
   const query = useQuery({
     queryKey: ["org-structure"],
@@ -12,7 +12,7 @@ export function useOrgStructure() {
     queryFn: async () => {
       const [roles, departments] = await Promise.all([
         supabase.from("org_roles").select("name").order("rank"),
-        supabase.from("org_departments").select("name").order("sort"),
+        supabase.from("org_departments").select("name").order("name"),
       ]);
       // Before migration 0027 runs these tables don't exist: use the old lists.
       return {

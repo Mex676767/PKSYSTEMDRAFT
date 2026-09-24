@@ -21,8 +21,8 @@ export function AdminOrgCard() {
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold">Roles & Departments</h2>
             <p className="text-xs text-muted-foreground">
-              Roles are listed most senior first; challenges use this order for upline/downline. Renaming updates everyone
-              who has it. Removing only works once nobody has it.
+              Roles are ranked most senior first; challenges use this order for upline/downline. Departments have no
+              rank. Renaming updates everyone who has it. Removing only works once nobody has it.
             </p>
           </div>
         </div>
@@ -90,7 +90,11 @@ function OrgList({ kind, items }: { kind: OrgKind; items: string[] }) {
           <Plus className="w-3.5 h-3.5 mr-1" /> Add
         </Button>
       </form>
-      <p className="text-[11px] text-muted-foreground">Names are saved in capitals. New {noun}s are added at the bottom{kind === "role" ? " (most junior)" : ""}; use the arrows to move them.</p>
+      <p className="text-[11px] text-muted-foreground">
+        {kind === "role"
+          ? "Names are saved in capitals. New roles are added at the bottom (most junior); use the arrows to move them."
+          : "Names are saved in capitals. Departments are listed A to Z."}
+      </p>
       {error && <p className="text-xs text-destructive">{getErrorMessage(error)}</p>}
 
       <div className="rounded-xl border border-border divide-y divide-border">
@@ -112,8 +116,13 @@ function OrgList({ kind, items }: { kind: OrgKind; items: string[] }) {
             ) : (
               <>
                 <span className="flex-1 min-w-0 truncate text-sm font-medium">{name}</span>
-                <button type="button" disabled={busy || i === 0} onClick={() => move.mutate({ kind, name, direction: -1 })} className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30" title="Move up"><ArrowUp className="w-4 h-4" /></button>
-                <button type="button" disabled={busy || i === items.length - 1} onClick={() => move.mutate({ kind, name, direction: 1 })} className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30" title="Move down"><ArrowDown className="w-4 h-4" /></button>
+                {/* Only roles have a rank; departments are just listed A to Z. */}
+                {kind === "role" && (
+                  <>
+                    <button type="button" disabled={busy || i === 0} onClick={() => move.mutate({ kind, name, direction: -1 })} className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30" title="Move up"><ArrowUp className="w-4 h-4" /></button>
+                    <button type="button" disabled={busy || i === items.length - 1} onClick={() => move.mutate({ kind, name, direction: 1 })} className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30" title="Move down"><ArrowDown className="w-4 h-4" /></button>
+                  </>
+                )}
                 <button type="button" disabled={busy} onClick={() => { setEditing(name); setEditValue(name); }} className="p-1.5 rounded-md hover:bg-muted" title="Rename"><Pencil className="w-4 h-4" /></button>
                 <button
                   type="button"
