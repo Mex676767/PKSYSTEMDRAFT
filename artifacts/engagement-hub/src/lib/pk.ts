@@ -80,7 +80,48 @@ export type Pk = {
   early_settlement: boolean;
   settlement_requested_at: string | null;
   settled_at: string | null;
+  terminated_reason: PkTerminateReason | null;
+  terminated_note: string | null;
+  terminated_at: string | null;
   participants: PkParticipant[];
+};
+
+export type PkTerminateReason = "resignation" | "transfer" | "data_failure" | "customer_pool_change" | "emergency" | "other";
+
+export const PK_TERMINATE_REASONS: Record<PkTerminateReason, string> = {
+  resignation: "Resignation",
+  transfer: "Transfer",
+  data_failure: "Data or system failure",
+  customer_pool_change: "Customer pool change",
+  emergency: "Emergency",
+  other: "Other special case",
+};
+
+export type PkDebt = {
+  id: string;
+  challenge_id: string;
+  debtor_id: string;
+  creditor_id: string;
+  amount: number;
+  paid_at: string | null;
+  created_at: string;
+  debtor: { username: string | null } | null;
+  creditor: { username: string | null } | null;
+  challenge?: { topic: string } | null;
+};
+
+export type PkMoneySummary = {
+  month_start: string;
+  allowance: number;
+  used: number;
+  remaining: number;
+  owed_to_me: number;
+  i_owe: number;
+};
+
+export type PkLibraryEntry = PkPlaybook & {
+  author: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null; active_accessory: string | null } | null;
+  challenge: Pick<Pk, "id" | "topic" | "metric" | "department" | "pk_type" | "format" | "scoring" | "direction" | "settled_at" | "final_score_a" | "final_score_b" | "winner_side" | "status"> | null;
 };
 
 export type PkPlaybook = {

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import type { Pk, PkChampion, PkLeaderRow, PkPerson, PkPlaybook, PkTerms } from "@/lib/pk";
+import type { Pk, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkMoneySummary, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
 
 const PERSON = "username, role, avatar_url, active_border, active_accessory";
 const PK_SELECT = `*, participants:challenge_participants(*, profile:profiles(${PERSON}))`;
@@ -37,7 +37,8 @@ export type PkScoreUpdate = {
 
 export type PkSideScore = { side: "A" | "B"; score: number | null };
 
-const PK_KEYS = [["pk"], ["pk-detail"], ["pk-approvals"], ["pk-leaderboard"], ["pk-champions"]];
+const PK_KEYS = [["pk"], ["pk-detail"], ["pk-approvals"], ["pk-leaderboard"], ["pk-champions"], ["pk-money"], ["pk-library"], ["pk-can-approve"]];
+const DEBT_SELECT = "*, debtor:profiles!pk_money_debts_debtor_id_fkey(username), creditor:profiles!pk_money_debts_creditor_id_fkey(username)";
 
 export function usePkList() {
   useRealtimeInvalidate("challenges", PK_KEYS);
@@ -63,7 +64,7 @@ export function usePk(id: string | undefined) {
     queryKey: ["pk-detail", id],
     enabled: !!id,
     queryFn: async () => {
-      const [pk, events, terms, scores, sides, playbook] = await Promise.all([
+      const [pk, events, terms, scores, sides, playbook, debts] = await Promise.all([
         supabase.from("challenges").select(PK_SELECT).eq("id", id!).eq("pk_version", 1).maybeSingle(),
         supabase.from("challenge_events").select("*").eq("challenge_id", id!).order("created_at", { ascending: false }),
         supabase
@@ -78,8 +79,9 @@ export function usePk(id: string | undefined) {
           .order("created_at", { ascending: false }),
         supabase.rpc("pk_side_scores", { cid: id! }),
         supabase.from("pk_playbooks").select("*").eq("challenge_id", id!).maybeSingle(),
+        supabase.from("pk_money_debts").select(DEBT_SELECT).eq("challenge_id", id!),
       ]);
-      for (const r of [pk, events, terms, scores, sides, playbook]) if (r.error) throw r.error;
+      for (const r of [pk, events, terms, scores, sides, playbook, debts]) if (r.error) throw r.error;
       return {
         pk: pk.data as unknown as Pk | null,
         events: (events.data ?? []) as PkEvent[],
@@ -87,6 +89,7 @@ export function usePk(id: string | undefined) {
         scores: (scores.data ?? []) as unknown as PkScoreUpdate[],
         sides: (sides.data ?? []) as PkSideScore[],
         playbook: (playbook.data ?? null) as PkPlaybook | null,
+        debts: (debts.data ?? []) as unknown as PkDebt[],
       };
     },
   });
@@ -226,6 +229,67 @@ export function usePkChampions(department: string | null) {
       const { data, error } = await supabase.rpc("pk_champions", { dept: department });
       if (error) throw error;
       return (data ?? []) as PkChampion[];
+    },
+  });
+}
+
+/** Can the signed-in person approve (and so terminate) this PK? */
+export function usePkCanApprove(id: string | undefined) {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["pk-can-approve", id, session?.user.id],
+    enabled: !!id && !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("pk_can_approve", { cid: id!, user_id_param: session!.user.id });
+      if (error) throw error;
+      return !!data;
+    },
+  });
+}
+
+export const useTerminatePk = () =>
+  useRpc(({ id, reason, note }: { id: string; reason: PkTerminateReason; note: string }) =>
+    call("pk_terminate", { cid: id, reason, note }));
+
+export const useMarkPkPaid = () =>
+  useRpc(({ id, paid }: { id: string; paid: boolean }) => call("pk_mark_paid", { debt_id: id, paid }));
+
+export function usePkMoney() {
+  const { session } = useAuth();
+  useRealtimeInvalidate("pk_money_debts", [["pk-money"], ["pk-detail"]]);
+  return useQuery({
+    queryKey: ["pk-money", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const uid = session!.user.id;
+      const [summary, debts] = await Promise.all([
+        supabase.rpc("pk_money_summary"),
+        supabase
+          .from("pk_money_debts")
+          .select(`${DEBT_SELECT}, challenge:challenges(topic)`)
+          .or(`debtor_id.eq.${uid},creditor_id.eq.${uid}`)
+          .order("created_at", { ascending: false }),
+      ]);
+      if (summary.error) throw summary.error;
+      if (debts.error) throw debts.error;
+      const row = Array.isArray(summary.data) ? summary.data[0] : summary.data;
+      return { summary: (row ?? null) as PkMoneySummary | null, debts: (debts.data ?? []) as unknown as PkDebt[] };
+    },
+  });
+}
+
+/** Every settled PK's winner playbook, newest first. */
+export function usePlaybookLibrary() {
+  return useQuery({
+    queryKey: ["pk-library"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pk_playbooks")
+        .select(`*, author:profiles(${PERSON}), challenge:challenges!inner(id, topic, metric, department, pk_type, format, scoring, direction, settled_at, final_score_a, final_score_b, winner_side, status)`)
+        .eq("challenge.status", "settled")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PkLibraryEntry[];
     },
   });
 }

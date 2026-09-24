@@ -73,8 +73,8 @@ export function pkNextStep(pk: Pk, viewerId: string | undefined, canApprove: boo
 
 export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string | undefined; canApprove: boolean }) {
   const live = PK_LIVE.includes(pk.status);
-  const { data: liveSides = [] } = usePkSideScores(pk.id, live && pk.final_score_a === null);
-  const frozen = pk.final_score_a !== null || pk.final_score_b !== null;
+  const { data: liveSides = [] } = usePkSideScores(pk.id, live && pk.final_score_a == null);
+  const frozen = pk.final_score_a != null || pk.final_score_b != null;
   const sides = frozen
     ? [{ side: "A" as const, score: pk.final_score_a }, { side: "B" as const, score: pk.final_score_b }]
     : liveSides;

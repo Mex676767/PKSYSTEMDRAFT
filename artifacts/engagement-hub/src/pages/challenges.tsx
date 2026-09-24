@@ -22,6 +22,8 @@ import { usePkApprovals, usePkList } from "@/hooks/use-pk";
 import { PkCard, pkNextStep } from "@/components/pk/pk-card";
 import { PkWizard } from "@/components/pk/pk-wizard";
 import { PkLeaderboard } from "@/components/pk/pk-leaderboard";
+import { PkLibrary } from "@/components/pk/pk-library";
+import { PkMoneyCard } from "@/components/pk/pk-money-card";
 import { PK_CLOSED, PK_LIVE, PK_SETUP, type Pk } from "@/lib/pk";
 import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
@@ -31,7 +33,7 @@ import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { useOrgStructure } from "@/hooks/use-org-structure";
 
-type Tab = "arena" | "mine" | "approve" | "leaderboard" | "old";
+type Tab = "arena" | "mine" | "approve" | "leaderboard" | "playbooks" | "old";
 
 export default function Challenges() {
   const { session } = useAuth();
@@ -71,6 +73,7 @@ export default function Challenges() {
     { id: "mine", label: "My PKs", count: needsMe.length },
     { id: "approve", label: "To approve", count: toApprove.length },
     { id: "leaderboard", label: "Leaderboard" },
+    { id: "playbooks", label: "Playbooks" },
     { id: "old", label: "Old challenges" },
   ];
 
@@ -109,6 +112,7 @@ export default function Challenges() {
 
       {tab === "mine" && (
         <>
+          <PkMoneyCard />
           <Section title="Being set up" icon={Clock}>
             {myPks.filter((pk) => PK_SETUP.includes(pk.status)).length === 0
               ? <EmptyState text="Nothing waiting. Start a PK or take an open one in the Arena." />
@@ -135,6 +139,7 @@ export default function Challenges() {
       )}
 
       {tab === "leaderboard" && <PkLeaderboard />}
+      {tab === "playbooks" && <PkLibrary />}
 
       {tab === "old" && (
         <Section title="Challenges from before the PK system" icon={Trophy}>

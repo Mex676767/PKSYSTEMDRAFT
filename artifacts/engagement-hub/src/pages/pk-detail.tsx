@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { format, formatDistanceToNow } from "date-fns";
 import {
-  ArrowLeft, BookOpen, Check, Crown, FileClock, Flag, RotateCcw, Trophy, History, ImageIcon, MessageCircle, PencilLine, ShieldCheck, ShieldX, Swords, Trash2, X,
+  ArrowLeft, Ban, BookOpen, DollarSign, Check, Crown, FileClock, Flag, RotateCcw, Trophy, History, ImageIcon, MessageCircle, PencilLine, ShieldCheck, ShieldX, Swords, Trash2, X,
 } from "lucide-react";
 import { PageTransition } from "@/components/animations";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,13 @@ import { PkWizard } from "@/components/pk/pk-wizard";
 import { useAuth } from "@/hooks/use-auth";
 import {
   getPkProofUrl, useAcceptOpenPk, useCancelPk, useDeletePk, usePk, usePkApprovals, usePkSettings, useRespondPk,
-  useRequestSettlement, useReviewPk, useSubmitPlaybook, useUpdatePkScore, useVerifyPk, type PkTermsVersion,
+  useMarkPkPaid, usePkCanApprove, useRequestSettlement, useReviewPk, useTerminatePk, useSubmitPlaybook, useUpdatePkScore, useVerifyPk, type PkTermsVersion,
 } from "@/hooks/use-pk";
 import {
   PK_LIVE, PK_SCORING_LABEL, PK_SETUP, PK_STATUS_LABEL, PK_TYPE_LABEL, formatPkNumber, pkScoreSuffix, pkSide, pkStatusTone,
-  termsFromPk, type Pk, type PkPlaybook,
+  PK_TERMINATE_REASONS, termsFromPk, type Pk, type PkDebt, type PkPlaybook, type PkTerminateReason,
 } from "@/lib/pk";
+import { SearchableSelect } from "@/components/searchable-select";
 import { cn, getErrorMessage } from "@/lib/utils";
 
 export default function PkDetail() {
@@ -54,11 +55,12 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
   const isSelf = pk.format === "self_declaration";
   const live = PK_LIVE.includes(pk.status);
   const suffix = pkScoreSuffix(pk);
-  const frozen = pk.final_score_a !== null || pk.final_score_b !== null;
+  const frozen = pk.final_score_a != null || pk.final_score_b != null;
   const scoreOf = (side: "A" | "B") =>
     frozen ? (side === "A" ? pk.final_score_a : pk.final_score_b) : data.sides.find((s) => s.side === side)?.score ?? null;
   const showScores = live || pk.status === "settled";
   const canApprove = approvals.has(pk.id);
+  const { data: canApproveThis = false } = usePkCanApprove(pk.id);
   const next = pkNextStep(pk, viewerId, canApprove);
 
   return (
@@ -97,9 +99,10 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
         </CardContent>
       </Card>
 
-      <PkResult pk={pk} playbook={data.playbook} />
+      <PkResult pk={pk} playbook={data.playbook} debts={data.debts} viewerId={viewerId} />
       {next && <p className="text-sm font-medium text-amber-600 dark:text-amber-400">{next}</p>}
-      <PkActions pk={pk} viewerId={viewerId} canApprove={canApprove} isAdmin={isAdmin} playbook={data.playbook} />
+      <PkActions pk={pk} viewerId={viewerId} canApprove={canApprove} isAdmin={isAdmin} playbook={data.playbook}
+        canTerminate={isAdmin || canApproveThis} />
 
       <PkTerms pk={pk} />
 
@@ -168,8 +171,8 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
   );
 }
 
-function PkActions({ pk, viewerId, canApprove, isAdmin, playbook }: {
-  pk: Pk; viewerId: string | undefined; canApprove: boolean; isAdmin: boolean; playbook: PkPlaybook | null;
+function PkActions({ pk, viewerId, canApprove, isAdmin, playbook, canTerminate }: {
+  pk: Pk; viewerId: string | undefined; canApprove: boolean; isAdmin: boolean; playbook: PkPlaybook | null; canTerminate: boolean;
 }) {
   const [, navigate] = useLocation();
   const respond = useRespondPk();
@@ -289,6 +292,7 @@ function PkActions({ pk, viewerId, canApprove, isAdmin, playbook }: {
 
   const canCancel = (isCreator || isAdmin) && PK_SETUP.includes(pk.status);
   const canRemove = isAdmin;
+  if (canTerminate && PK_LIVE.includes(pk.status)) blocks.push(<TerminatePanel key="terminate" pk={pk} onError={setError} />);
   if (canCancel || canRemove) {
     blocks.push(
       <div key="manage" className="flex items-center gap-3 text-xs">
@@ -390,7 +394,79 @@ function VerifyPanel({ pk, hasPlaybook, onError }: { pk: Pk; hasPlaybook: boolea
   );
 }
 
-function PkResult({ pk, playbook }: { pk: Pk; playbook: PkPlaybook | null }) {
+function TerminatePanel({ pk, onError }: { pk: Pk; onError: (e: string | null) => void }) {
+  const terminate = useTerminatePk();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<PkTerminateReason | "">("");
+  const [note, setNote] = useState("");
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
+        <Ban className="w-3.5 h-3.5" /> Terminate for a special case...
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2 rounded-lg border border-destructive/30 p-3">
+      <p className="text-sm font-semibold flex items-center gap-1.5"><Ban className="w-4 h-4 text-destructive" /> Terminate this PK</p>
+      <p className="text-xs text-muted-foreground">For things outside anyone's control. It doesn't count as quitting: no winner, no PK points, and the PK Money stake is void.</p>
+      <SearchableSelect value={reason} onValueChange={(v) => setReason(v as PkTerminateReason)} searchable={false} placeholder="Reason" aria-label="Reason"
+        options={(Object.keys(PK_TERMINATE_REASONS) as PkTerminateReason[]).map((r) => ({ value: r, label: PK_TERMINATE_REASONS[r] }))} />
+      <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[56px]" value={note}
+        onChange={(e) => setNote(e.target.value)} placeholder="What happened? Everyone in the PK will see this." />
+      <div className="flex gap-2">
+        <Button size="sm" variant="destructive" disabled={terminate.isPending} onClick={async () => {
+          onError(null);
+          if (!reason) return onError("Pick a reason.");
+          if (!window.confirm("Terminate this PK? This can't be undone.")) return;
+          try { await terminate.mutateAsync({ id: pk.id, reason, note }); setOpen(false); } catch (err) { onError(getErrorMessage(err)); }
+        }}>{terminate.isPending ? "Terminating..." : "Terminate PK"}</Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Never mind</Button>
+      </div>
+    </div>
+  );
+}
+
+function PkDebts({ debts, viewerId }: { debts: PkDebt[]; viewerId: string | undefined }) {
+  const mark = useMarkPkPaid();
+  const { isAdmin } = useAuth();
+  if (debts.length === 0) return null;
+  return (
+    <div className="space-y-1.5 border-t border-border/50 pt-3">
+      <p className="text-sm font-semibold flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-amber-500" /> PK Money (tracked only)</p>
+      {debts.map((d) => (
+        <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span>@{d.debtor?.username ?? "someone"} owes @{d.creditor?.username ?? "someone"} <span className="font-semibold">USD {formatPkNumber(d.amount)}</span></span>
+          {d.paid_at ? (
+            <span className="text-xs text-emerald-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Received</span>
+          ) : d.creditor_id === viewerId || isAdmin ? (
+            <Button size="sm" variant="outline" className="h-7 text-xs" disabled={mark.isPending} onClick={() => mark.mutate({ id: d.id, paid: true })}>Mark received</Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Not paid yet</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PkResult({ pk, playbook, debts, viewerId }: { pk: Pk; playbook: PkPlaybook | null; debts: PkDebt[]; viewerId: string | undefined }) {
+  if (pk.status === "terminated") {
+    return (
+      <Card className="border-destructive/30">
+        <CardContent className="p-4 flex gap-3">
+          <Ban className="w-6 h-6 text-destructive shrink-0" />
+          <div>
+            <p className="font-semibold">Terminated{pk.terminated_reason && `: ${PK_TERMINATE_REASONS[pk.terminated_reason]}`}</p>
+            {pk.terminated_note && <p className="text-sm">{pk.terminated_note}</p>}
+            <p className="text-xs text-muted-foreground mt-1">
+              {pk.terminated_at && `${format(new Date(pk.terminated_at), "MMM d, yyyy")}. `}No winner, no PK points, and any PK Money stake is void.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   const settling = ["awaiting_playbook", "awaiting_verification", "settled"].includes(pk.status);
   if (!settling) return null;
   const winners = pk.winner_side ? pkSide(pk, pk.winner_side) : [];
@@ -422,6 +498,7 @@ function PkResult({ pk, playbook }: { pk: Pk; playbook: PkPlaybook | null }) {
             ))}
           </div>
         )}
+        <PkDebts debts={debts} viewerId={viewerId} />
       </CardContent>
     </Card>
   );
