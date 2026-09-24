@@ -25,7 +25,7 @@ export function DepartmentPodium({ department, entries, monthLabel }: { departme
                 <span aria-hidden="true" className="text-2xl">{winner ? "👑" : rank === 2 ? "🥈" : "🥉"}</span>
                 {entry ? <>
                   <div className="py-2 flex justify-center w-full">
-                    <UserAvatar user={{ name: entry.username ?? "Team member", initials: initialsForUsername(entry.username ?? "?"), color: colorForId(entry.user_id) }} photoUrl={entry.avatar_url} border={entry.active_border} className={cn(winner ? "w-14 h-14 sm:w-20 sm:h-20 ring-2 ring-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.6)]" : "w-11 h-11 sm:w-16 sm:h-16 ring-2 ring-primary/60", "text-lg sm:text-2xl")} />
+                    <UserAvatar user={{ name: entry.username ?? "Team member", initials: initialsForUsername(entry.username ?? "?"), color: colorForId(entry.user_id) }} photoUrl={entry.avatar_url} border={entry.active_border} accessory={entry.active_accessory} className={cn(winner ? "w-14 h-14 sm:w-20 sm:h-20 ring-2 ring-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.6)]" : "w-11 h-11 sm:w-16 sm:h-16 ring-2 ring-primary/60", "text-lg sm:text-2xl")} />
                   </div>
                   <div className="w-full space-y-1"><p className="font-bold text-xs sm:text-base break-words">{entry.username ?? "Team member"}</p><p className="text-[10px] sm:text-xs text-muted-foreground">{places[rank]}</p></div>
                   <p className="font-bold text-amber-600 dark:text-amber-300 text-base sm:text-xl">{entry.achievement}</p>

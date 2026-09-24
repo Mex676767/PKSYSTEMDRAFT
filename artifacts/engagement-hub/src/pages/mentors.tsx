@@ -28,11 +28,13 @@ function PersonChip({
   username,
   photoUrl,
   border,
+  accessory,
 }: {
   id: string;
   username: string | null | undefined;
   photoUrl?: string | null;
   border?: string | null;
+  accessory?: string | null;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -41,6 +43,7 @@ function PersonChip({
           user={{ name: username ?? "unknown", initials: initialsForUsername(username ?? "?"), color: colorForId(id) }}
           photoUrl={photoUrl}
           border={border}
+          accessory={accessory}
           className="w-8 h-8 text-[10px]"
         />
       </div>
@@ -301,6 +304,7 @@ function TreeNode({
           username={username}
           photoUrl={directory.find((p) => p.id === personId)?.avatar_url}
           border={directory.find((p) => p.id === personId)?.active_border}
+          accessory={directory.find((p) => p.id === personId)?.active_accessory}
         />
         {status && (
           <Badge variant={status === "active" ? "default" : "secondary"} className="text-[9px] uppercase shrink-0">
@@ -430,6 +434,7 @@ function MentorMenteeSection({
                       username={username}
                       photoUrl={directoryById.get(mentorId)?.avatar_url}
                       border={directoryById.get(mentorId)?.active_border}
+                      accessory={directoryById.get(mentorId)?.active_accessory}
                     />
                     <Badge variant="outline" className="text-[9px] ml-auto shrink-0">
                       {mentees.length} mentee{mentees.length === 1 ? "" : "s"}
@@ -443,6 +448,7 @@ function MentorMenteeSection({
                           username={m.mentee?.username}
                           photoUrl={directoryById.get(m.mentee_id)?.avatar_url}
                           border={directoryById.get(m.mentee_id)?.active_border}
+                          accessory={directoryById.get(m.mentee_id)?.active_accessory}
                         />
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge variant={m.status === "active" ? "default" : "secondary"} className="text-[9px] uppercase">
@@ -511,6 +517,7 @@ function DepartmentSection({
                     username={p.username}
                     photoUrl={p.avatar_url}
                     border={p.active_border}
+                    accessory={p.active_accessory}
                   />
                   {canManage && (
                     editingId === p.id ? (

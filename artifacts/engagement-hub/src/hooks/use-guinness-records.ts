@@ -17,10 +17,10 @@ export type HofRecord = {
   record_date: string;
   is_current: boolean;
   created_at: string;
-  holder: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
+  holder: { username: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null } | null;
 };
 
-const RECORD_SELECT = "*, holder:profiles(username, avatar_url, active_border)";
+const RECORD_SELECT = "*, holder:profiles(username, avatar_url, active_border, active_accessory)";
 
 export function useHofCategories() {
   return useQuery({

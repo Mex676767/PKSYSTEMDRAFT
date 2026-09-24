@@ -138,6 +138,7 @@ export default function DeskSetup() {
                       user={{ name: entry.author?.username ?? "unknown", initials: initialsForUsername(entry.author?.username ?? "?"), color: colorForId(entry.author_id) }}
                       photoUrl={entry.author?.avatar_url ?? null}
                       border={entry.author?.active_border ?? null}
+                      accessory={entry.author?.active_accessory ?? null}
                       className="w-7 h-7 text-[10px] shrink-0"
                     />
                     <span className="text-sm font-medium">@{entry.author?.username ?? "unknown"}</span>

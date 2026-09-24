@@ -25,6 +25,7 @@ export function PostCard({ post }: { post: Post }) {
             user={{ name: post.author?.username ?? "unknown", initials: initialsForUsername(post.author?.username ?? "?"), color: colorForId(post.author_id) }}
             photoUrl={post.author?.avatar_url ?? null}
             border={post.author?.active_border ?? null}
+            accessory={post.author?.active_accessory ?? null}
             className="w-10 h-10 shrink-0"
           />
           <div className="flex-1 min-w-0">

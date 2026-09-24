@@ -98,6 +98,7 @@ export default function Dashboard() {
                           }}
                           photoUrl={person.avatar_url}
                           border={person.active_border}
+                          accessory={person.active_accessory}
                           className="w-14 h-14 text-lg border-4 border-white/30 shadow-lg shrink-0"
                         />
                         <div className="min-w-0 flex-1">
@@ -173,6 +174,7 @@ export default function Dashboard() {
                         user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
                         photoUrl={goal.owner?.avatar_url ?? null}
                         border={goal.owner?.active_border ?? null}
+                        accessory={goal.owner?.active_accessory ?? null}
                         className="w-9 h-9 text-xs shrink-0"
                       />
                       <div className="flex-1 min-w-0">

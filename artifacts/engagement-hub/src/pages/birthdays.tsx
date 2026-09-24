@@ -80,6 +80,7 @@ export default function Birthdays() {
                       user={{ name: b.username ?? "unknown", initials: initialsForUsername(b.username ?? "?"), color: colorForId(b.id) }}
                       photoUrl={b.avatar_url}
                       border={b.active_border}
+                      accessory={b.active_accessory}
                       className="w-10 h-10 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
@@ -129,6 +130,7 @@ function TodayBirthdayCard({
             user={{ name: username, initials: initialsForUsername(username), color: colorForId(birthday.id) }}
             photoUrl={birthday.avatar_url}
             border={birthday.active_border}
+            accessory={birthday.active_accessory}
             className="w-24 h-24 text-3xl border-4 border-white/20 shadow-xl"
           />
           <div className="flex-1">

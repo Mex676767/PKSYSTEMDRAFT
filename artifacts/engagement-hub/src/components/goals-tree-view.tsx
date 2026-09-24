@@ -53,6 +53,61 @@ function artTransform(stage: Size, isLgUp: boolean): ArtTransform {
   return { offsetX: (stage.w - bgW) / 2, offsetY: 0, scaleX: bgW / IMAGE_WIDTH, scaleY: bgH / IMAGE_HEIGHT };
 }
 
+/** A block's placed size, and where the button sits inside it (decorations can
+ *  stick out above/left of the avatar, so the button isn't always at 0,0). */
+type BlockSize = Size & { ox: number; oy: number };
+
+// Accessories and borders are SVGs allowed to draw outside their box (wings,
+// hats, orbits). Animated ones move a little, hence the margin.
+const DECORATION_MARGIN_PX = 3;
+
+function measureBlock(el: HTMLElement): BlockSize {
+  // Bounding rect rather than offsetWidth/Height: those round, and a
+  // rounded-down 65.3px block would eat into its neighbour's gap.
+  const box = el.getBoundingClientRect();
+  let left = box.left, top = box.top, right = box.right, bottom = box.bottom;
+  el.querySelectorAll<SVGSVGElement>("svg.overflow-visible").forEach((svg) => {
+    const vb = svg.viewBox.baseVal;
+    const r = svg.getBoundingClientRect();
+    if (!vb || !vb.width || !vb.height || !r.width || !r.height) return;
+    const sx = r.width / vb.width;
+    const sy = r.height / vb.height;
+    const add = (x: number, y: number, w: number, h: number) => {
+      if (!w && !h) return;
+      left = Math.min(left, r.left + (x - vb.x) * sx - DECORATION_MARGIN_PX);
+      top = Math.min(top, r.top + (y - vb.y) * sy - DECORATION_MARGIN_PX);
+      right = Math.max(right, r.left + (x - vb.x + w) * sx + DECORATION_MARGIN_PX);
+      bottom = Math.max(bottom, r.top + (y - vb.y + h) * sy + DECORATION_MARGIN_PX);
+    };
+    // Borders show a window onto a big sprite sheet through a nested
+    // <svg overflow="hidden">; getBBox() ignores that clip, so count the
+    // window itself and measure everything else with the windows hidden.
+    const windows = Array.from(svg.children).filter(
+      (c): c is SVGSVGElement => c instanceof SVGSVGElement && c.getAttribute("overflow") === "hidden"
+    );
+    for (const w of windows) add(w.x.baseVal.value, w.y.baseVal.value, w.width.baseVal.value, w.height.baseVal.value);
+    const prev = windows.map((w) => w.style.display);
+    windows.forEach((w) => (w.style.display = "none"));
+    try {
+      const bb = svg.getBBox();
+      add(bb.x, bb.y, bb.width, bb.height);
+    } catch {
+      // Not rendered (e.g. display:none ancestor): nothing extra to count.
+    } finally {
+      windows.forEach((w, i) => (w.style.display = prev[i]));
+    }
+  });
+  const ox = Math.ceil(box.left - left);
+  const oy = Math.ceil(box.top - top);
+  return { w: Math.ceil(right - box.left) + ox, h: Math.ceil(bottom - box.top) + oy, ox, oy };
+}
+
+/** Where the button goes inside its placed block. */
+function nodeSlot(block: Rect | undefined, size: BlockSize | undefined): Rect | null {
+  if (!block) return null;
+  return { ...block, x: block.x + (size?.ox ?? 0), y: block.y + (size?.oy ?? 0) };
+}
+
 function sameRects(a: Rect[], b: Rect[]) {
   return a.length === b.length && a.every((r, i) => r.x === b[i].x && r.y === b[i].y && r.w === b[i].w && r.h === b[i].h);
 }
@@ -105,6 +160,7 @@ function TreePersonNode(
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
+          accessory={person.active_accessory}
           style={{ width: avatarSize, height: avatarSize }}
           className={cn(
             "relative z-10 border-2 border-white shadow-md group-hover:scale-110 transition-transform",
@@ -144,7 +200,7 @@ export function GoalsTreeView({
 
   const [isLgUp, setIsLgUp] = useState(false);
   const [viewport, setViewport] = useState<Size | null>(null);
-  const [blockSizes, setBlockSizes] = useState<Map<string, Size>>(new Map());
+  const [blockSizes, setBlockSizes] = useState<Map<string, BlockSize>>(new Map());
   const [obstacles, setObstacles] = useState<Rect[]>([]);
   const [page, setPage] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -205,23 +261,22 @@ export function GoalsTreeView({
     el.scrollLeft = (stage.w - el.clientWidth) / 2;
   }, [stage]);
 
-  // Measure every person's full block (avatar + name + percentage); that whole
+  // Measure every person's full block (avatar + name + percentage, plus
+  // whatever their border or accessory draws outside the avatar); that whole
   // rectangle is what gets placed and collision-checked.
   const measureKey = people
-    .map((p) => `${p.id}:${p.username}:${personCompletion(goalsByOwner.get(p.id) ?? [])}`)
+    .map((p) => `${p.id}:${p.username}:${p.active_border}:${p.active_accessory}:${personCompletion(goalsByOwner.get(p.id) ?? [])}`)
     .join("|");
   useLayoutEffect(() => {
-    const next = new Map<string, Size>();
+    const next = new Map<string, BlockSize>();
     for (const p of people) {
       const el = nodeEls.current.get(p.id);
       if (!el) continue;
-      // Bounding rect rather than offsetWidth/Height: those round, and a
-      // rounded-down 65.3px block would eat into its neighbour's gap.
-      const r = el.getBoundingClientRect();
-      next.set(p.id, { w: Math.ceil(r.width), h: Math.ceil(r.height) });
+      next.set(p.id, measureBlock(el));
     }
     setBlockSizes((prev) => {
-      if (prev.size === next.size && [...next].every(([id, s]) => prev.get(id)?.w === s.w && prev.get(id)?.h === s.h)) {
+      const same = (a: BlockSize | undefined, b: BlockSize) => !!a && a.w === b.w && a.h === b.h && a.ox === b.ox && a.oy === b.oy;
+      if (prev.size === next.size && [...next].every(([id, s]) => same(prev.get(id), s))) {
         return prev;
       }
       return next;
@@ -361,7 +416,7 @@ export function GoalsTreeView({
             key={person.id}
             person={person}
             goals={goalsByOwner.get(person.id) ?? []}
-            slot={slots.get(person.id) ?? null}
+            slot={nodeSlot(slots.get(person.id), blockSizes.get(person.id))}
             selected={person.id === selectedId}
             onClick={() => onSelect(person)}
             measureRef={(el) => {

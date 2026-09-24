@@ -87,6 +87,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
               user={{ name: current.holder?.username ?? "unknown", initials: initialsForUsername(current.holder?.username ?? "?"), color: colorForId(current.holder_id) }}
               photoUrl={current.holder?.avatar_url ?? null}
               border={current.holder?.active_border ?? null}
+              accessory={current.holder?.active_accessory ?? null}
               className="w-11 h-11 border-2 border-accent shrink-0"
             />
             <div className="min-w-0 flex-1">
@@ -188,6 +189,7 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
                   user={{ name: r.holder?.username ?? "unknown", initials: initialsForUsername(r.holder?.username ?? "?"), color: colorForId(r.holder_id) }}
                   photoUrl={r.holder?.avatar_url ?? null}
                   border={r.holder?.active_border ?? null}
+                  accessory={r.holder?.active_accessory ?? null}
                   className="w-5 h-5 text-[8px] shrink-0"
                 />
                 <span className="font-medium">@{r.holder?.username ?? "unknown"}</span>

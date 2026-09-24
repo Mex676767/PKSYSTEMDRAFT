@@ -132,12 +132,14 @@ function PersonBadge({
   role,
   photoUrl,
   border,
+  accessory,
 }: {
   id: string;
   username: string | null | undefined;
   role: string | null | undefined;
   photoUrl?: string | null;
   border?: string | null;
+  accessory?: string | null;
 }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -145,6 +147,7 @@ function PersonBadge({
         user={{ name: username ?? "unknown", initials: initialsForUsername(username ?? "?"), color: colorForId(id) }}
         photoUrl={photoUrl}
         border={border}
+        accessory={accessory}
         className="w-8 h-8 text-[10px] shrink-0"
       />
       <div className="min-w-0">
@@ -215,13 +218,13 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <PersonBadge id={c.creator_id} username={c.creator?.username} role={c.creator?.role} photoUrl={c.creator?.avatar_url} border={c.creator?.active_border} />
+          <PersonBadge id={c.creator_id} username={c.creator?.username} role={c.creator?.role} photoUrl={c.creator?.avatar_url} border={c.creator?.active_border} accessory={c.creator?.active_accessory} />
           <div className="flex items-center gap-2 shrink-0 text-sm font-bold tabular-nums">
             <span className={cn(c.winner_id === c.creator_id && "text-emerald-500")}>{c.score_creator}</span>
             <span className="text-muted-foreground text-xs font-normal">vs</span>
             <span className={cn(c.winner_id === c.opponent_id && "text-emerald-500")}>{c.score_opponent}</span>
           </div>
-          <PersonBadge id={c.opponent_id} username={c.opponent?.username} role={c.opponent?.role} photoUrl={c.opponent?.avatar_url} border={c.opponent?.active_border} />
+          <PersonBadge id={c.opponent_id} username={c.opponent?.username} role={c.opponent?.role} photoUrl={c.opponent?.avatar_url} border={c.opponent?.active_border} accessory={c.opponent?.active_accessory} />
         </div>
 
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">

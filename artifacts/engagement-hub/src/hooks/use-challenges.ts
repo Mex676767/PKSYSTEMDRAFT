@@ -20,12 +20,12 @@ export type Challenge = {
   starts_at: string;
   ends_at: string;
   created_at: string;
-  creator: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null } | null;
-  opponent: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null } | null;
+  creator: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null } | null;
+  opponent: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null } | null;
 };
 
 const CHALLENGE_SELECT =
-  "*, creator:profiles!challenges_creator_id_fkey!inner(username, role, avatar_url, active_border), opponent:profiles!challenges_opponent_id_fkey!inner(username, role, avatar_url, active_border)";
+  "*, creator:profiles!challenges_creator_id_fkey!inner(username, role, avatar_url, active_border, active_accessory), opponent:profiles!challenges_opponent_id_fkey!inner(username, role, avatar_url, active_border, active_accessory)";
 
 export function useChallengesList() {
   useRealtimeInvalidate("challenges", [["challenges"]]);

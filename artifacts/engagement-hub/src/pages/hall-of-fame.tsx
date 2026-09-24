@@ -112,6 +112,7 @@ export default function HallOfFame() {
                 username: w.holder?.username ?? null,
                 avatar_url: w.holder?.avatar_url ?? null,
                 active_border: w.holder?.active_border ?? null,
+                active_accessory: w.holder?.active_accessory ?? null,
               }))}
           />
         ))

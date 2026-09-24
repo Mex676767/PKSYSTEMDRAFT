@@ -12,10 +12,10 @@ export type Post = {
   image_path: string | null;
   category: PostCategory;
   created_at: string;
-  author: { username: string | null; avatar_url: string | null; active_border: string | null } | null;
+  author: { username: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null } | null;
 };
 
-const POST_SELECT = "*, author:profiles!inner(username, avatar_url, active_border)";
+const POST_SELECT = "*, author:profiles!inner(username, avatar_url, active_border, active_accessory)";
 
 export function usePostsFeed() {
   useRealtimeInvalidate("posts", [["posts-feed"], ["desk-setup-entries"]]);

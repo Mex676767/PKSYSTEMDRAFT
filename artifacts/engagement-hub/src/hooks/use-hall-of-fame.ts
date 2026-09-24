@@ -6,7 +6,7 @@ export type HofPodiumEntry = {
   user_id: string;
   username: string | null;
   avatar_url: string | null;
-  active_border: string | null;
+  active_border: string | null; active_accessory?: string | null;
   achievement: string;
 };
 export type AwardCategory = { id: string; department: string; name: string };
@@ -20,7 +20,7 @@ export type AwardWinner = {
   holder: {
     username: string | null;
     avatar_url: string | null;
-    active_border: string | null;
+    active_border: string | null; active_accessory?: string | null;
   } | null;
 };
 export type WinnerInput = {
@@ -57,7 +57,7 @@ export function useAwardWinners(month: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hof_award_winners")
-        .select("*, holder:profiles!user_id(username,avatar_url,active_border)")
+        .select("*, holder:profiles!user_id(username,avatar_url,active_border, active_accessory)")
         .eq("month", month)
         .order("rank");
       if (error) throw error;

@@ -51,6 +51,7 @@ export function CertificateDialog({
                   }}
                   photoUrl={record.holder?.avatar_url ?? null}
                   border={record.holder?.active_border ?? null}
+                  accessory={record.holder?.active_accessory ?? null}
                   className="w-16 h-16 border-2 border-amber-400 shadow"
                 />
               </div>

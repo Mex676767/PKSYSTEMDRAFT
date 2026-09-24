@@ -30,6 +30,7 @@ function CommentRow({
         user={{ name: comment.author?.username ?? "unknown", initials: initialsForUsername(comment.author?.username ?? "?"), color: colorForId(comment.author_id) }}
         photoUrl={comment.author?.avatar_url ?? null}
         border={comment.author?.active_border ?? null}
+        accessory={comment.author?.active_accessory ?? null}
         className={cn("shrink-0", isReply ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[10px]")}
       />
       <div className="flex-1 min-w-0">

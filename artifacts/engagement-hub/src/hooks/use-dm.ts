@@ -31,7 +31,7 @@ function useSharedChannel(topic: string | null, register: (channel: RealtimeChan
   }, [topic]);
 }
 
-type DmProfile = { id: string; username: string | null; avatar_url: string | null; active_border: string | null };
+type DmProfile = { id: string; username: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null };
 
 export type Conversation = {
   id: string;
@@ -53,7 +53,7 @@ export type DirectMessage = {
 };
 
 const CONVERSATION_SELECT =
-  "*, userA:profiles!dm_conversations_user_a_fkey!inner(id, username, avatar_url, active_border), userB:profiles!dm_conversations_user_b_fkey!inner(id, username, avatar_url, active_border)";
+  "*, userA:profiles!dm_conversations_user_a_fkey!inner(id, username, avatar_url, active_border, active_accessory), userB:profiles!dm_conversations_user_b_fkey!inner(id, username, avatar_url, active_border, active_accessory)";
 
 export function otherParticipant(c: Conversation, myId: string | undefined): DmProfile | null {
   if (!myId) return null;

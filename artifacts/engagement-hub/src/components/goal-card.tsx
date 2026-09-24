@@ -95,6 +95,7 @@ export function GoalCard({
                 user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
                 photoUrl={goal.owner?.avatar_url ?? null}
                 border={goal.owner?.active_border ?? null}
+                accessory={goal.owner?.active_accessory ?? null}
                 className="w-5 h-5 text-[9px]"
               />
               <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>
@@ -195,6 +196,8 @@ export function GoalCard({
                   <UserAvatar
                     user={{ name: u.author?.username ?? "unknown", initials: initialsForUsername(u.author?.username ?? "?"), color: colorForId(u.author_id) }}
                     photoUrl={u.author?.avatar_url ?? null}
+                    border={u.author?.active_border ?? null}
+                    accessory={u.author?.active_accessory ?? null}
                     className="w-5 h-5 text-[8px] shrink-0 mt-0.5"
                   />
                   <div className="flex-1 min-w-0">

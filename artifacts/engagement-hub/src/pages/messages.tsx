@@ -77,6 +77,7 @@ export default function Messages() {
                         user={{ initials: initialsForUsername(other?.username ?? "?"), color: colorForId(other?.id ?? c.id), name: other?.username ?? "?" }}
                         photoUrl={other?.avatar_url}
                         border={other?.active_border}
+                        accessory={other?.active_accessory}
                         className="w-9 h-9 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
@@ -163,6 +164,7 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
           user={{ initials: initialsForUsername(other?.username ?? "?"), color: colorForId(other?.id ?? conversation.id), name: other?.username ?? "?" }}
           photoUrl={other?.avatar_url}
           border={other?.active_border}
+          accessory={other?.active_accessory}
           className="w-8 h-8 shrink-0"
         />
         <span className="font-semibold text-sm">@{other?.username ?? "unknown"}</span>
@@ -273,6 +275,7 @@ function NewMessageDialog({ onStarted }: { onStarted: (conversationId: string) =
                     user={{ initials: initialsForUsername(p.username), color: colorForId(p.id), name: p.username }}
                     photoUrl={p.avatar_url}
                     border={p.active_border}
+                    accessory={p.active_accessory}
                     className="w-8 h-8 shrink-0"
                   />
                   <div className="min-w-0">

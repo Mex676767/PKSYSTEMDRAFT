@@ -9,7 +9,7 @@ export type BirthdayEntry = {
   role: string | null;
   birthday: string
   avatar_url: string | null;
-  active_border: string | null;
+  active_border: string | null; active_accessory?: string | null;
   isToday: boolean;
   daysUntil: number;
 };
@@ -32,7 +32,7 @@ export function useBirthdays() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, department, role, birthday, avatar_url, active_border")
+        .select("id, username, department, role, birthday, avatar_url, active_border, active_accessory")
         .not("birthday", "is", null);
       if (error) throw error;
 

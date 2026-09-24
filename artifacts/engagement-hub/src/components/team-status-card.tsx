@@ -71,6 +71,7 @@ export function TeamStatusCard() {
                         user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
                         photoUrl={p.avatar_url}
                         border={p.active_border}
+                        accessory={p.active_accessory}
                         className="w-8 h-8 text-[10px] shrink-0"
                       />
                       <span className="text-xs font-medium truncate min-w-0">@{p.username}</span>

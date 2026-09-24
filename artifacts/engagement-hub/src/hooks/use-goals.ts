@@ -39,7 +39,7 @@ export type Goal = {
   progress: number;
   completed: boolean;
   created_at: string;
-  owner: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null } | null;
+  owner: { username: string | null; role: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null } | null;
 };
 
 export type GoalUpdate = {
@@ -49,11 +49,11 @@ export type GoalUpdate = {
   progress: number;
   note: string | null;
   created_at: string;
-  author: { username: string | null; avatar_url: string | null } | null;
+  author: { username: string | null; avatar_url: string | null; active_border?: string | null; active_accessory?: string | null } | null;
 };
 
-const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border)";
-const GOAL_UPDATE_SELECT = "*, author:profiles!inner(username, avatar_url)";
+const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border, active_accessory)";
+const GOAL_UPDATE_SELECT = "*, author:profiles!inner(username, avatar_url, active_border, active_accessory)";
 
 export function useGoalsFeed() {
   useRealtimeInvalidate("goals", [["goals-feed"], ["my-goals"]]);
