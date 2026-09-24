@@ -22,6 +22,8 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
+- **PK / Challenge system product requirements:** `docs/PK-SYSTEM.md`. Read it before changing anything in the Battle Arena / challenges.
+
 _Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
 
 ## Architecture decisions
