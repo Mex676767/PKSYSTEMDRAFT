@@ -48,7 +48,14 @@ begin
 end;
 $$;
 
-grant execute on function pk_review(uuid, boolean, text) to authenticated;
+-- PKs the signed-in person can approve right now (for the "To approve" tab).
+create or replace function pk_pending_approvals()
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select id from challenges
+  where pk_version = 1 and status = 'awaiting_approval' and pk_can_approve(id, auth.uid());
+$$;
+
+grant execute on function pk_review(uuid, boolean, text), pk_pending_approvals() to authenticated;
 revoke all on function pk_expire_open() from public, anon, authenticated;
 
 do $$

@@ -67,3 +67,17 @@ returns table (side text, score numeric) language sql stable security definer se
 $$;
 
 grant execute on function pk_update_score(uuid, numeric, text, text), pk_side_scores(uuid) to authenticated;
+
+-- Live updates in the arena.
+do $$
+declare t text;
+begin
+  foreach t in array array['challenge_participants', 'challenge_events', 'challenge_score_updates'] loop
+    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
+      execute format('alter publication supabase_realtime add table %I', t);
+    end if;
+  end loop;
+exception when others then
+  raise warning 'Realtime not enabled for PK tables: %', sqlerrm;
+end;
+$$;

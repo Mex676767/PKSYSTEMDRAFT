@@ -257,3 +257,11 @@ smallest change that gets Phase 1 working, and don't over-engineer.
   "Above TL" roles get USD 200; ATL/TL USD 100; everyone else USD 50.
 - **Improvement rule:** every target must beat the person's baseline (higher
   for higher-wins metrics, lower for lower-wins).
+
+## Build status
+
+- **Milestones 1 and 2 (built):** migrations `0030`–`0038` in `artifacts/engagement-hub/supabase/migrations`, the `/challenges` page with Arena, My PKs, To approve and Old challenges tabs, the create/counter wizard (`src/components/pk/pk-wizard.tsx`), and the detail page at `/challenges/:id` (`src/pages/pk-detail.tsx`). Covers named and open challenges, counter-proposals, team and self-declaration formats, superior approval, limit and PK Money checks, score updates that need proof, the timeline and the terms history.
+- **Milestone 3 (next):** settlement, the Winner Playbook, PK points, the leaderboard, King/Queen.
+- **Milestone 4:** the playbook library, the PK Money ledger UI, termination.
+- Old challenge functions no longer touch PK rows (`0038`). `create_challenge` is retired, and old challenges stay as history.
+- PK notifications use `target_type = 'pk'` and open `/challenges/<id>`. The `send-push` function maps this (redeploy it for push links to go to the PK).

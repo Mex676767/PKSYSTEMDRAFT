@@ -30,6 +30,7 @@ const TARGET_LINK: Record<string, string> = {
   post: "/social",
   hof_record: "/guinness-records",
   challenge: "/challenges",
+  pk: "/challenges",
   dm: "/messages",
   profile: "/profile",
   rewards: "/rewards",
@@ -107,7 +108,7 @@ export function NotificationBell() {
             <div className="divide-y divide-border">
               {notifications.map((n) => {
                 const Icon = TYPE_ICON[n.type] ?? Bell;
-                const href = TARGET_LINK[n.target_type ?? ""] ?? "/";
+                const href = n.target_type === "pk" && n.target_id ? `/challenges/${n.target_id}` : TARGET_LINK[n.target_type ?? ""] ?? "/";
                 const isNew = !n.read || freshIds.has(n.id);
                 return (
                   <Link

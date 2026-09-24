@@ -21,6 +21,7 @@ import Dashboard from '@/pages/dashboard';
 import Goals from '@/pages/goals';
 import Social from '@/pages/social';
 import Challenges from '@/pages/challenges';
+import PkDetail from '@/pages/pk-detail';
 import Messages from '@/pages/messages';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/goals" component={Goals} />
           <Route path="/social" component={Social} />
           <Route path="/challenges" component={Challenges} />
+          <Route path="/challenges/:id" component={PkDetail} />
           <Route path="/messages" component={Messages} />
           <Route path="/hall-of-fame" component={HallOfFame} />
           <Route path="/guinness-records" component={GuinnessRecords} />

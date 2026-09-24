@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export type ChallengeStatus = "pending" | "active" | "completed" | "declined";
@@ -35,6 +34,7 @@ export function useChallengesList() {
       const { data, error } = await supabase
         .from("challenges")
         .select(CHALLENGE_SELECT)
+        .eq("pk_version", 0)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Challenge[];
@@ -45,48 +45,6 @@ export function useChallengesList() {
 function useInvalidateChallenges() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ["challenges"] });
-}
-
-export function useCreateChallenge() {
-  const { session } = useAuth();
-  const invalidate = useInvalidateChallenges();
-  return useMutation({
-    mutationFn: async (input: {
-      opponentId: string;
-      topic: string;
-      description: string;
-      reward: string;
-      punishment: string;
-      endsAt: string;
-    }) => {
-      const { error } = await supabase.rpc("create_challenge", {
-        opponent_id_param: input.opponentId,
-        topic_param: input.topic,
-        description_param: input.description,
-        reward_param: input.reward,
-        punishment_param: input.punishment,
-        ends_at_param: input.endsAt,
-      });
-      if (error) throw error;
-
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: created, error: lookupError } = await supabase
-          .from("challenges")
-          .select("id")
-          .eq("creator_id", session?.user.id ?? "")
-          .eq("opponent_id", input.opponentId)
-          .eq("topic", input.topic)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (lookupError) throw lookupError;
-        if (created) return created as { id: string };
-        await new Promise((resolve) => setTimeout(resolve, 400));
-      }
-      return null;
-    },
-    onSuccess: invalidate,
-  });
 }
 
 export function useRespondChallenge() {

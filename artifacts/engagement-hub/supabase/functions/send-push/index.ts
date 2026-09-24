@@ -51,6 +51,7 @@ const TARGET_PATH: Record<string, string> = {
   post: "social",
   hof_record: "guinness-records",
   challenge: "challenges",
+  pk: "challenges",
   dm: "messages",
   profile: "profile",
   rewards: "rewards",
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: n, error: nError } = await admin
       .from("notifications")
-      .select("id, user_id, type, target_type, message")
+      .select("id, user_id, type, target_type, target_id, message")
       .eq("id", notification_id)
       .maybeSingle();
     if (nError) throw nError;
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
     const payload = {
       title: TITLES[n.type] ?? "C9MYR Hub",
       body: String(n.message ?? "").slice(0, 300),
-      path: TARGET_PATH[target] ?? "",
+      path: target === "pk" && n.target_id ? `challenges/${n.target_id}` : TARGET_PATH[target] ?? "",
       tag: n.id,
     };
 

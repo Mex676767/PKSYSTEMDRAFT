@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
+import { useLocation } from "wouter";
+import { PageTransition, staggerContainer } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DatePicker } from "@/components/date-picker";
 import { motion } from "framer-motion";
-import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Swords, Plus, Check, X, Clock, Trophy, Gift, Skull, Trash2, MessageCircle, ChevronDown, ChevronUp, Megaphone, ShieldCheck } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
   useChallengesList,
-  useCreateChallenge,
   useRespondChallenge,
   useCancelChallenge,
   useUpdateChallengeScore,
@@ -20,90 +18,122 @@ import {
   useDeleteChallenge,
   type Challenge,
 } from "@/hooks/use-challenges";
-import { useDirectory } from "@/hooks/use-mentors";
+import { usePkApprovals, usePkList } from "@/hooks/use-pk";
+import { PkCard, pkNextStep } from "@/components/pk/pk-card";
+import { PkWizard } from "@/components/pk/pk-wizard";
+import { PK_CLOSED, PK_LIVE, PK_SETUP, type Pk } from "@/lib/pk";
 import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { ProgressPhotos } from "@/components/progress-photos";
-import { ImagePickerButton } from "@/components/image-picker-button";
-import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
 import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
-import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
-import { SearchableSelect } from "@/components/searchable-select";
-import { personOption } from "@/components/person-option";
 import { useOrgStructure } from "@/hooks/use-org-structure";
 
-const NEW_CHALLENGE_DRAFT_KEY = "c9myr:new-challenge-draft";
-
-type NewChallengeDraft = {
-  opponentId: string;
-  topic: string;
-  description: string;
-  reward: string;
-  punishment: string;
-  endsAt: string | null;
-};
-
-function hasChallengeDraftContent(d: NewChallengeDraft) {
-  return d.topic.trim() || d.description.trim() || d.reward.trim() || d.punishment.trim();
-}
+type Tab = "arena" | "mine" | "approve" | "old";
 
 export default function Challenges() {
   const { session } = useAuth();
-  const { data: challenges = [], isLoading } = useChallengesList();
-
   const mine = session?.user.id;
-  const awaitingMe = challenges.filter((c) => c.status === "pending" && c.opponent_id === mine);
-  const pendingSent = challenges.filter((c) => c.status === "pending" && c.creator_id === mine);
-  const active = challenges.filter((c) => c.status === "active");
-  const completed = challenges.filter((c) => c.status === "completed" || c.status === "declined");
+  const { data: pks = [], isLoading } = usePkList();
+  const { data: approvals = new Set<string>() } = usePkApprovals();
+  const { data: legacy = [] } = useChallengesList();
+  const [, navigate] = useLocation();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>("arena");
+  const [showClosed, setShowClosed] = useState(false);
+
+  const involved = (pk: Pk) => pk.participants.some((p) => p.user_id === mine);
+  const myPks = pks.filter(involved);
+  const toApprove = pks.filter((pk) => approvals.has(pk.id));
+  const openForMe = pks.filter((pk) => pk.status === "awaiting_opponent" && pk.method === "open" && !involved(pk));
+  const live = pks.filter((pk) => PK_LIVE.includes(pk.status));
+  const needsMe = myPks.filter((pk) => pkNextStep(pk, mine, false));
+
+  useEffect(() => {
+    if (!isLoading && (needsMe.length > 0 || toApprove.length > 0) && tab === "arena") setTab(needsMe.length > 0 ? "mine" : "approve");
+    // Only on first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   if (isLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-secondary/20" /></div>;
   }
 
+  const cards = (list: Pk[]) => list.map((pk) => <PkCard key={pk.id} pk={pk} viewerId={mine} canApprove={approvals.has(pk.id)} />);
+  const tabs: { id: Tab; label: string; count?: number }[] = [
+    { id: "arena", label: "Arena" },
+    { id: "mine", label: "My PKs", count: needsMe.length },
+    { id: "approve", label: "To approve", count: toApprove.length },
+    { id: "old", label: "Old challenges" },
+  ];
+
   return (
-    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
+    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Battle Arena</h1>
-          <p className="text-muted-foreground mt-1">Challenge your peers and climb the ranks.</p>
+          <p className="text-muted-foreground mt-1">Challenge someone in your department. Agree the terms, get it approved, prove every score.</p>
         </div>
-        <NewChallengeDialog disabled={!session} />
+        <Button className="shrink-0 hover-elevate" disabled={!session} onClick={() => setWizardOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Start a PK
+        </Button>
       </div>
 
-      {!session && (
-        <div className="p-4 text-center bg-muted/30 border border-dashed rounded-2xl text-sm text-muted-foreground">
-          Sign in to challenge someone.
-        </div>
+      <div role="tablist" className="flex gap-1 border-b border-border overflow-x-auto">
+        {tabs.filter((t) => t.id !== "approve" || toApprove.length > 0 || tab === "approve").map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+            className={cn("px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors",
+              tab === t.id ? "border-secondary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            {t.label}
+            {!!t.count && <span className="ml-1.5 text-[10px] bg-amber-500 text-white rounded-full px-1.5 py-0.5">{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === "arena" && (
+        <>
+          {openForMe.length > 0 && <Section title="Open challenges" icon={Megaphone}>{cards(openForMe)}</Section>}
+          <Section title="Live PKs" icon={Swords}>
+            {live.length === 0 ? <EmptyState text="No PKs running right now. Start one." /> : cards(live)}
+          </Section>
+        </>
       )}
 
-      {awaitingMe.length > 0 && (
-        <Section title="Awaiting Your Response" icon={Clock}>
-          {awaitingMe.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)}
+      {tab === "mine" && (
+        <>
+          <Section title="Being set up" icon={Clock}>
+            {myPks.filter((pk) => PK_SETUP.includes(pk.status)).length === 0
+              ? <EmptyState text="Nothing waiting. Start a PK or take an open one in the Arena." />
+              : cards(myPks.filter((pk) => PK_SETUP.includes(pk.status)))}
+          </Section>
+          {myPks.some((pk) => PK_LIVE.includes(pk.status)) && (
+            <Section title="Live" icon={Swords}>{cards(myPks.filter((pk) => PK_LIVE.includes(pk.status)))}</Section>
+          )}
+          {myPks.some((pk) => PK_CLOSED.includes(pk.status)) && (
+            <div className="space-y-3">
+              <button onClick={() => setShowClosed((s) => !s)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+                {showClosed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} Finished ({myPks.filter((pk) => PK_CLOSED.includes(pk.status)).length})
+              </button>
+              {showClosed && <div className="grid gap-3">{cards(myPks.filter((pk) => PK_CLOSED.includes(pk.status)))}</div>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "approve" && (
+        <Section title="Waiting for your approval" icon={ShieldCheck}>
+          {toApprove.length === 0 ? <EmptyState text="Nothing to approve." /> : cards(toApprove)}
         </Section>
       )}
 
-      {pendingSent.length > 0 && (
-        <Section title="Pending" icon={Clock}>
-          {pendingSent.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)}
+      {tab === "old" && (
+        <Section title="Challenges from before the PK system" icon={Trophy}>
+          {legacy.length === 0 ? <EmptyState text="No old challenges." /> : legacy.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)}
         </Section>
       )}
 
-      <Section title="Active Challenges" icon={Swords}>
-        {active.length === 0 ? (
-          <EmptyState text="No active challenges. Issue one above." />
-        ) : (
-          active.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)
-        )}
-      </Section>
-
-      {completed.length > 0 && (
-        <Section title="History" icon={Trophy}>
-          {completed.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)}
-        </Section>
-      )}
+      <PkWizard open={wizardOpen} onOpenChange={setWizardOpen} onDone={(id) => id && navigate(`/challenges/${id}`)} />
     </PageTransition>
   );
 }
@@ -338,187 +368,5 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function NewChallengeDialog({ disabled }: { disabled: boolean }) {
-  const { session } = useAuth();
-  const { data: directory = [] } = useDirectory();
-  const createChallenge = useCreateChallenge();
-  const [isOpen, setIsOpen] = useState(false);
-  const [opponentId, setOpponentId] = useState("");
-  const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-  const [reward, setReward] = useState("");
-  const [punishment, setPunishment] = useState("");
-  const [endsAt, setEndsAt] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const stored = loadDraft<NewChallengeDraft>(NEW_CHALLENGE_DRAFT_KEY);
-    if (stored && hasChallengeDraftContent(stored)) {
-      setOpponentId(stored.opponentId);
-      setTopic(stored.topic);
-      setDescription(stored.description);
-      setReward(stored.reward);
-      setPunishment(stored.punishment);
-      setEndsAt(stored.endsAt);
-      setIsOpen(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    saveDraft(NEW_CHALLENGE_DRAFT_KEY, { opponentId, topic, description, reward, punishment, endsAt });
-  }, [isOpen, opponentId, topic, description, reward, punishment, endsAt]);
-
-  const tomorrow = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return format(d, "yyyy-MM-dd");
-  }, []);
-
-  const setImage = (file: File | null) => {
-    setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const clearImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
-  const reset = () => {
-    setOpponentId(""); setTopic(""); setDescription("");
-    setReward(""); setPunishment(""); setEndsAt(null); setError(null);
-    clearImage();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!opponentId || !topic.trim() || !endsAt) return;
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const created = await createChallenge.mutateAsync({
-        opponentId,
-        topic: topic.trim(),
-        description: description.trim(),
-        reward: reward.trim(),
-        punishment: punishment.trim(),
-        endsAt: new Date(endsAt + "T23:59:59").toISOString(),
-      });
-
-      if (imageFile && created?.id && session) {
-        try {
-          await uploadProgressPhoto({ targetType: "challenge", targetId: created.id, file: imageFile, userId: session.user.id });
-        } catch {}
-      }
-
-      setIsOpen(false);
-      reset();
-      clearDraft(NEW_CHALLENGE_DRAFT_KEY);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o && !hasChallengeDraftContent({ opponentId, topic, description, reward, punishment, endsAt })) reset(); }}>
-      <DialogTrigger asChild>
-        <Button className="shrink-0 hover-elevate" disabled={disabled}>
-          <Plus className="w-4 h-4 mr-2" /> Issue Challenge
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Issue a New Challenge</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto pr-1">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Opponent</label>
-            <SearchableSelect
-              value={opponentId}
-              onValueChange={setOpponentId}
-              options={directory.map(personOption)}
-              placeholder="Select..."
-              searchPlaceholder="Search by name, role or department..."
-              aria-label="Opponent"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Topic</label>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., Most upsells this week"
-              required
-              maxLength={200}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Rules, context, anything they should know"
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Reward</label>
-              <input
-                type="text"
-                value={reward}
-                onChange={(e) => setReward(e.target.value)}
-                placeholder="e.g. Loser buys lunch"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Punishment</label>
-              <input
-                type="text"
-                value={punishment}
-                onChange={(e) => setPunishment(e.target.value)}
-                placeholder="e.g. 20 push-ups"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Ends</label>
-            <DatePicker value={endsAt} onChange={setEndsAt} minDate={tomorrow} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Photo (optional)</label>
-            {imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-border">
-                <img src={imagePreview} alt="" className="w-full max-h-48 object-cover" />
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <ImagePickerButton onImage={setImage} label="Photo" />
-            )}
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" variant="secondary" className="w-full mt-2" disabled={isSubmitting}>
-            {isSubmitting ? "Sending..." : "Throw Gauntlet"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

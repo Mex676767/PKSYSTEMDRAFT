@@ -77,7 +77,7 @@ $$;
 create or replace function pk_notify(cid uuid, user_ids uuid[], message_text text)
 returns void language sql security definer set search_path = public as $$
   insert into notifications (user_id, actor_id, type, target_type, target_id, message)
-  select distinct u, auth.uid(), 'challenge', 'challenge', cid, message_text
+  select distinct u, auth.uid(), 'challenge', 'pk', cid, message_text
   from unnest(user_ids) as u where u is distinct from auth.uid();
 $$;
 
