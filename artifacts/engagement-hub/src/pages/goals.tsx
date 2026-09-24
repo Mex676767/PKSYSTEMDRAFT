@@ -443,7 +443,7 @@ export default function Goals() {
                   {headingBlock()}
                   {toggleButtons}
                 </div>
-                <div className="w-full sm:w-72 sm:ml-auto space-y-2">
+                <div data-tree-panel-anchor className="w-full sm:w-72 sm:ml-auto space-y-2">
                   {searchInput}
                   <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
                     <Plus className="w-4 h-4 mr-2" /> Add Goals
@@ -554,6 +554,7 @@ function PersonGoalCard(
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
+          accessory={person.active_accessory}
           className="w-11 h-11 shrink-0"
         />
         <div className="min-w-0">

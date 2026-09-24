@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { X, ListChecks, ClipboardList, Send, Trash2, Pencil } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -22,6 +22,74 @@ type Tab = "goals" | "progress" | "comments";
 function personCompletion(goals: Goal[]): number {
   if (goals.length === 0) return 0;
   return Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length);
+}
+
+const PANEL_GAP_PX = 12;
+const PANEL_BOTTOM_MARGIN_PX = 24;
+const PANEL_MIN_HEIGHT_PX = 260;
+const ANCHOR_MAX_RIGHT_INSET_PX = 96;
+
+/**
+ * Sits the panel directly under the Tree View's search + Add Goals column
+ * (marked data-tree-panel-anchor) whenever that column is at the right-hand
+ * side of the screen, matching its right edge and width, and follows it on
+ * resize. Otherwise the panel keeps its normal CSS placement.
+ */
+function useAnchorBelowAddGoals() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<CSSProperties | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const panel = ref.current;
+    if (!panel) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    let anchorObserver: ResizeObserver | null = null;
+
+    const place = () => {
+      const anchor = document.querySelector<HTMLElement>("[data-tree-panel-anchor]");
+      const container = panel.offsetParent as HTMLElement | null;
+      if (!mq.matches || !anchor || !container || anchor.offsetParent === null) {
+        setStyle(undefined);
+        return;
+      }
+      const a = anchor.getBoundingClientRect();
+      const c = container.getBoundingClientRect();
+      // Between lg and xl the header pads the search column away from the
+      // right edge (to clear the icon row), leaving it over the middle of the
+      // tree. Only anchor when it's actually at the right-hand side.
+      if (c.right - a.right > ANCHOR_MAX_RIGHT_INSET_PX) {
+        setStyle(undefined);
+        return;
+      }
+      const top = a.bottom - c.top + PANEL_GAP_PX;
+      const available = window.innerHeight - (a.bottom + PANEL_GAP_PX) - PANEL_BOTTOM_MARGIN_PX;
+      setStyle({
+        top,
+        right: c.right - a.right,
+        width: a.width,
+        maxHeight: Math.max(PANEL_MIN_HEIGHT_PX, Math.min(560, available)),
+      });
+    };
+
+    place();
+    const anchor = document.querySelector<HTMLElement>("[data-tree-panel-anchor]");
+    if (anchor) {
+      anchorObserver = new ResizeObserver(place);
+      anchorObserver.observe(anchor);
+    }
+    window.addEventListener("resize", place);
+    // The tree area scrolls on short screens; capture catches that inner scroll.
+    window.addEventListener("scroll", place, true);
+    mq.addEventListener("change", place);
+    return () => {
+      anchorObserver?.disconnect();
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      mq.removeEventListener("change", place);
+    };
+  }, []);
+
+  return { ref, style };
 }
 
 export function TreeDetailPanel(
@@ -57,17 +125,20 @@ export function TreeDetailPanel(
     addComment.mutate({ body: commentText.trim() }, { onSuccess: () => setCommentText("") });
   };
 
+  const anchoredStyle = useAnchorBelowAddGoals();
+
   return (
     <div
+      ref={anchoredStyle.ref}
+      style={anchoredStyle.style}
       className={cn(
         "mt-4 lg:mt-0 lg:absolute lg:top-[294px] lg:right-8 lg:z-40",
         "w-full lg:w-80 shrink-0 bg-card/85 backdrop-blur-xl backdrop-saturate-150",
         "rounded-2xl shadow-xl shadow-black/20 ring-1 ring-white/40 dark:ring-white/10",
-        // top-294px/bottom-8 alone can leave almost no room for tab content
-        // below the header on shorter screens -- prefer a comfortable 420px
-        // so there's actually room to see and scroll a handful of
-        // comments/goals, but cap it to whatever the viewport can fit so the
-        // panel never runs off-screen with no way to reach the bottom of it.
+        // Prefer a comfortable 420px so there's room to see and scroll a few
+        // comments/goals, but cap it to what the viewport can fit so the panel
+        // never runs off-screen. (The anchored style below overrides the
+        // fallback top/right/width/max-height once Add Goals is measured.)
         "overflow-hidden flex flex-col max-h-[calc(100dvh-8rem)] lg:max-h-[clamp(0px,420px,calc(100vh-302px))]"
       )}
     >
@@ -76,6 +147,7 @@ export function TreeDetailPanel(
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
           photoUrl={person.avatar_url}
           border={person.active_border}
+          accessory={person.active_accessory}
           className="w-14 h-14 border-2 border-white shadow shrink-0"
         />
         <div className="min-w-0 flex-1">
