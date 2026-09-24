@@ -255,17 +255,17 @@ function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: st
   const canRemove = isAdmin;
   if (canCancel || canRemove) {
     blocks.push(
-      <div key="manage" className="flex gap-3 text-xs">
+      <div key="manage" className="flex items-center gap-3 text-xs">
         {canCancel && (
           <button className="text-muted-foreground hover:text-destructive" disabled={cancel.isPending}
             onClick={() => window.confirm("Cancel this PK?") && run(() => cancel.mutateAsync(pk.id))}>Cancel PK</button>
         )}
         {canRemove && (
-          <button className="text-muted-foreground hover:text-destructive flex items-center gap-1" disabled={remove.isPending}
+          <Button size="sm" variant="destructive" className="ml-auto h-8" disabled={remove.isPending}
             onClick={() => window.confirm("Delete this PK for good? Its scores, proof and history go with it.") &&
               run(() => remove.mutateAsync(pk.id).then(() => navigate("/challenges")))}>
-            <Trash2 className="w-3 h-3" /> Delete (admin)
-          </button>
+            <Trash2 className="w-3.5 h-3.5 mr-1" /> {remove.isPending ? "Deleting..." : "Delete PK"}
+          </Button>
         )}
       </div>,
     );

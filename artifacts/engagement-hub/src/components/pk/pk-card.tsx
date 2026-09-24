@@ -1,10 +1,11 @@
 import { Link } from "wouter";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Clock, Crown, DollarSign, Gift, Megaphone, Skull } from "lucide-react";
+import { Clock, Crown, DollarSign, Gift, Megaphone, Skull, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
-import { colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { usePkSideScores } from "@/hooks/use-pk";
+import { colorForId, initialsForUsername, useAuth } from "@/hooks/use-auth";
+import { useDeletePk, usePkSideScores } from "@/hooks/use-pk";
+import { getErrorMessage } from "@/lib/utils";
 import {
   PK_LIVE, PK_STATUS_LABEL, PK_TYPE_LABEL, formatPkNumber, pkScoreSuffix, pkSide, pkStatusTone,
   type Pk, type PkParticipant,
@@ -75,6 +76,14 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
   const scoreOf = (side: "A" | "B") => sides.find((s) => s.side === side)?.score ?? null;
   const next = pkNextStep(pk, viewerId, canApprove);
   const involved = pk.participants.some((p) => p.user_id === viewerId);
+  const { isAdmin } = useAuth();
+  const remove = useDeletePk();
+  const onDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${pk.topic}" for good? Its scores, proof and history go with it.`)) return;
+    remove.mutateAsync(pk.id).catch((err) => window.alert(getErrorMessage(err)));
+  };
 
   return (
     <Link href={`/challenges/${pk.id}`}>
@@ -91,6 +100,12 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
               <span className={cn("text-[10px] rounded-full px-2 py-0.5 font-medium", pkStatusTone(pk.status))}>
                 {pk.method === "open" && pk.status === "awaiting_opponent" ? "Open" : PK_STATUS_LABEL[pk.status]}
               </span>
+              {isAdmin && (
+                <button type="button" onClick={onDelete} disabled={remove.isPending} title="Delete PK (admin)" aria-label="Delete PK"
+                  className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
