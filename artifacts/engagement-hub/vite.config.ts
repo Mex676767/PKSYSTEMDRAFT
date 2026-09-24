@@ -1,7 +1,8 @@
+import fs from 'fs';
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
@@ -27,11 +28,33 @@ if (!basePath) {
   );
 }
 
+// Brand (see src/lib/brand.ts): the HTML title/meta and a couple of static
+// files in public/ mention the organisation by name, so rewrite them for
+// non-C9MYR builds.
+const brandName = process.env.VITE_BRAND_NAME || 'C9MYR';
+const outDir = path.resolve(import.meta.dirname, 'dist/public');
+const brandFiles = ['privacy.html', 'push-sw.js'];
+
+function brand(): Plugin {
+  return {
+    name: 'brand',
+    transformIndexHtml: (html) => html.replaceAll('C9MYR', brandName),
+    closeBundle() {
+      if (brandName === 'C9MYR') return;
+      for (const file of brandFiles) {
+        const target = path.join(outDir, file);
+        if (fs.existsSync(target)) fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replaceAll('C9MYR', brandName));
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
+    brand(),
     runtimeErrorOverlay(),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
@@ -61,7 +84,7 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, 'dist/public'),
+    outDir,
     emptyOutDir: true,
   },
   server: {

@@ -4,6 +4,7 @@ import { Mail, Trophy, KeyRound, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -70,7 +71,7 @@ export default function Login() {
           <div className="bg-primary text-primary-foreground w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-4">
             <Trophy className="w-7 h-7" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">C9MYR Employee's Hub</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{BRAND_FULL_NAME}</h1>
           <p className="text-muted-foreground mt-1">Goals, challenges, and bragging rights.</p>
         </div>
 

@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAchievements } from "@/hooks/use-achievements";
+import { BRAND_NAME } from "@/lib/brand";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -116,7 +117,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
               <Trophy className="w-3.5 h-3.5" />
             </div>
-            <span className="hidden sm:inline font-display font-bold text-sm tracking-tight whitespace-nowrap">C9MYR</span>
+            <span className="hidden sm:inline font-display font-bold text-sm tracking-tight whitespace-nowrap">{BRAND_NAME}</span>
           </Link>
 
           {items.map((item) => {

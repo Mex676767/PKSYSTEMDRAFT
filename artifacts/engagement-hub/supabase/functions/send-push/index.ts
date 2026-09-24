@@ -17,6 +17,7 @@ const VAPID: VapidKeys = {
   subject: Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@example.com",
 };
 const PUSH_WEBHOOK_SECRET = Deno.env.get("PUSH_WEBHOOK_SECRET") ?? "";
+const APP_NAME = Deno.env.get("APP_NAME") ?? "C9MYR Hub";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
 
     const target = n.target_type ?? (n.type === "dm" ? "dm" : n.type);
     const payload = {
-      title: TITLES[n.type] ?? "C9MYR Hub",
+      title: TITLES[n.type] ?? APP_NAME,
       body: String(n.message ?? "").slice(0, 300),
       path: target === "pk" && n.target_id ? `challenges/${n.target_id}` : TARGET_PATH[target] ?? "",
       tag: n.id,

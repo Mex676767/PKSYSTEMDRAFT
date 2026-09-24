@@ -19,6 +19,7 @@ import {
   type BirthdayEmailSettings,
 } from "@/hooks/use-birthday-email-settings";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { BRAND_HUB_NAME } from "@/lib/brand";
 
 type Draft = Omit<BirthdayEmailSettings, "updated_at">;
 
@@ -153,7 +154,7 @@ export function BirthdayEmailSettingsCard() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="bday-from-name">Sender name</Label>
-            <Input id="bday-from-name" value={draft.from_name} onChange={(ev) => set("from_name", ev.target.value)} placeholder="C9MYR Hub" />
+            <Input id="bday-from-name" value={draft.from_name} onChange={(ev) => set("from_name", ev.target.value)} placeholder={BRAND_HUB_NAME} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="bday-from-email">Sender email</Label>

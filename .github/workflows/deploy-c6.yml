@@ -1,0 +1,56 @@
+name: Deploy C6 hub to Cloudflare Pages
+
+# Same code as the C9MYR site, built with C6's name and Supabase project and
+# deployed to its own domain on every push to main. Does nothing until the
+# repository has the C6 settings below. See docs/C6-SETUP.md.
+#
+#   Variables: C6_BRAND_NAME, C6_SUPABASE_URL, C6_SUPABASE_ANON_KEY, C6_PAGES_PROJECT
+#   Secrets:   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c6-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ vars.C6_SUPABASE_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build engagement-hub for C6
+        run: pnpm --filter @workspace/engagement-hub run build
+        env:
+          PORT: "4173"
+          # Served from the root of its own domain.
+          BASE_PATH: /
+          VITE_BRAND_NAME: ${{ vars.C6_BRAND_NAME || 'C6' }}
+          VITE_SUPABASE_URL: ${{ vars.C6_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.C6_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy artifacts/engagement-hub/dist/public --project-name=${{ vars.C6_PAGES_PROJECT || 'c6-hub' }} --branch=main
