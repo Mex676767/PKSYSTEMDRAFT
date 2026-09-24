@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HofCategoryCard } from "@/components/hof-category-card";
+import { RecordEditPanel } from "@/components/hof-edit-panel";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,7 +53,7 @@ export default function GuinnessRecords() {
         </div>
 
         {canManage && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex flex-wrap gap-2"><RecordEditPanel /><Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="secondary" className="shrink-0 hover-elevate">
               <Plus className="w-4 h-4 mr-2" /> New Category
@@ -110,7 +111,7 @@ export default function GuinnessRecords() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+        </Dialog></div>
         )}
       </div>
 

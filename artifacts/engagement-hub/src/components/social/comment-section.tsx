@@ -4,7 +4,7 @@ import { Send, Trash2, Reply, X } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useComments, useAddComment, useDeleteComment, type Comment, type TargetType } from "@/hooks/use-social";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
 
 const commentDraftKey = (targetType: TargetType, targetId: string) => `c9myr:comment-draft:${targetType}:${targetId}`;
@@ -80,7 +80,7 @@ export function CommentSection({
   onDark?: boolean
 }) {
   const { session, isAdmin } = useAuth();
-  const { data: comments = [] } = useComments(targetType, targetId);
+  const { data: comments = [], error: loadError, isLoading } = useComments(targetType, targetId);
   const addComment = useAddComment(targetType, targetId);
   const deleteComment = useDeleteComment(targetType, targetId);
   const [text, setText] = useState(() => loadDraft<string>(commentDraftKey(targetType, targetId)) ?? "");
@@ -104,7 +104,7 @@ export function CommentSection({
     const topLevel: Comment[] = [];
     const repliesByParent = new Map<string, Comment[]>();
     for (const c of comments) {
-      if (!c.parent_comment_id) {
+      if (!c.parent_comment_id || !comments.some(parent => parent.id === c.parent_comment_id)) {
         topLevel.push(c);
       } else {
         if (!repliesByParent.has(c.parent_comment_id)) repliesByParent.set(c.parent_comment_id, []);
@@ -115,13 +115,14 @@ export function CommentSection({
   }, [comments]);
 
   const startReply = (threadId: string, username: string) => {
+    addComment.reset();
     setReplyingTo({ id: threadId, username });
     inputRef.current?.focus();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || addComment.isPending) return;
     addComment.mutate(
       { body: text.trim(), parentCommentId: replyingTo?.id ?? null },
       {
@@ -159,7 +160,9 @@ export function CommentSection({
         </div>
       ))}
 
-      {comments.length === 0 && (
+      {isLoading && <p className="text-xs text-muted-foreground">Loading comments…</p>}
+      {(loadError || addComment.error || deleteComment.error) && <p role="alert" className={cn("text-xs", onDark ? "text-red-200" : "text-destructive")}>{getErrorMessage(loadError ?? addComment.error ?? deleteComment.error)}</p>}
+      {!isLoading && !loadError && comments.length === 0 && (
         <p className={cn("text-xs", onDark ? "text-white/70" : "text-muted-foreground")}>
           No comments yet — be the first.
         </p>
@@ -182,6 +185,8 @@ export function CommentSection({
           <div className="flex gap-2">
             <input
               ref={inputRef}
+              disabled={addComment.isPending}
+              maxLength={2000}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
@@ -194,6 +199,7 @@ export function CommentSection({
             />
             <button
               type="submit"
+              aria-label={addComment.isPending ? "Sending comment" : replyingTo ? "Send reply" : "Send comment"}
               disabled={addComment.isPending || !text.trim()}
               className={cn(
                 "w-9 h-9 rounded-full flex items-center justify-center shrink-0 disabled:opacity-50",

@@ -14,6 +14,7 @@ import {
   useHofRecordHistory,
   useSubmitHofRecord,
   useDeleteHofRecord,
+  useDeleteHofCategory,
   useAllUsernames,
   type HofCategory,
   type HofRecord,
@@ -27,6 +28,8 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
   const Icon = getHofIcon(category.icon);
   const submitRecord = useSubmitHofRecord(category.id);
   const deleteRecord = useDeleteHofRecord(category.id);
+  const deleteCategory = useDeleteHofCategory();
+  const [confirmCategoryDelete, setConfirmCategoryDelete] = useState(false);
   const { data: users = [] } = useAllUsernames();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -58,6 +61,12 @@ export function HofCategoryCard({ category, current }: { category: HofCategory; 
     <Card className="border-accent/20 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-accent/10 via-card to-card overflow-hidden">
       <CardContent className="p-5 space-y-4">
         {deleteRecord.error && <p role="alert" className="text-sm text-destructive">{getErrorMessage(deleteRecord.error)}</p>}
+        {deleteCategory.error && <p role="alert" className="text-sm text-destructive">{getErrorMessage(deleteCategory.error)}</p>}
+        {canManage && (confirmCategoryDelete ? <div className="rounded-lg border border-destructive/30 p-3 space-y-2">
+          <p className="text-sm">Delete “{category.name}” and all its records and certificates? This cannot be undone. Deletion details will be saved in the logs.</p>
+          <Button size="sm" variant="outline" disabled={deleteCategory.isPending} onClick={() => setConfirmCategoryDelete(false)}>Cancel</Button>{" "}
+          <Button size="sm" variant="destructive" disabled={deleteCategory.isPending} onClick={() => deleteCategory.mutate(category.id)}>{deleteCategory.isPending ? "Deleting…" : "Confirm delete category"}</Button>
+        </div> : <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setConfirmCategoryDelete(true)}><Trash2 className="w-3.5 h-3.5 mr-1" /> Delete category</Button>)}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="bg-accent/20 text-accent p-2 rounded-xl shrink-0">
