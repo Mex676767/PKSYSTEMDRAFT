@@ -73,8 +73,77 @@ export type Pk = {
   approved_at: string | null;
   review_note: string | null;
   created_at: string;
+  winner_side: "A" | "B" | null;
+  winner_id: string | null;
+  final_score_a: number | null;
+  final_score_b: number | null;
+  early_settlement: boolean;
+  settlement_requested_at: string | null;
+  settled_at: string | null;
   participants: PkParticipant[];
 };
+
+export type PkPlaybook = {
+  challenge_id: string;
+  author_id: string | null;
+  what_extra: string;
+  what_worked: string;
+  how_to_copy: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PkLeaderRow = {
+  user_id: string;
+  username: string | null;
+  role: string | null;
+  department: string | null;
+  avatar_url: string | null;
+  active_border: string | null;
+  active_accessory: string | null;
+  points: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  played: number;
+  win_pct: number | null;
+  streak: number;
+  rank: number;
+};
+
+export type PkChampion = {
+  period_start: string;
+  department: string;
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  active_border: string | null;
+  active_accessory: string | null;
+  points: number;
+  wins: number;
+};
+
+/** Calendar quarter start (yyyy-MM-dd) for a date, as the database does it. */
+export function quarterStart(d: Date) {
+  const m = Math.floor(d.getMonth() / 3) * 3;
+  return `${d.getFullYear()}-${String(m + 1).padStart(2, "0")}-01`;
+}
+
+export function quarterLabel(start: string) {
+  const [y, m] = start.split("-").map(Number);
+  return `Q${Math.floor((m - 1) / 3) + 1} ${y}`;
+}
+
+/** The current quarter and the ones before it, newest first. */
+export function recentQuarters(count: number, now = new Date()) {
+  const out: string[] = [];
+  const d = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  for (let i = 0; i < count; i++) {
+    out.push(quarterStart(d));
+    d.setMonth(d.getMonth() - 3);
+  }
+  return out;
+}
 
 export type PkTerms = {
   method: PkMethod;
@@ -110,8 +179,8 @@ export const PK_STATUS_LABEL: Record<PkStatus, string> = {
   declined: "Declined",
   active: "Live",
   settlement_requested: "Settling",
-  awaiting_playbook: "Waiting for playbook",
-  awaiting_verification: "Verifying",
+  awaiting_playbook: "Winner's playbook due",
+  awaiting_verification: "Confirming result",
   settled: "Settled",
   terminated: "Terminated",
 };
@@ -143,7 +212,7 @@ export const PK_CLOSED: PkStatus[] = ["rejected", "cancelled", "expired", "decli
 
 export function pkStatusTone(status: PkStatus) {
   if (status === "active") return "bg-primary text-primary-foreground";
-  if (PK_SETUP.includes(status)) return "bg-amber-500 text-white";
+  if (PK_SETUP.includes(status) || status === "awaiting_playbook" || status === "awaiting_verification") return "bg-amber-500 text-white";
   if (status === "settled") return "bg-emerald-500 text-white";
   return "bg-muted text-muted-foreground";
 }

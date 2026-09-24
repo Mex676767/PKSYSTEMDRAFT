@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import type { Pk, PkPerson, PkTerms } from "@/lib/pk";
+import type { Pk, PkChampion, PkLeaderRow, PkPerson, PkPlaybook, PkTerms } from "@/lib/pk";
 
 const PERSON = "username, role, avatar_url, active_border, active_accessory";
 const PK_SELECT = `*, participants:challenge_participants(*, profile:profiles(${PERSON}))`;
@@ -37,7 +37,7 @@ export type PkScoreUpdate = {
 
 export type PkSideScore = { side: "A" | "B"; score: number | null };
 
-const PK_KEYS = [["pk"], ["pk-detail"], ["pk-approvals"]];
+const PK_KEYS = [["pk"], ["pk-detail"], ["pk-approvals"], ["pk-leaderboard"], ["pk-champions"]];
 
 export function usePkList() {
   useRealtimeInvalidate("challenges", PK_KEYS);
@@ -63,7 +63,7 @@ export function usePk(id: string | undefined) {
     queryKey: ["pk-detail", id],
     enabled: !!id,
     queryFn: async () => {
-      const [pk, events, terms, scores, sides] = await Promise.all([
+      const [pk, events, terms, scores, sides, playbook] = await Promise.all([
         supabase.from("challenges").select(PK_SELECT).eq("id", id!).eq("pk_version", 1).maybeSingle(),
         supabase.from("challenge_events").select("*").eq("challenge_id", id!).order("created_at", { ascending: false }),
         supabase
@@ -77,14 +77,16 @@ export function usePk(id: string | undefined) {
           .eq("challenge_id", id!)
           .order("created_at", { ascending: false }),
         supabase.rpc("pk_side_scores", { cid: id! }),
+        supabase.from("pk_playbooks").select("*").eq("challenge_id", id!).maybeSingle(),
       ]);
-      for (const r of [pk, events, terms, scores, sides]) if (r.error) throw r.error;
+      for (const r of [pk, events, terms, scores, sides, playbook]) if (r.error) throw r.error;
       return {
         pk: pk.data as unknown as Pk | null,
         events: (events.data ?? []) as PkEvent[],
         terms: (terms.data ?? []) as unknown as PkTermsVersion[],
         scores: (scores.data ?? []) as unknown as PkScoreUpdate[],
         sides: (sides.data ?? []) as PkSideScore[],
+        playbook: (playbook.data ?? null) as PkPlaybook | null,
       };
     },
   });
@@ -193,4 +195,37 @@ export function useUpdatePkScore() {
 
 export function getPkProofUrl(path: string) {
   return supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+}
+
+export const useRequestSettlement = () => useRpc((id: string) => call("pk_request_settlement", { cid: id }));
+
+export const useSubmitPlaybook = () =>
+  useRpc(({ id, extra, worked, copy }: { id: string; extra: string; worked: string; copy: string }) =>
+    call("pk_submit_playbook", { cid: id, extra, worked, copy }));
+
+export const useVerifyPk = () =>
+  useRpc(({ id, decision, note, tiebreak }: { id: string; decision: "confirm" | "playbook" | "reopen"; note: string; tiebreak?: "A" | "B" | null }) =>
+    call("pk_verify", { cid: id, decision, note: note.trim() || null, tiebreak_side: tiebreak ?? null }));
+
+export function usePkLeaderboard(period: string, department: string | null) {
+  useRealtimeInvalidate("pk_points", [["pk-leaderboard"], ["pk-champions"]]);
+  return useQuery({
+    queryKey: ["pk-leaderboard", period, department],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("pk_leaderboard", { period, dept: department });
+      if (error) throw error;
+      return (data ?? []) as PkLeaderRow[];
+    },
+  });
+}
+
+export function usePkChampions(department: string | null) {
+  return useQuery({
+    queryKey: ["pk-champions", department],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("pk_champions", { dept: department });
+      if (error) throw error;
+      return (data ?? []) as PkChampion[];
+    },
+  });
 }

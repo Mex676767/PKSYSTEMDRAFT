@@ -21,6 +21,7 @@ import {
 import { usePkApprovals, usePkList } from "@/hooks/use-pk";
 import { PkCard, pkNextStep } from "@/components/pk/pk-card";
 import { PkWizard } from "@/components/pk/pk-wizard";
+import { PkLeaderboard } from "@/components/pk/pk-leaderboard";
 import { PK_CLOSED, PK_LIVE, PK_SETUP, type Pk } from "@/lib/pk";
 import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
@@ -30,7 +31,7 @@ import { challengeDirection, CHALLENGE_DIRECTION_LABEL } from "@/lib/roles";
 import { getErrorMessage, cn } from "@/lib/utils";
 import { useOrgStructure } from "@/hooks/use-org-structure";
 
-type Tab = "arena" | "mine" | "approve" | "old";
+type Tab = "arena" | "mine" | "approve" | "leaderboard" | "old";
 
 export default function Challenges() {
   const { session } = useAuth();
@@ -48,6 +49,10 @@ export default function Challenges() {
   const toApprove = pks.filter((pk) => approvals.has(pk.id));
   const openForMe = pks.filter((pk) => pk.status === "awaiting_opponent" && pk.method === "open" && !involved(pk));
   const live = pks.filter((pk) => PK_LIVE.includes(pk.status));
+  const recentlySettled = pks
+    .filter((pk) => pk.status === "settled")
+    .sort((x, y) => (y.settled_at ?? "").localeCompare(x.settled_at ?? ""))
+    .slice(0, 5);
   const needsMe = myPks.filter((pk) => pkNextStep(pk, mine, false));
 
   useEffect(() => {
@@ -65,6 +70,7 @@ export default function Challenges() {
     { id: "arena", label: "Arena" },
     { id: "mine", label: "My PKs", count: needsMe.length },
     { id: "approve", label: "To approve", count: toApprove.length },
+    { id: "leaderboard", label: "Leaderboard" },
     { id: "old", label: "Old challenges" },
   ];
 
@@ -97,6 +103,7 @@ export default function Challenges() {
           <Section title="Live PKs" icon={Swords}>
             {live.length === 0 ? <EmptyState text="No PKs running right now. Start one." /> : cards(live)}
           </Section>
+          {recentlySettled.length > 0 && <Section title="Recently settled" icon={Trophy}>{cards(recentlySettled)}</Section>}
         </>
       )}
 
@@ -122,10 +129,12 @@ export default function Challenges() {
       )}
 
       {tab === "approve" && (
-        <Section title="Waiting for your approval" icon={ShieldCheck}>
+        <Section title="Waiting for you to approve or confirm" icon={ShieldCheck}>
           {toApprove.length === 0 ? <EmptyState text="Nothing to approve." /> : cards(toApprove)}
         </Section>
       )}
+
+      {tab === "leaderboard" && <PkLeaderboard />}
 
       {tab === "old" && (
         <Section title="Challenges from before the PK system" icon={Trophy}>

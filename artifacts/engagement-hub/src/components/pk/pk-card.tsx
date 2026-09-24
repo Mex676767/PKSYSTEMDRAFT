@@ -63,12 +63,22 @@ export function pkNextStep(pk: Pk, viewerId: string | undefined, canApprove: boo
   if (pk.status === "awaiting_opponent" && pk.method === "open" && !me) return "Open to you. First to accept takes it";
   if (pk.status === "awaiting_approval" && canApprove) return "Needs your approval";
   if (pk.status === "rejected" && me) return pk.review_note ? `Not approved: ${pk.review_note}` : "Not approved";
+  if (pk.status === "active" && me && new Date(pk.ends_at) <= new Date()) return "It's over: lock the final scores to settle";
+  if (pk.status === "awaiting_playbook" && me && me.side === pk.winner_side && (pk.pk_type !== "team" || me.is_captain)) {
+    return "You won! Write your playbook to settle";
+  }
+  if (pk.status === "awaiting_verification" && canApprove) return "Needs you to confirm the result";
   return null;
 }
 
 export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string | undefined; canApprove: boolean }) {
   const live = PK_LIVE.includes(pk.status);
-  const { data: sides = [] } = usePkSideScores(pk.id, live);
+  const { data: liveSides = [] } = usePkSideScores(pk.id, live && pk.final_score_a === null);
+  const frozen = pk.final_score_a !== null || pk.final_score_b !== null;
+  const sides = frozen
+    ? [{ side: "A" as const, score: pk.final_score_a }, { side: "B" as const, score: pk.final_score_b }]
+    : liveSides;
+  const showScores = live || pk.status === "settled";
   const a = pkSide(pk, "A");
   const b = pkSide(pk, "B");
   const isSelf = pk.format === "self_declaration";
@@ -112,7 +122,7 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
           <div className="flex items-center gap-3">
             <PkSideBlock people={a} align="left" />
             <div className="shrink-0 text-center">
-              {live ? (
+              {showScores ? (
                 <div className="text-sm font-bold tabular-nums">
                   {formatPkNumber(scoreOf("A"))}{suffix}
                   {!isSelf && <><span className="text-muted-foreground text-xs font-normal mx-1.5">vs</span>{formatPkNumber(scoreOf("B"))}{suffix}</>}
@@ -120,7 +130,12 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
               ) : (
                 <span className="text-xs font-black tracking-widest text-secondary">VS</span>
               )}
-              {isSelf && live && <div className="text-[9px] text-muted-foreground">of target</div>}
+              {isSelf && showScores && <div className="text-[9px] text-muted-foreground">of target</div>}
+              {pk.status === "settled" && (
+                <div className="text-[9px] font-semibold text-emerald-500">
+                  {pk.winner_side ? `🏆 @${pkSide(pk, pk.winner_side)[0]?.profile?.username ?? "winner"}` : "Draw"}
+                </div>
+              )}
             </div>
             <PkSideBlock people={b} align="right" placeholder={isSelf ? "Who'll bet against?" : "Open slot"} />
           </div>

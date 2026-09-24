@@ -261,7 +261,7 @@ smallest change that gets Phase 1 working, and don't over-engineer.
 ## Build status
 
 - **Milestones 1 and 2 (built):** migrations `0030`–`0038` in `artifacts/engagement-hub/supabase/migrations`, the `/challenges` page with Arena, My PKs, To approve and Old challenges tabs, the create/counter wizard (`src/components/pk/pk-wizard.tsx`), and the detail page at `/challenges/:id` (`src/pages/pk-detail.tsx`). Covers named and open challenges, counter-proposals, team and self-declaration formats, superior approval, limit and PK Money checks, score updates that need proof, the timeline and the terms history.
-- **Milestone 3 (next):** settlement, the Winner Playbook, PK points, the leaderboard, King/Queen.
+- **Milestone 3 (built):** migrations `0040`–`0043`. Settle at the end date (or early once a side hits the winning target; self-declaration at 100%), scores lock, the winner (captain for teams) writes the 3-question playbook (40+ characters each), an upline confirms (or sends the playbook back, applies the tiebreaker on a draw, or reopens the scores). Confirming gives PK points (win +3.5, loss −0.5, draw +0.5) into `pk_points` for the calendar quarter. Leaderboard tab with King/Queen and past champions. Active PKs that ended 2+ days ago lock automatically (hourly cron).
 - **Milestone 4:** the playbook library, the PK Money ledger UI, termination.
 - Old challenge functions no longer touch PK rows (`0038`). `create_challenge` is retired, and old challenges stay as history.
 - PK notifications use `target_type = 'pk'` and open `/challenges/<id>`. The `send-push` function maps this (redeploy it for push links to go to the PK).

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { format, formatDistanceToNow } from "date-fns";
 import {
-  ArrowLeft, Check, Crown, FileClock, History, ImageIcon, MessageCircle, PencilLine, ShieldCheck, ShieldX, Swords, Trash2, X,
+  ArrowLeft, BookOpen, Check, Crown, FileClock, Flag, RotateCcw, Trophy, History, ImageIcon, MessageCircle, PencilLine, ShieldCheck, ShieldX, Swords, Trash2, X,
 } from "lucide-react";
 import { PageTransition } from "@/components/animations";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,11 @@ import { PkWizard } from "@/components/pk/pk-wizard";
 import { useAuth } from "@/hooks/use-auth";
 import {
   getPkProofUrl, useAcceptOpenPk, useCancelPk, useDeletePk, usePk, usePkApprovals, usePkSettings, useRespondPk,
-  useReviewPk, useUpdatePkScore, type PkTermsVersion,
+  useRequestSettlement, useReviewPk, useSubmitPlaybook, useUpdatePkScore, useVerifyPk, type PkTermsVersion,
 } from "@/hooks/use-pk";
 import {
   PK_LIVE, PK_SCORING_LABEL, PK_SETUP, PK_STATUS_LABEL, PK_TYPE_LABEL, formatPkNumber, pkScoreSuffix, pkSide, pkStatusTone,
-  termsFromPk, type Pk,
+  termsFromPk, type Pk, type PkPlaybook,
 } from "@/lib/pk";
 import { cn, getErrorMessage } from "@/lib/utils";
 
@@ -54,7 +54,10 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
   const isSelf = pk.format === "self_declaration";
   const live = PK_LIVE.includes(pk.status);
   const suffix = pkScoreSuffix(pk);
-  const scoreOf = (side: "A" | "B") => data.sides.find((s) => s.side === side)?.score ?? null;
+  const frozen = pk.final_score_a !== null || pk.final_score_b !== null;
+  const scoreOf = (side: "A" | "B") =>
+    frozen ? (side === "A" ? pk.final_score_a : pk.final_score_b) : data.sides.find((s) => s.side === side)?.score ?? null;
+  const showScores = live || pk.status === "settled";
   const canApprove = approvals.has(pk.id);
   const next = pkNextStep(pk, viewerId, canApprove);
 
@@ -81,21 +84,22 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
           <div className="flex items-center gap-4">
             <PkSideBlock people={a} align="left" />
             <div className="text-center shrink-0">
-              {live ? (
+              {showScores ? (
                 <div className="text-2xl font-black tabular-nums">
                   {formatPkNumber(scoreOf("A"))}{suffix}
                   {!isSelf && <><span className="text-muted-foreground text-sm font-normal mx-2">vs</span>{formatPkNumber(scoreOf("B"))}{suffix}</>}
                 </div>
               ) : <span className="text-lg font-black tracking-widest text-secondary">VS</span>}
-              {live && <div className="text-[10px] text-muted-foreground">{isSelf ? "of declared target" : pk.scoring ? PK_SCORING_LABEL[pk.scoring] : ""}</div>}
+              {showScores && <div className="text-[10px] text-muted-foreground">{isSelf ? "of declared target" : pk.scoring ? PK_SCORING_LABEL[pk.scoring] : ""}{frozen && " · final"}</div>}
             </div>
             <PkSideBlock people={b} align="right" placeholder={isSelf ? "Who'll bet against?" : "Open slot"} />
           </div>
         </CardContent>
       </Card>
 
+      <PkResult pk={pk} playbook={data.playbook} />
       {next && <p className="text-sm font-medium text-amber-600 dark:text-amber-400">{next}</p>}
-      <PkActions pk={pk} viewerId={viewerId} canApprove={canApprove} isAdmin={isAdmin} />
+      <PkActions pk={pk} viewerId={viewerId} canApprove={canApprove} isAdmin={isAdmin} playbook={data.playbook} />
 
       <PkTerms pk={pk} />
 
@@ -164,13 +168,16 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
   );
 }
 
-function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: string | undefined; canApprove: boolean; isAdmin: boolean }) {
+function PkActions({ pk, viewerId, canApprove, isAdmin, playbook }: {
+  pk: Pk; viewerId: string | undefined; canApprove: boolean; isAdmin: boolean; playbook: PkPlaybook | null;
+}) {
   const [, navigate] = useLocation();
   const respond = useRespondPk();
   const acceptOpen = useAcceptOpenPk();
   const cancel = useCancelPk();
   const review = useReviewPk();
   const remove = useDeletePk();
+  const settle = useRequestSettlement();
   const { data: settings } = usePkSettings();
   const [error, setError] = useState<string | null>(null);
   const [counterOpen, setCounterOpen] = useState(false);
@@ -251,6 +258,35 @@ function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: st
 
   if (canScore) blocks.push(<ScoreForm key="score" pk={pk} onError={setError} />);
 
+  const ended = new Date(pk.ends_at) <= new Date();
+  const canEarly = pk.format === "self_declaration" ? me?.side === "A" : pk.winning_target !== null;
+  if (pk.status === "active" && (me || isAdmin) && (ended || (me && canEarly))) {
+    blocks.push(
+      <div key="settle" className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+        <Button size="sm" variant={ended ? "default" : "outline"} disabled={settle.isPending}
+          onClick={() => window.confirm(ended
+            ? "Lock the final scores? Nobody can post updates after this."
+            : "Settle early? Only works if your side has hit the winning target. Scores lock straight away.")
+            && run(() => settle.mutateAsync(pk.id))}>
+          <Flag className="w-4 h-4 mr-1" /> {ended ? "Lock final scores" : "Settle early"}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          {ended ? "Winner then writes a playbook, and an upline confirms." : pk.format === "self_declaration" ? "Hit 100% of your declared target to settle early." : `Reach the winning target (${formatPkNumber(pk.winning_target)}) to settle early.`}
+        </span>
+      </div>,
+    );
+  }
+
+  const isWinnerWriter = !!me && me.side === pk.winner_side && (pk.pk_type !== "team" || me.is_captain);
+  if (pk.status === "awaiting_playbook" && isWinnerWriter) blocks.push(<PlaybookForm key="playbook" pk={pk} playbook={playbook} onError={setError} />);
+  if (pk.status === "awaiting_playbook" && !isWinnerWriter && me) {
+    blocks.push(<p key="pb-wait" className="text-sm text-muted-foreground">Waiting for the winner to write their playbook.</p>);
+  }
+  if (pk.status === "awaiting_verification" && canApprove) blocks.push(<VerifyPanel key="verify" pk={pk} hasPlaybook={!!playbook} onError={setError} />);
+  if (pk.status === "awaiting_verification" && !canApprove && me) {
+    blocks.push(<p key="v-wait" className="text-sm text-muted-foreground">Waiting for an upline to confirm the result.</p>);
+  }
+
   const canCancel = (isCreator || isAdmin) && PK_SETUP.includes(pk.status);
   const canRemove = isAdmin;
   if (canCancel || canRemove) {
@@ -279,6 +315,114 @@ function PkActions({ pk, viewerId, canApprove, isAdmin }: { pk: Pk; viewerId: st
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
       {counterOpen && <PkWizard open={counterOpen} onOpenChange={setCounterOpen} counterOf={pk} initial={termsFromPk(pk)} />}
+    </Card>
+  );
+}
+
+const PLAYBOOK_QUESTIONS = [
+  { key: "extra", label: "What did you do extra?", hint: 'Concrete actions. e.g. "Called 10 extra dormant clients a day, past depositors over RM1,000 first", not "worked harder".' },
+  { key: "worked", label: "Which action worked best, and why?", hint: "The one thing that made the difference." },
+  { key: "copy", label: "Can others copy it? What should they watch out for?", hint: "Who it suits, what it needs, risks, things to avoid." },
+] as const;
+
+function PlaybookForm({ pk, playbook, onError }: { pk: Pk; playbook: PkPlaybook | null; onError: (e: string | null) => void }) {
+  const submit = useSubmitPlaybook();
+  const [v, setV] = useState({ extra: playbook?.what_extra ?? "", worked: playbook?.what_worked ?? "", copy: playbook?.how_to_copy ?? "" });
+  const input = "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[72px]";
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-semibold flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-secondary" /> Your winner playbook</p>
+        <p className="text-xs text-muted-foreground">No playbook, no settlement, no points. It goes into the library so others can learn from your win.</p>
+        {pk.review_note && playbook && <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Sent back: {pk.review_note}</p>}
+      </div>
+      {PLAYBOOK_QUESTIONS.map((q) => (
+        <div key={q.key} className="space-y-1">
+          <label className="text-sm font-medium">{q.label}</label>
+          <textarea className={input} value={v[q.key]} onChange={(e) => setV({ ...v, [q.key]: e.target.value })} placeholder={q.hint} />
+          <p className={cn("text-[11px]", v[q.key].trim().length >= 40 ? "text-emerald-500" : "text-muted-foreground")}>{v[q.key].trim().length}/40 characters minimum</p>
+        </div>
+      ))}
+      <Button size="sm" disabled={submit.isPending} onClick={async () => {
+        onError(null);
+        try { await submit.mutateAsync({ id: pk.id, ...v }); } catch (err) { onError(getErrorMessage(err)); }
+      }}>{submit.isPending ? "Sending..." : "Submit playbook"}</Button>
+    </div>
+  );
+}
+
+function VerifyPanel({ pk, hasPlaybook, onError }: { pk: Pk; hasPlaybook: boolean; onError: (e: string | null) => void }) {
+  const verify = useVerifyPk();
+  const [note, setNote] = useState("");
+  const draw = !pk.winner_side;
+  const name = (side: "A" | "B") => `@${pkSide(pk, side)[0]?.profile?.username ?? side}`;
+  const go = async (decision: "confirm" | "playbook" | "reopen", tiebreak?: "A" | "B") => {
+    onError(null);
+    try { await verify.mutateAsync({ id: pk.id, decision, note, tiebreak }); } catch (err) { onError(getErrorMessage(err)); }
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-secondary" /> Confirm the result</p>
+      <p className="text-xs text-muted-foreground">
+        Check the final numbers against the proof{hasPlaybook ? ", read the playbook" : ""}, and make sure the reward and penalty have been done. Confirming gives out the PK points.
+      </p>
+      <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[56px]" value={note}
+        onChange={(e) => setNote(e.target.value)} placeholder="Note (required to send back or reopen)" />
+      <div className="flex flex-wrap gap-2">
+        {draw ? (
+          <>
+            <Button size="sm" disabled={verify.isPending} onClick={() => go("confirm")}><Check className="w-4 h-4 mr-1" /> Confirm draw</Button>
+            <Button size="sm" variant="outline" disabled={verify.isPending} onClick={() => go("confirm", "A")}>Tiebreaker: {name("A")} wins</Button>
+            <Button size="sm" variant="outline" disabled={verify.isPending} onClick={() => go("confirm", "B")}>Tiebreaker: {name("B")} wins</Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" disabled={verify.isPending} onClick={() => go("confirm")}><Check className="w-4 h-4 mr-1" /> Confirm and settle</Button>
+            <Button size="sm" variant="outline" disabled={verify.isPending} onClick={() => go("playbook")}><BookOpen className="w-4 h-4 mr-1" /> Send playbook back</Button>
+          </>
+        )}
+        <Button size="sm" variant="ghost" className="text-destructive" disabled={verify.isPending}
+          onClick={() => window.confirm("Reopen this PK so the scores can be fixed?") && go("reopen")}>
+          <RotateCcw className="w-4 h-4 mr-1" /> Reopen scores
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function PkResult({ pk, playbook }: { pk: Pk; playbook: PkPlaybook | null }) {
+  const settling = ["awaiting_playbook", "awaiting_verification", "settled"].includes(pk.status);
+  if (!settling) return null;
+  const winners = pk.winner_side ? pkSide(pk, pk.winner_side) : [];
+  return (
+    <Card className={cn(pk.status === "settled" && "border-emerald-500/40")}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <Trophy className={cn("w-6 h-6 shrink-0", pk.winner_side ? "text-amber-500" : "text-muted-foreground")} />
+          <div className="min-w-0">
+            <p className="font-semibold">
+              {pk.winner_side ? `${winners.map((w) => `@${w.profile?.username ?? "unknown"}`).join(", ")} ${winners.length > 1 ? "win" : "wins"}` : "It's a draw"}
+              {pk.early_settlement && <span className="ml-2 text-[10px] font-medium bg-secondary/15 text-secondary rounded-full px-2 py-0.5">Early settlement</span>}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {pk.status === "settled"
+                ? `Settled${pk.settled_at ? ` on ${format(new Date(pk.settled_at), "MMM d, yyyy")}` : ""}. ${pk.winner_side ? "Winners +3.5 PK points, the other side -0.5." : "+0.5 PK points each."}`
+                : "Scores are locked. Not settled yet."}
+            </p>
+          </div>
+        </div>
+        {playbook && (
+          <div className="space-y-2 border-t border-border/50 pt-3">
+            <p className="text-sm font-semibold flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-secondary" /> Winner playbook</p>
+            {[["What they did extra", playbook.what_extra], ["What worked best", playbook.what_worked], ["How to copy it", playbook.how_to_copy]].map(([q, a]) => (
+              <div key={q}>
+                <p className="text-xs text-muted-foreground">{q}</p>
+                <p className="text-sm whitespace-pre-wrap">{a}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
