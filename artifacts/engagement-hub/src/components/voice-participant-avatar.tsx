@@ -48,6 +48,7 @@ export function VoiceParticipantAvatar({
           user={{ name: participant.username, initials: initialsForUsername(participant.username), color: colorForId(participant.id) }}
           photoUrl={isMe ? myProfile?.avatar_url : directoryEntry?.avatar_url}
           border={isMe ? myProfile?.active_border : directoryEntry?.active_border}
+          accessory={isMe ? myProfile?.active_accessory : directoryEntry?.active_accessory}
           className={dimClass}
         />
         {(deafened || muted) && (

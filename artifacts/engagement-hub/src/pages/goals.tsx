@@ -611,7 +611,7 @@ function PersonGoalCard(
                 <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5 flex items-start gap-1">
                   <p className="flex-1 min-w-0">
                     <span className="font-medium">@{c.author?.username ?? "?"}: </span>
-                    <span className="text-muted-foreground line-clamp-2">{c.body}</span>
+                    <span className="text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.body}</span>
                   </p>
                   {(isAdmin || c.author_id === session?.user.id) && (
                     <button

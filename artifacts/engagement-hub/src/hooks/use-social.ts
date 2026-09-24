@@ -106,7 +106,10 @@ export function useAddComment(targetType: TargetType, targetId: string) {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", targetType, targetId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comments", targetType, targetId] });
+      qc.invalidateQueries({ queryKey: ["comments-bulk", targetType] });
+    },
   });
 }
 
@@ -117,7 +120,10 @@ export function useDeleteComment(targetType: TargetType, targetId: string) {
       const { error } = await supabase.from("comments").delete().eq("id", commentId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", targetType, targetId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comments", targetType, targetId] });
+      qc.invalidateQueries({ queryKey: ["comments-bulk", targetType] });
+    },
   });
 }
 

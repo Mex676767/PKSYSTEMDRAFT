@@ -114,6 +114,7 @@ export function useSubmitHofRecord(categoryId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hof-current-records"] });
+      qc.invalidateQueries({ queryKey: ['hof-deletion-logs'] });
       qc.invalidateQueries({ queryKey: ["hof-history", categoryId] });
     },
   });
@@ -123,13 +124,29 @@ export function useDeleteHofRecord(categoryId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (recordId: string) => {
-      const { data, error } = await supabase.from("hof_records").delete().eq("id", recordId).eq("category_id", categoryId).select("id");
+      const { error } = await supabase.rpc("hof_delete_record", { target_record: recordId });
       if (error) throw error;
-      if (!data?.length) throw new Error("Record was not deleted. It may already be removed, or your account lacks database permission. Ask the project owner to apply the record-deletion permission migration.");
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hof-current-records"] });
+      qc.invalidateQueries({ queryKey: ['hof-deletion-logs'] });
       qc.invalidateQueries({ queryKey: ["hof-history", categoryId] });
+    },
+  });
+}
+
+export function useDeleteHofCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (categoryId: string) => {
+      const { error } = await supabase.rpc("hof_delete_category", { target_category: categoryId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      for (const key of ["hof-categories", "hof-current-records", "hof-history", "hof-deletion-logs"]) {
+        qc.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 }

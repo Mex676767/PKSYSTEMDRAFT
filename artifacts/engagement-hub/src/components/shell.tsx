@@ -83,6 +83,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [items.length]);
 
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (nav && active) nav.scrollTo({ left: active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
+  }, [location]);
+
   const scrollNavRight = () => {
     navRef.current?.scrollBy({ left: 200, behavior: "smooth" });
   };
@@ -101,20 +107,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Fireflies />
 
       <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 sm:block sm:h-14">
-        <div className="flex items-center justify-start sm:absolute sm:inset-y-0 sm:left-[200px] sm:right-[200px] sm:justify-center">
-        <nav ref={navRef} data-tree-obstacle className="relative max-w-[min(88vw,52rem)] flex items-center gap-1 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg px-2 py-2 overflow-x-auto">
-          {canScrollLeft && (
-            <div className="sticky left-0 z-10 flex items-center pr-6 shrink-0 pointer-events-none bg-gradient-to-r from-card via-card to-transparent">
-              <button
-                type="button"
-                onClick={scrollNavLeft}
-                title="Scroll left"
-                className="pointer-events-auto w-7 h-7 rounded-full bg-gradient-flame text-primary-foreground shadow-glow-primary flex items-center justify-center shrink-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+        <div className="flex items-center justify-start sm:absolute sm:inset-y-0 sm:left-0 sm:right-[280px] sm:justify-center">
+        <div data-tree-obstacle className="flex items-center max-w-[min(88vw,52rem)] min-w-0 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg px-2">
+          <button type="button" onClick={scrollNavLeft} disabled={!canScrollLeft} aria-label="Scroll navigation left" className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
+          <nav ref={navRef} aria-label="Main navigation" className="relative min-w-0 flex items-center gap-1 px-1 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
             <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
               <Trophy className="w-3.5 h-3.5" />
@@ -130,7 +126,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href} aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "relative flex items-center gap-1.5 py-2 px-3 rounded-full transition-all shrink-0 font-medium text-xs whitespace-nowrap",
                   isActive
@@ -150,19 +146,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             );
           })}
 
-          {canScrollRight && (
-            <div className="sticky right-0 flex items-center pl-6 shrink-0 pointer-events-none bg-gradient-to-l from-card via-card to-transparent">
-              <button
-                type="button"
-                onClick={scrollNavRight}
-                title="Scroll for more"
-                className="pointer-events-auto w-7 h-7 rounded-full bg-gradient-flame text-primary-foreground shadow-glow-primary flex items-center justify-center shrink-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </nav>
+          </nav>
+          <button type="button" onClick={scrollNavRight} disabled={!canScrollRight} aria-label="Scroll navigation right" className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-20"><ChevronRight className="w-4 h-4" /></button>
+        </div>
         </div>
 
         <div data-tree-obstacle className="flex items-center justify-end gap-2 sm:absolute sm:right-0 sm:top-0">
