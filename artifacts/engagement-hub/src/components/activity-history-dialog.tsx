@@ -4,6 +4,10 @@ import { VOICE_CHANNELS } from "@/lib/voice-channels";
 import { formatDuration } from "@/lib/presence";
 import { Clock, Radio } from "lucide-react";
 
+// Matches touch_presence(): a session without a heartbeat for this long is
+// over, and the next heartbeat starts a new one.
+const SESSION_STALE_MS = 2 * 60 * 1000;
+
 function channelName(channelId: string) {
   return VOICE_CHANNELS.find((c) => c.id === channelId)?.name ?? channelId;
 }
@@ -44,15 +48,24 @@ export function ActivityHistoryDialog({
                 <div className="space-y-1.5">
                   {data.logins.map((s) => {
                     const start = new Date(s.started_at);
-                    const end = s.ended_at ? new Date(s.ended_at) : null;
-                    const isOpen = !end;
-                    const endedMs = end ? end.getTime() : new Date(s.last_heartbeat_at).getTime();
+                    const lastBeat = new Date(s.last_heartbeat_at);
+                    // Closing the tab never sets ended_at, so an unended session
+                    // is only still live if its heartbeat is recent; otherwise it
+                    // ended at its last heartbeat.
+                    const isOpen = !s.ended_at && Date.now() - lastBeat.getTime() < SESSION_STALE_MS;
+                    const end = s.ended_at ? new Date(s.ended_at) : lastBeat;
+                    const endedMs = isOpen ? Date.now() : end.getTime();
+                    const sameDay = end.toDateString() === start.toDateString();
                     return (
                       <div key={s.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/40">
                         <span>
                           {start.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                           {" -> "}
-                          {isOpen ? "now" : end!.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          {isOpen
+                            ? "now"
+                            : sameDay
+                              ? end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+                              : end.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                         </span>
                         <span className="text-muted-foreground text-xs">{formatDuration(endedMs - start.getTime())}</span>
                       </div>
