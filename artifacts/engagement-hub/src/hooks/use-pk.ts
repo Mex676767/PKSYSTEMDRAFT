@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import type { Pk, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkMoneySummary, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
+import type { Pk, PkSettings, PkViolation, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkMoneySummary, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
 
 const PERSON = "username, role, avatar_url, active_border, active_accessory";
 const PK_SELECT = `*, participants:challenge_participants(*, profile:profiles(${PERSON}))`;
@@ -129,8 +129,40 @@ export function usePkSettings() {
     queryFn: async () => {
       const { data, error } = await supabase.from("pk_settings").select("*").eq("id", 1).maybeSingle();
       if (error) throw error;
-      return data as { max_counter_rounds: number; open_expiry_days: number } | null;
+      return data as PkSettings | null;
     },
+  });
+}
+
+export function useUpdatePkSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: Partial<PkSettings>) => call("pk_update_settings", { changes }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pk-settings"] }),
+  });
+}
+
+export function usePkViolations(enabled: boolean) {
+  return useQuery({
+    queryKey: ["pk-violations"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pk_violations")
+        .select("*, person:profiles!pk_violations_user_id_fkey(username), challenge:challenges(topic)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as unknown as PkViolation[];
+    },
+  });
+}
+
+export function useResolvePkViolation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) => call("pk_resolve_violation", { violation_id: id, resolution_note: note }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pk-violations"] }),
   });
 }
 

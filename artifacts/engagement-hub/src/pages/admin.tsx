@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 import { BirthdayEmailSettingsCard } from "@/components/birthday-email-settings-card";
 import { AdminPointsCard } from "@/components/admin-points-card";
+import { AdminPkCard } from "@/components/admin-pk-card";
 import { AdminOrgCard } from "@/components/admin-org-card";
 import { AdminAchievementsCard } from "@/components/admin-achievements-card";
 import { SearchableSelect } from "@/components/searchable-select";
@@ -57,6 +58,8 @@ export default function Admin() {
       </div>
 
       <AdminPointsCard />
+
+      <AdminPkCard />
 
       <AdminAchievementsCard />
 

@@ -9,7 +9,7 @@ import { personOption } from "@/components/person-option";
 import { useAuth } from "@/hooks/use-auth";
 import { useDirectory } from "@/hooks/use-mentors";
 import { useCreatePk, useRespondPk } from "@/hooks/use-pk";
-import { PK_SCORING_HINT, PK_SCORING_LABEL, type Pk, type PkScoring, type PkTerms } from "@/lib/pk";
+import { PK_SCORING_HINT, PK_SCORING_LABEL, PK_UPDATE_FREQUENCIES, type Pk, type PkScoring, type PkTerms } from "@/lib/pk";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { loadDraft, saveDraft, clearDraft } from "@/lib/draft-storage";
 
@@ -313,7 +313,11 @@ export function PkWizard({
                 </Field>
               )}
               <Field label="What counts as proof"><input className={input} value={t.proof_method} onChange={(e) => set("proof_method", e.target.value)} placeholder="e.g. CRM screenshot showing the date range" /></Field>
-              <Field label="How often scores are updated"><input className={input} value={t.update_frequency} onChange={(e) => set("update_frequency", e.target.value)} placeholder="e.g. Daily" /></Field>
+              <Field label="How often scores are updated">
+                <SearchableSelect value={t.update_frequency} onValueChange={(v) => set("update_frequency", v)} searchable={false} aria-label="Update frequency"
+                  options={PK_UPDATE_FREQUENCIES.map((f) => ({ value: f.value, label: f.value, description: f.hint }))} />
+                <p className="text-[11px] text-muted-foreground mt-1">Miss one and you get a reminder, miss 2 in a row and it's a warning, 3 is a violation.</p>
+              </Field>
               <Field label="Description (optional)">
                 <textarea className={cn(input, "h-auto min-h-[56px] py-2")} value={t.description} onChange={(e) => set("description", e.target.value)} placeholder="Anything else people should know" />
               </Field>

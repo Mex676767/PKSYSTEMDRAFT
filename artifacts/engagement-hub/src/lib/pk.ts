@@ -303,3 +303,39 @@ export function termsFromPk(pk: Pk): PkTerms {
       .map((p) => ({ user_id: p.user_id, side: p.side, is_captain: p.is_captain, baseline: str(p.baseline), target: str(p.target) })),
   };
 }
+
+/** Update frequencies the reminders understand (pk_update_interval in the database). */
+export const PK_UPDATE_FREQUENCIES = [
+  { value: "Daily", hint: "Good for PKs of a week or two" },
+  { value: "Every 2 days", hint: "" },
+  { value: "Weekly", hint: "Handbook minimum for longer PKs" },
+  { value: "Monthly", hint: "" },
+] as const;
+
+export type PkSettings = {
+  max_one_v_one: number;
+  max_team: number;
+  max_vs_upline: number;
+  max_total: number;
+  open_expiry_days: number;
+  max_counter_rounds: number;
+  money_limit_default: number;
+  money_limit_atl_tl: number;
+  money_limit_above_tl: number;
+  reminders_enabled: boolean;
+  announce_live: boolean;
+  announce_winner: boolean;
+};
+
+export type PkViolation = {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  kind: string;
+  note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolution: string | null;
+  person: { username: string | null } | null;
+  challenge: { topic: string } | null;
+};

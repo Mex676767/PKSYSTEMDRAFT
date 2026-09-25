@@ -50,11 +50,12 @@ create policy "Users can delete their own post images" on storage.objects for de
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 select cron.unschedule(jobname) from cron.job
-where jobname in ('birthday-notifications', 'birthday-emails', 'pk-expire-open', 'pk-auto-settle');
+where jobname in ('birthday-notifications', 'birthday-emails', 'pk-expire-open', 'pk-auto-settle', 'pk-missed-updates');
 select cron.schedule('birthday-notifications', '5 * * * *', 'select notify_todays_birthdays()');
 select cron.schedule('birthday-emails', '10 * * * *', 'select trigger_birthday_emails()');
 select cron.schedule('pk-expire-open', '20 * * * *', 'select pk_expire_open()');
 select cron.schedule('pk-auto-settle', '40 * * * *', 'select pk_auto_settle()');
+select cron.schedule('pk-missed-updates', '50 * * * *', 'select pk_check_missed_updates()');
 
 -- Live updates for the tables the app listens to.
 do $$
