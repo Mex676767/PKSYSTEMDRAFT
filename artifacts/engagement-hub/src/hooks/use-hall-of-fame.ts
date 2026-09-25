@@ -37,9 +37,15 @@ export type DeletionLog = {
   snapshot: Record<string, unknown>;
 };
 
+export type HofDepartmentVisibility = {
+  name: string;
+  show_in_hall_of_fame: boolean;
+};
+
 export function useAwardCategories(department: string) {
   return useQuery({
     queryKey: ["hof-award-categories", department],
+    enabled: Boolean(department),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hof_award_categories")
@@ -49,6 +55,49 @@ export function useAwardCategories(department: string) {
       if (error) throw error;
       return data as AwardCategory[];
     },
+  });
+}
+
+export function useHofDepartmentVisibility() {
+  return useQuery({
+    queryKey: ["hof-department-visibility"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("org_departments")
+        .select("name, show_in_hall_of_fame")
+        .order("sort_order");
+
+      if (error) {
+        // Keep the Hall of Fame usable while migration 0050 is being applied.
+        if (
+          error.code === "PGRST204" ||
+          error.code === "42703" ||
+          error.message.includes("show_in_hall_of_fame")
+        ) {
+          return { configured: false, departments: [] as HofDepartmentVisibility[] };
+        }
+        throw error;
+      }
+
+      return {
+        configured: true,
+        departments: (data ?? []) as HofDepartmentVisibility[],
+      };
+    },
+  });
+}
+
+export function useSetHofDepartmentVisibility() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ department, visible }: { department: string; visible: boolean }) => {
+      const { error } = await supabase.rpc("admin_set_hof_department_visibility", {
+        department_name: department,
+        visible,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["hof-department-visibility"] }),
   });
 }
 export function useAwardWinners(month: string) {

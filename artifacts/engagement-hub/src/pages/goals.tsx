@@ -98,13 +98,14 @@ function clearStoredDrafts() {
 
 export default function Goals() {
   const { session } = useAuth();
-  const { roles } = useOrgStructure();
+  const { roles, departments } = useOrgStructure();
   const { data: goals = [], isLoading: goalsLoading } = useGoalsFeed();
   const { data: directory = [], isLoading: directoryLoading } = useDirectory();
   const createGoal = useCreateGoal();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [selected, setSelected] = useState<DirectoryProfile | null>(null);
   const [view, setView] = useState<"card" | "tree">("card");
 
@@ -199,7 +200,11 @@ export default function Goals() {
   }, [goals]);
 
   const q = search.trim().toLowerCase();
-  const filtered = directory.filter((p) => !q || p.username.toLowerCase().includes(q));
+  const filtered = directory.filter(
+    (p) =>
+      (!q || p.username.toLowerCase().includes(q)) &&
+      (view !== "card" || !departmentFilter || p.department === departmentFilter),
+  );
 
   const sortedPeople = useMemo(() => {
     const rankOf = (role: string | null) => {
@@ -427,6 +432,20 @@ export default function Goals() {
         </div>
         <div className="w-full sm:w-72 sm:ml-auto space-y-2">
           {searchInput}
+          {view === "card" && (
+            <SearchableSelect
+              value={departmentFilter}
+              onValueChange={setDepartmentFilter}
+              options={[
+                { value: "", label: "All departments" },
+                ...departments.map((name) => ({ value: name, label: name })),
+              ]}
+              placeholder="All departments"
+              searchPlaceholder="Find a department..."
+              aria-label="Filter goals by department"
+              className="w-full"
+            />
+          )}
           <Button onClick={() => setIsDialogOpen(true)} disabled={!session} className="w-full hover-elevate">
             <Plus className="w-4 h-4 mr-2" /> Add Goals
           </Button>
@@ -434,7 +453,11 @@ export default function Goals() {
       </div>
 
       {sortedPeople.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No one matches "{search}".</div>
+        <div className="text-center py-12 text-muted-foreground">
+          {view === "card" && departmentFilter
+            ? `No one in ${departmentFilter}${search ? ` matches "${search}"` : ""}.`
+            : `No one matches "${search}".`}
+        </div>
       ) : view === "tree" ? (
         <div className="relative z-0 left-1/2 -translate-x-1/2 w-screen lg:fixed lg:inset-0 lg:left-0 lg:translate-x-0 lg:w-auto lg:z-0">
           <GoalsTreeView

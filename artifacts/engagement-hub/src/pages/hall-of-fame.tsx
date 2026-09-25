@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addMonths, format, isSameMonth, startOfMonth } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { PageTransition } from "@/components/animations";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { DepartmentPodium } from "@/components/hof-podium";
 import { AwardEditPanel } from "@/components/hof-edit-panel";
-import { useAwardCategories, useAwardWinners } from "@/hooks/use-hall-of-fame";
+import {
+  useAwardCategories,
+  useAwardWinners,
+  useHofDepartmentVisibility,
+  useSetHofDepartmentVisibility,
+} from "@/hooks/use-hall-of-fame";
 import { useAuth } from "@/hooks/use-auth";
 
 import { getErrorMessage } from "@/lib/utils";
@@ -14,12 +21,29 @@ import { useOrgStructure } from "@/hooks/use-org-structure";
 export default function HallOfFame() {
   const { departments } = useOrgStructure();
   const { hasPermission } = useAuth();
-  const [department, setDepartment] = useState<string>(departments[0]);
+  const canManage = hasPermission("manage_hof_awards");
+  const visibility = useHofDepartmentVisibility();
+  const setVisibility = useSetHofDepartmentVisibility();
+  const hiddenDepartments = useMemo(
+    () => new Set((visibility.data?.departments ?? []).filter((item) => !item.show_in_hall_of_fame).map((item) => item.name)),
+    [visibility.data?.departments],
+  );
+  const visibleDepartments = useMemo(
+    () => departments.filter((name) => !hiddenDepartments.has(name)),
+    [departments, hiddenDepartments],
+  );
+  const [department, setDepartment] = useState<string>(departments[0] ?? "");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const monthKey = format(month, "yyyy-MM-01");
   const categories = useAwardCategories(department);
   const winners = useAwardWinners(monthKey);
-  const error = categories.error ?? winners.error;
+  const error = categories.error ?? winners.error ?? visibility.error;
+
+  useEffect(() => {
+    if (!visibleDepartments.includes(department)) {
+      setDepartment(visibleDepartments[0] ?? "");
+    }
+  }, [department, visibleDepartments]);
   return (
     <PageTransition className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <header className="flex flex-wrap justify-between items-center gap-4">
@@ -33,15 +57,61 @@ export default function HallOfFame() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {hasPermission("manage_hof_awards") && (
-            <AwardEditPanel
-              key={`${department}-${monthKey}`}
-              department={department}
-              month={monthKey}
-              categories={categories.data ?? []}
-              winners={winners.data ?? []}
-              ready={!categories.isLoading && !winners.isLoading && !error}
-            />
+          {canManage && (
+            <>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Eye className="w-4 h-4 mr-2" /> Department visibility
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Hall of Fame departments</DialogTitle>
+                    <DialogDescription>
+                      Choose which departments appear in the Hall of Fame. Hidden departments keep their awards and can be restored anytime.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {!visibility.isLoading && !visibility.data?.configured && (
+                    <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+                      Run migration 0050 in Supabase to enable these controls.
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    {departments.map((team) => {
+                      const visible = !hiddenDepartments.has(team);
+                      return (
+                        <div key={team} className="flex items-center justify-between gap-4 rounded-xl border border-border p-3">
+                          <div>
+                            <p className="font-medium">{team}</p>
+                            <p className="text-xs text-muted-foreground">{visible ? "Shown" : "Hidden"}</p>
+                          </div>
+                          <Switch
+                            checked={visible}
+                            aria-label={`Show ${team} in Hall of Fame`}
+                            disabled={visibility.isLoading || !visibility.data?.configured || setVisibility.isPending}
+                            onCheckedChange={(checked) => setVisibility.mutate({ department: team, visible: checked })}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {setVisibility.error && (
+                    <p role="alert" className="text-sm text-destructive">Unable to update visibility: {getErrorMessage(setVisibility.error)}</p>
+                  )}
+                </DialogContent>
+              </Dialog>
+              {department && (
+                <AwardEditPanel
+                  key={`${department}-${monthKey}`}
+                  department={department}
+                  month={monthKey}
+                  categories={categories.data ?? []}
+                  winners={winners.data ?? []}
+                  ready={!categories.isLoading && !winners.isLoading && !error}
+                />
+              )}
+            </>
           )}
           <Button
             size="icon"
@@ -66,7 +136,7 @@ export default function HallOfFame() {
         </div>
       </header>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Team">
-        {departments.map((team) => (
+        {visibleDepartments.map((team) => (
           <Button
             key={team}
             className="rounded-full"
@@ -83,19 +153,24 @@ export default function HallOfFame() {
           <p className="text-destructive">
             Unable to load Hall of Fame: {getErrorMessage(error)}
           </p>
-          {hasPermission("manage_hof_awards") && (
+          {canManage && (
             <p className="text-sm">
               If this is the first setup, run migration 0017 in Supabase SQL
               Editor, then reload.
             </p>
           )}
         </div>
+      ) : visibleDepartments.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
+          No departments are currently shown in the Hall of Fame.
+          {canManage ? " Use Department visibility to restore one." : " Check back later."}
+        </div>
       ) : categories.isLoading || winners.isLoading ? (
         <p>Loading awards…</p>
       ) : categories.data?.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
           No categories for {department} yet.
-          {hasPermission("manage_hof_awards")
+          {canManage
             ? " Use Edit Hall of Fame to add one."
             : " Check back after your team publishes its awards."}
         </div>
