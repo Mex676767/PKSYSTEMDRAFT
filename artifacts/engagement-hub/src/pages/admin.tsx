@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, Eye, EyeOff } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, Eye, EyeOff, Clock3 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -15,6 +15,7 @@ import {
   useReactivateUser,
   useAdminSetUsername,
   useAdminAdjustPoints,
+  useApproveUser,
   type AdminProfileRow,
 } from "@/hooks/use-admin";
 import { useAdminSetBirthday } from "@/hooks/use-birthdays";
@@ -47,6 +48,7 @@ export default function Admin() {
       p.username?.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase())
   );
+  const pendingCount = profiles.filter((profile) => !profile.is_approved && !profile.is_deleted).length;
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -55,8 +57,20 @@ export default function Admin() {
           <ShieldAlert className="w-3 h-3 mr-1" /> Admin Only
         </Badge>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground mt-1">Roles, permissions, and account status.</p>
+        <p className="text-muted-foreground mt-1">Approvals, roles, permissions, and account status.</p>
       </div>
+
+      {pendingCount > 0 && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Clock3 className="w-5 h-5 text-amber-500" />
+            <div>
+              <p className="font-semibold text-sm">{pendingCount} account{pendingCount === 1 ? "" : "s"} waiting for approval</p>
+              <p className="text-xs text-muted-foreground">Review the pending users at the top of the list.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <AdminPointsCard />
 
@@ -115,6 +129,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const [usernameInput, setUsernameInput] = useState(row.username ?? "");
   const usernameValid = USERNAME_PATTERN.test(usernameInput);
   const adjustPoints = useAdminAdjustPoints();
+  const approve = useApproveUser();
   const [editingPoints, setEditingPoints] = useState(false);
   const [pointsAmount, setPointsAmount] = useState("");
   const [pointsReason, setPointsReason] = useState("");
@@ -128,7 +143,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   };
 
   return (
-    <Card className={cn("shadow-sm", row.is_deleted && "opacity-60 border-dashed")}>
+    <Card className={cn("shadow-sm", row.is_deleted && "opacity-60 border-dashed", !row.is_approved && !row.is_deleted && "border-amber-500/50")}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-3">
           <Avatar className="w-9 h-9 shrink-0">
@@ -140,6 +155,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm">@{row.username ?? "(no username)"}</span>
               {row.is_admin && <Badge className="text-[10px] bg-primary hover:bg-primary">Admin</Badge>}
+              {!row.is_approved && <Badge className="text-[10px] bg-amber-500 text-black hover:bg-amber-500">Pending approval</Badge>}
               {row.is_deleted && <Badge variant="destructive" className="text-[10px]">Deactivated</Badge>}
               {row.is_hidden && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
             </div>
@@ -197,6 +213,20 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             </div>
           )}
         </div>
+
+        {!row.is_approved && !row.is_deleted && (
+          <div className="pl-12 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="text-xs text-muted-foreground">This user cannot enter the hub until an admin approves the account.</p>
+            <button
+              onClick={() => approve.mutate(row.id)}
+              disabled={approve.isPending}
+              className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {approve.isPending ? "Approving..." : "Approve user"}
+            </button>
+            {approve.isError && <span className="text-xs text-destructive">Approval failed. Try again.</span>}
+          </div>
+        )}
 
         <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground">
           <AtSign className="w-3.5 h-3.5 shrink-0" />

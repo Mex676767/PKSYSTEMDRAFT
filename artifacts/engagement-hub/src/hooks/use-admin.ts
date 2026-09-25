@@ -14,15 +14,35 @@ export type AdminProfileRow = {
   is_deleted: boolean;
   is_hidden?: boolean;
   birthday: string | null;
+  is_approved: boolean;
+  approved_at: string | null;
 };
 
 export function useAllProfiles() {
   return useQuery({
     queryKey: ["all-profiles-admin"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_list_profiles");
-      if (error) throw error;
-      return data as AdminProfileRow[];
+      const [profilesResult, approvalsResult] = await Promise.all([
+        supabase.rpc("admin_list_profiles"),
+        supabase.rpc("admin_list_profile_approvals"),
+      ]);
+      if (profilesResult.error) throw profilesResult.error;
+      if (approvalsResult.error && approvalsResult.error.code !== "PGRST202") throw approvalsResult.error;
+
+      if (approvalsResult.error?.code === "PGRST202") {
+        return (profilesResult.data as Omit<AdminProfileRow, "is_approved" | "approved_at">[])
+          .map((profile) => ({ ...profile, approved_at: null, is_approved: true }));
+      }
+
+      const approvals = new Map<string, string | null>(
+        (approvalsResult.data ?? []).map((row: { user_id: string; approved_at: string | null }) => [row.user_id, row.approved_at] as const)
+      );
+      return (profilesResult.data as Omit<AdminProfileRow, "is_approved" | "approved_at">[])
+        .map((profile) => {
+          const approvedAt = approvals.get(profile.id) ?? null;
+          return { ...profile, approved_at: approvedAt, is_approved: approvedAt !== null };
+        })
+        .sort((a, b) => Number(a.is_approved) - Number(b.is_approved));
     },
   });
 }
@@ -46,6 +66,13 @@ export function useAdminSetUsername() {
     const { error } = await supabase.rpc("admin_set_username", { target_user: userId, new_username: username });
     if (error) throw error;
   });
+}
+
+export function useApproveUser() {
+  return useAdminMutation(async (userId: string) => {
+    const { error } = await supabase.rpc("admin_approve_user", { target_user: userId });
+    if (error) throw error;
+  }, [["directory"], ["birthdays"], ["giftable-profiles"]]);
 }
 
 export function useAdminAdjustPoints() {

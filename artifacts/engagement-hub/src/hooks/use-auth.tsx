@@ -25,6 +25,7 @@ export type Profile = {
   avatar_url: string | null;
   unlocked_borders: string[];
   active_border: string | null;
+  is_approved: boolean;
 };
 
 const AVATAR_COLORS = [
@@ -70,17 +71,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [deactivatedNotice, setDeactivatedNotice] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    const [{ data, error }, { data: isApproved, error: approvalError }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.rpc("get_my_approval_status"),
+    ]);
 
     if (error) {
       console.error("Failed to load profile", error);
       return null;
     }
-    return data as Profile;
+    if (approvalError && approvalError.code !== "PGRST202") {
+      console.error("Failed to load account approval", approvalError);
+      return null;
+    }
+    // Keep existing deployments usable while migration 0049 is being applied.
+    // Once the RPC exists, only its explicit true result grants app access.
+    return { ...data, is_approved: approvalError?.code === "PGRST202" || isApproved === true } as Profile;
   }, []);
 
   useEffect(() => {

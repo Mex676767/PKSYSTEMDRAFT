@@ -30,6 +30,8 @@ import Birthdays from '@/pages/birthdays';
 import Voice from '@/pages/voice';
 import HallOfFame from '@/pages/hall-of-fame';
 import GuinnessRecords from '@/pages/guinness-records';
+import ApprovalPending from '@/pages/approval-pending';
+import { DailyGoalReminder } from '@/components/daily-goal-reminder';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,7 @@ const REQUIRE_LOGIN = true;
 function Router() {
   return (
     <Shell>
+      <DailyGoalReminder />
       <RoutedErrorBoundary>
         <Switch>
           <Route path="/" component={Dashboard} />
@@ -74,7 +77,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 
 function AppPresenceBoundary({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
-  return <AppPresenceProvider userId={profile?.id}>{children}</AppPresenceProvider>;
+  return <AppPresenceProvider userId={profile?.is_approved ? profile.id : undefined}>{children}</AppPresenceProvider>;
 }
 
 function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
@@ -103,6 +106,10 @@ function AuthGate() {
 
   if (!session) {
     return <Login />;
+  }
+
+  if (profile && !profile.is_approved) {
+    return <ApprovalPending />;
   }
 
   if (!isOnboarded(profile)) {
