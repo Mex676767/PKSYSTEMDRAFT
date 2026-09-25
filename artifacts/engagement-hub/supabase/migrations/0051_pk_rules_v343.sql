@@ -505,16 +505,17 @@ $$;
 drop trigger if exists challenges_pk_money on challenges;
 
 create or replace function pk_update_interval(freq text)
-returns integer language plpgsql immutable set search_path=public as $$
-declare f text:=lower(trim(coalesce(freq,'weekly'))); n integer;
-begin
-  if f='daily' then return 1; end if;
-  if f in ('weekly','every monday','every tuesday','every wednesday','every thursday','every friday','every saturday','every sunday') then return 7; end if;
-  if f='monthly' then return 30; end if;
-  if f~'^every [0-9]+ days?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return greatest(n,1); end if;
-  if f~'^every [0-9]+ weeks?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return greatest(n,1)*7; end if;
-  return 7;
-end;
+returns integer language sql immutable set search_path=public as $$
+  select case
+    when lower(trim(coalesce(freq,'weekly')))='daily' then 1
+    when lower(trim(coalesce(freq,'weekly'))) in ('weekly','every monday','every tuesday','every wednesday','every thursday','every friday','every saturday','every sunday') then 7
+    when lower(trim(coalesce(freq,'weekly')))='monthly' then 30
+    when lower(trim(coalesce(freq,'weekly')))~'^every [0-9]+ days?$'
+      then greatest(substring(lower(trim(freq)) from '([0-9]+)')::integer,1)
+    when lower(trim(coalesce(freq,'weekly')))~'^every [0-9]+ weeks?$'
+      then greatest(substring(lower(trim(freq)) from '([0-9]+)')::integer,1)*7
+    else 7
+  end;
 $$;
 
 create or replace function pk_terms_snapshot(cid uuid)
