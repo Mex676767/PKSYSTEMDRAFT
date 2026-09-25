@@ -67,15 +67,19 @@ export function TeamStatusCard() {
                       onClick={() => setHistoryUser({ id: p.id, username: p.username })}
                       className="flex items-center gap-2 p-2 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors text-left"
                     >
-                      <UserAvatar
-                        user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
-                        photoUrl={p.avatar_url}
-                        border={p.active_border}
-                        accessory={p.active_accessory}
-                        className="w-8 h-8 text-[10px] shrink-0"
-                      />
-                      {/* Name gets the full width; the status sits under it so decorated
-                          avatars (which reserve extra room) don't squeeze the name. */}
+                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+                        <UserAvatar
+                          user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
+                          photoUrl={p.avatar_url}
+                          border={p.active_border}
+                          accessory={p.active_accessory}
+                          className="w-8 h-8 text-[10px]"
+                          reserveSpace={false}
+                        />
+                      </div>
+                      {/* Name gets the full width; the status sits under it. The fixed-size
+                          slot above keeps every row's name column starting at the same x,
+                          whether or not that person has cosmetics equipped. */}
                       <span className="flex flex-col items-start gap-1 min-w-0">
                         <span className="text-xs font-medium truncate max-w-full">@{p.username}</span>
                         <span
