@@ -35,9 +35,12 @@ export function useNotifications() {
     queryKey,
     enabled: !!session,
     queryFn: async () => {
+      // DMs show as the unread badge on the Messages button instead of in
+      // the bell. Their push notifications are unaffected.
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
+        .neq("type", "dm")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
