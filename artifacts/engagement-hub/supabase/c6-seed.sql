@@ -33,6 +33,19 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Photo storage: one public bucket, same rules as C9MYR.
+insert into storage.buckets (id, name, public) values ('post-images', 'post-images', true)
+on conflict (id) do update set public = true;
+drop policy if exists "Anyone can view post images" on storage.objects;
+create policy "Anyone can view post images" on storage.objects for select
+  using (bucket_id = 'post-images');
+drop policy if exists "Authenticated users can upload post images" on storage.objects;
+create policy "Authenticated users can upload post images" on storage.objects for insert to authenticated
+  with check (bucket_id = 'post-images');
+drop policy if exists "Users can delete their own post images" on storage.objects;
+create policy "Users can delete their own post images" on storage.objects for delete
+  using (bucket_id = 'post-images' and owner = auth.uid());
+
 -- Scheduled jobs (these live outside the table structure).
 create extension if not exists pg_cron;
 create extension if not exists pg_net;

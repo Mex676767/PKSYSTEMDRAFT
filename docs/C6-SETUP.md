@@ -52,7 +52,7 @@ From then on, **every new migration must be run on both projects.**
   Google sign-in needs its own OAuth client with C6's domain.
 - **Authentication → URL Configuration:** Site URL = C6's domain; add it to the
   redirect URLs too.
-- **Storage:** create a **public** bucket named `post-images`.
+- **Storage:** nothing to do; `c6-seed.sql` creates the `post-images` bucket and its rules.
 - **Edge functions**, from `artifacts\engagement-hub`, with C6's project ref:
   ```
   npx supabase functions deploy send-push --project-ref C6_REF --no-verify-jwt
