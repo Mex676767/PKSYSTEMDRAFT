@@ -65,13 +65,11 @@ export function useHofDepartmentVisibility() {
       const { data, error } = await supabase
         .from("org_departments")
         .select("name, show_in_hall_of_fame")
-        .order("sort_order");
+        .order("sort");
 
       if (error) {
         // Keep the Hall of Fame usable while migration 0050 is being applied.
         if (
-          error.code === "PGRST204" ||
-          error.code === "42703" ||
           error.message.includes("show_in_hall_of_fame")
         ) {
           return { configured: false, departments: [] as HofDepartmentVisibility[] };
