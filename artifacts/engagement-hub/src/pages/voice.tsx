@@ -167,7 +167,7 @@ export default function Voice() {
 
                 {(localScreenStream || remoteVideoStreams.size > 0) && (
                   <div className="grid grid-cols-1 gap-3 pt-3 border-t border-border/50">
-                    {localScreenStream && <ScreenShareTile stream={localScreenStream} label="Your screen (preview)" onStop={stopScreenShare} />}
+                    {localScreenStream && <ScreenShareTile stream={localScreenStream} label="Your screen (preview)" onStop={stopScreenShare} isLocalPreview />}
                     {Array.from(remoteVideoStreams.entries()).filter(([id]) => participants.some(p => p.id === id && p.streaming)).map(([peerId, stream]) => <ScreenShareTile key={peerId} stream={stream} label={`@${participants.find(p => p.id === peerId)?.username ?? "Someone"}'s screen`} />)}
                     <p className="text-xs text-muted-foreground">Screen video only. Your microphone follows the call's mute control.</p>
                   </div>
