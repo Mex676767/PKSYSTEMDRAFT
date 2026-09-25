@@ -155,8 +155,9 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm">@{row.username ?? "(no username)"}</span>
               {row.is_admin && <Badge className="text-[10px] bg-primary hover:bg-primary">Admin</Badge>}
-              {!row.is_approved && <Badge className="text-[10px] bg-amber-500 text-black hover:bg-amber-500">Pending approval</Badge>}
-              {row.is_deleted && <Badge variant="destructive" className="text-[10px]">Deactivated</Badge>}
+              {!row.is_approved && !row.is_deleted && <Badge className="text-[10px] bg-amber-500 text-black hover:bg-amber-500">Pending approval</Badge>}
+              {!row.is_approved && row.is_deleted && <Badge variant="destructive" className="text-[10px]">Rejected</Badge>}
+              {row.is_deleted && row.is_approved && <Badge variant="destructive" className="text-[10px]">Deactivated</Badge>}
               {row.is_hidden && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
             </div>
             <p className="text-xs text-muted-foreground truncate">{row.email} · {row.points} pts{row.department ? ` · ${row.department}` : ""}</p>
@@ -200,7 +201,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
                 >
                   <UserCheck className="w-4 h-4" />
                 </button>
-              ) : (
+              ) : row.is_approved ? (
                 <button
                   onClick={() => window.confirm(`Deactivate @${row.username}? They'll be signed out and hidden from the app.`) && deactivate.mutate(row.id)}
                   disabled={deactivate.isPending}
@@ -209,7 +210,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
                 >
                   <UserX className="w-4 h-4" />
                 </button>
-              )}
+              ) : null}
             </div>
           )}
         </div>
@@ -217,14 +218,23 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
         {!row.is_approved && !row.is_deleted && (
           <div className="pl-12 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
             <p className="text-xs text-muted-foreground">This user cannot enter the hub until an admin approves the account.</p>
-            <button
-              onClick={() => approve.mutate(row.id)}
-              disabled={approve.isPending}
-              className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-            >
-              {approve.isPending ? "Approving..." : "Approve user"}
-            </button>
-            {approve.isError && <span className="text-xs text-destructive">Approval failed. Try again.</span>}
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => window.confirm(`Reject ${row.email}? Their account will be deactivated immediately.`) && deactivate.mutate(row.id)}
+                disabled={approve.isPending || deactivate.isPending}
+                className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+              >
+                {deactivate.isPending ? "Rejecting..." : "Reject"}
+              </button>
+              <button
+                onClick={() => approve.mutate(row.id)}
+                disabled={approve.isPending || deactivate.isPending}
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {approve.isPending ? "Approving..." : "Approve user"}
+              </button>
+            </div>
+            {(approve.isError || deactivate.isError) && <span className="text-xs text-destructive">Action failed. Try again.</span>}
           </div>
         )}
 
