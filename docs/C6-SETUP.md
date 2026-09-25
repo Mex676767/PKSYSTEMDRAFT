@@ -7,7 +7,7 @@ Supabase project** so the two organisations' data can never mix. Every push to
 | | C9MYR | C6 |
 |---|---|---|
 | Code | this repo, `main` | this repo, `main` |
-| Hosting | GitHub Pages (`deploy-pages.yml`) | Cloudflare Pages (`deploy-c6.yml`) |
+| Hosting | GitHub Pages (`deploy-pages.yml`) | Cloudflare Worker (`deploy-c6.yml`) |
 | Database | Supabase project "C9MYR" | Supabase project "C6MYR" |
 | Name in the nav pill and titles | C9MYR | `C6_BRAND_NAME` (default `C6`) |
 
@@ -65,14 +65,22 @@ From then on, **every new migration must be run on both projects.**
 - **Vault** (SQL editor): add `project_url` and `push_webhook_secret` for C6,
   as in `supabase/PUSH-NOTIFICATIONS.md`.
 
-## 4. Cloudflare Pages
+## 4. Cloudflare
 
-1. Create a free Cloudflare account.
-2. **Workers & Pages → Create → Pages → Upload assets**, name the project
-   `c6-hub`, and upload any small file to create it. The workflow replaces it.
-3. **Account ID:** shown on the Workers & Pages overview.
-4. **API token:** My Profile → API Tokens → Create token → "Edit Cloudflare
-   Workers" template, or a custom token with **Account → Cloudflare Pages → Edit**.
+The site is a Cloudflare **Worker** named `c6` that serves the static build
+(`wrangler.jsonc` in the repo root). GitHub Actions builds and deploys it, so
+Cloudflare's own Git builds aren't used.
+
+1. Free Cloudflare account. **Workers & Pages → Create** a Worker named `c6`
+   (any starter). If you connected it to GitHub, disconnect that under the
+   Worker's **Settings → Build**, since the GitHub Action does the building.
+2. **Account ID:** the long code in the dashboard URL
+   (`dash.cloudflare.com/<account id>/...`), or Account home → the **⋯** next
+   to the account name → **Copy account ID**.
+3. **API token:** My Profile → API Tokens → Create token → **Edit Cloudflare
+   Workers** template.
+4. After the first deploy: the Worker's **Settings → Domains & Routes** →
+   enable `workers.dev` (for a test URL) and add C6's custom domain.
 
 ## 5. GitHub settings
 
@@ -83,14 +91,14 @@ Repo → **Settings → Secrets and variables → Actions**:
   - `C6_SUPABASE_URL`: C6MYR's Project URL (`https://xxxx.supabase.co`)
   - `C6_SUPABASE_ANON_KEY`: C6MYR's publishable key (`sb_publishable_…`)
   - `C6_BRAND_NAME`: the name to show, e.g. `C6` or `C6MYR`
-  - `C6_PAGES_PROJECT`: only if the Pages project isn't called `c6-hub`
+  - `C6_WORKER_NAME`: only if the Worker isn't called `c6`
 
 The workflow does nothing until `C6_SUPABASE_URL` is set. After setting
 everything, run it once from **Actions → Deploy C6 hub → Run workflow**.
 
 ## 6. Domain and first admin
 
-- Cloudflare Pages → `c6-hub` → **Custom domains** → add C6's domain.
+- Cloudflare → Worker `c6` → **Settings → Domains & Routes** → add C6's domain.
 - Sign up on the C6 site, then in C6's SQL editor:
   ```sql
   update profiles set is_admin = true where email = 'you@example.com';

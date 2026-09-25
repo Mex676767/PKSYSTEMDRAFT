@@ -1,0 +1,12 @@
+// Cloudflare Worker that serves the C6 hub's static build. Deployed by
+// .github/workflows/deploy-c6.yml; see docs/C6-SETUP.md. The C9MYR site is
+// on GitHub Pages and doesn't use this.
+{
+  "name": "c6",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./artifacts/engagement-hub/dist/public",
+    // Client-side routes like /challenges/123 fall back to index.html.
+    "not_found_handling": "single-page-application"
+  }
+}
