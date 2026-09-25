@@ -88,22 +88,24 @@ export function useMyGoals() {
   });
 }
 
-/** Lightweight source of truth for the daily reminder. This deliberately
- * avoids the profile join used by goal cards, so a hidden profile or a stale
- * relationship cache cannot make an existing goal look missing. */
-export function useHasAnyGoal() {
+/** Lightweight source of truth for the daily reminder. The reminder is done
+ * only when the user has at least one short-, mid-, and long-term goal. Goal
+ * category is intentionally irrelevant. */
+export function useGoalTermCoverage() {
   const { session } = useAuth();
   useRealtimeInvalidate("goals", [["my-goals"]]);
   return useQuery({
-    queryKey: ["my-goals", session?.user.id, "exists"],
+    queryKey: ["my-goals", session?.user.id, "term-coverage"],
     enabled: !!session,
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("goals")
-        .select("id", { count: "exact", head: true })
+        .select("term")
         .eq("owner_id", session!.user.id);
       if (error) throw error;
-      return (count ?? 0) > 0;
+      const present = new Set((data as { term: GoalTerm }[]).map((goal) => goal.term));
+      const missing = (["short", "mid", "long"] as GoalTerm[]).filter((term) => !present.has(term));
+      return { complete: missing.length === 0, missing };
     },
   });
 }

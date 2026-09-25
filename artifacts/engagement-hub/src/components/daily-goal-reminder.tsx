@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { useHasAnyGoal } from "@/hooks/use-goals";
+import { GOAL_TERM_META, useGoalTermCoverage } from "@/hooks/use-goals";
 
 function localDateKey() {
   const now = new Date();
@@ -23,7 +23,7 @@ function localDateKey() {
 
 export function DailyGoalReminder() {
   const { profile } = useAuth();
-  const { data: hasGoal, isSuccess, isFetching, refetch } = useHasAnyGoal();
+  const { data: coverage, isSuccess } = useGoalTermCoverage();
   const [location, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [confirmPostpone, setConfirmPostpone] = useState(false);
@@ -39,7 +39,7 @@ export function DailyGoalReminder() {
   useEffect(() => {
     if (!profile?.is_approved || !isSuccess) return;
 
-    if (hasGoal) {
+    if (coverage?.complete) {
       setOpen(false);
       setConfirmPostpone(false);
       return;
@@ -50,7 +50,14 @@ export function DailyGoalReminder() {
     if (window.localStorage.getItem(key) === today) return;
 
     if (location !== "/goals") setOpen(true);
-  }, [hasGoal, isSuccess, location, profile?.id, profile?.is_approved]);
+  }, [coverage?.complete, isSuccess, location, profile?.id, profile?.is_approved]);
+
+  const missingLabels = coverage?.missing.map((term) => GOAL_TERM_META[term].label) ?? [];
+  const missingText = missingLabels.length === 0
+    ? ""
+    : missingLabels.length === 1
+      ? missingLabels[0]
+      : `${missingLabels.slice(0, -1).join(", ")} and ${missingLabels.at(-1)}`;
 
   const goToGoals = () => {
     finishForToday();
@@ -77,12 +84,12 @@ export function DailyGoalReminder() {
               {confirmPostpone ? <BellRing className="h-8 w-8" /> : <Target className="h-8 w-8" />}
             </div>
             <DialogTitle className="text-2xl leading-tight">
-              {confirmPostpone ? "Remind you tomorrow?" : "What are you working toward?"}
+              {confirmPostpone ? "Remind you tomorrow?" : "Complete your goal plan"}
             </DialogTitle>
             <DialogDescription className="max-w-sm leading-relaxed">
               {confirmPostpone
-                ? "This is your second confirmation. The reminder will pause for today and return tomorrow if you still have no goal."
-                : "We could not find a goal on your profile. Add one so your progress stays visible and your team can support you."}
+                ? "This is your second confirmation. The reminder will pause for today and return tomorrow if all three goal terms are not complete."
+                : `Add your ${missingText} goal${missingLabels.length === 1 ? "" : "s"}. Personal or career goals both count.`}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -102,19 +109,9 @@ export function DailyGoalReminder() {
               <Button className="h-11 w-full text-sm font-semibold" onClick={goToGoals}>
                 Add my goal <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <div className="flex flex-col-reverse items-center justify-between gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => void refetch()}
-                  disabled={isFetching}
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                >
-                  {isFetching ? "Checking..." : "I already added one — check again"}
-                </button>
-                <Button variant="ghost" size="sm" onClick={() => setConfirmPostpone(true)}>
-                  Remind me tomorrow
-                </Button>
-              </div>
+              <Button variant="ghost" size="sm" className="w-full" onClick={() => setConfirmPostpone(true)}>
+                Remind me tomorrow
+              </Button>
             </div>
           )}
         </div>
