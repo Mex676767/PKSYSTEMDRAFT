@@ -7,7 +7,7 @@ Supabase project** so the two organisations' data can never mix. Every push to
 | | C9MYR | C6 |
 |---|---|---|
 | Code | this repo, `main` | this repo, `main` |
-| Hosting | GitHub Pages (`deploy-pages.yml`) | Cloudflare Worker (`deploy-c6.yml`) |
+| Hosting | Cloudflare Worker `c9` (`deploy-c9-worker.yml`); the old GitHub Pages address redirects | Cloudflare Worker `c6` (`deploy-c6.yml`) |
 | Database | Supabase project "C9MYR" | Supabase project "C6MYR" |
 | Name in the nav pill and titles | C9MYR | `C6_BRAND_NAME` (default `C6`) |
 

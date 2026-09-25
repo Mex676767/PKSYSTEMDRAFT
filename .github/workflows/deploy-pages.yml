@@ -1,8 +1,16 @@
 name: Deploy to GitHub Pages
 
+# The C9MYR hub moved to https://c9.mextest67.workers.dev (deploy-c9-worker.yml).
+# The old GitHub Pages address now only serves a redirect to the same page
+# there, plus a push worker that switches off the old address's push
+# notifications. See deploy/github-pages-redirect/.
+
 on:
   push:
     branches: [main]
+    paths:
+      - deploy/github-pages-redirect/**
+      - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
 permissions:
@@ -20,37 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build engagement-hub
-        run: pnpm --filter @workspace/engagement-hub run build
-        env:
-          # Only used to satisfy vite.config.ts's validation during build; not
-          # actually bound to anything since this is a static build, not `dev`.
-          PORT: "4173"
-          # Repo is served at https://<user>.github.io/<repo>/ on GitHub Pages,
-          # so all asset URLs need this prefix.
-          BASE_PATH: /PKSYSTEMDRAFT/
-
-      - name: Add SPA 404 fallback
-        # GitHub Pages has no server-side rewrites, so a direct visit/refresh
-        # on a route like /goals 404s. Serving index.html as the 404 page lets
-        # the client-side router (wouter) take over and render the right page.
-        run: cp artifacts/engagement-hub/dist/public/index.html artifacts/engagement-hub/dist/public/404.html
-
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: artifacts/engagement-hub/dist/public
+          path: deploy/github-pages-redirect
 
   deploy:
     needs: build
