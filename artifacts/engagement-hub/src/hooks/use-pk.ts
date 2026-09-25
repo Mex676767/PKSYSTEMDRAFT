@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import type { Pk, PkSettings, PkViolation, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkMoneySummary, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
+import type { Pk, PkSettings, PkViolation, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
 
 const PERSON = "username, role, avatar_url, active_border, active_accessory";
 const PK_SELECT = `*, participants:challenge_participants(*, profile:profiles(${PERSON}))`;
@@ -238,6 +238,15 @@ export const useSubmitPlaybook = () =>
   useRpc(({ id, extra, worked, copy }: { id: string; extra: string; worked: string; copy: string }) =>
     call("pk_submit_playbook", { cid: id, extra, worked, copy }));
 
+export const useSubmitPkUpgradeEvidence = () =>
+  useRpc(({ id, evidence }: { id: string; evidence: string }) => call("pk_submit_upgrade_evidence", { cid: id, evidence }));
+
+export const useMarkPkStopped = () =>
+  useRpc(({ id, participantId, note }: { id: string; participantId: string; note: string }) => call("pk_mark_stopped", { cid: id, participant_id: participantId, note: note.trim() || null }));
+
+export const useDisputePkTier = () =>
+  useRpc(({ id, note }: { id: string; note: string }) => call("pk_dispute_tier", { cid: id, note: note.trim() }));
+
 export const useVerifyPk = () =>
   useRpc(({ id, decision, note, tiebreak }: { id: string; decision: "confirm" | "playbook" | "reopen"; note: string; tiebreak?: "A" | "B" | null }) =>
     call("pk_verify", { cid: id, decision, note: note.trim() || null, tiebreak_side: tiebreak ?? null }));
@@ -282,33 +291,6 @@ export function usePkCanApprove(id: string | undefined) {
 export const useTerminatePk = () =>
   useRpc(({ id, reason, note }: { id: string; reason: PkTerminateReason; note: string }) =>
     call("pk_terminate", { cid: id, reason, note }));
-
-export const useMarkPkPaid = () =>
-  useRpc(({ id, paid }: { id: string; paid: boolean }) => call("pk_mark_paid", { debt_id: id, paid }));
-
-export function usePkMoney() {
-  const { session } = useAuth();
-  useRealtimeInvalidate("pk_money_debts", [["pk-money"], ["pk-detail"]]);
-  return useQuery({
-    queryKey: ["pk-money", session?.user.id],
-    enabled: !!session,
-    queryFn: async () => {
-      const uid = session!.user.id;
-      const [summary, debts] = await Promise.all([
-        supabase.rpc("pk_money_summary"),
-        supabase
-          .from("pk_money_debts")
-          .select(`${DEBT_SELECT}, challenge:challenges(topic)`)
-          .or(`debtor_id.eq.${uid},creditor_id.eq.${uid}`)
-          .order("created_at", { ascending: false }),
-      ]);
-      if (summary.error) throw summary.error;
-      if (debts.error) throw debts.error;
-      const row = Array.isArray(summary.data) ? summary.data[0] : summary.data;
-      return { summary: (row ?? null) as PkMoneySummary | null, debts: (debts.data ?? []) as unknown as PkDebt[] };
-    },
-  });
-}
 
 /** Every settled PK's winner playbook, newest first. */
 export function usePlaybookLibrary() {

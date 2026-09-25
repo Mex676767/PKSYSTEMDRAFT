@@ -18,7 +18,7 @@ export type PkStatus =
 
 export type PkMethod = "named" | "open";
 export type PkFormat = "head_to_head" | "self_declaration";
-export type PkType = "one_v_one" | "vs_upline" | "team";
+export type PkType = "one_v_one" | "vs_upline" | "team" | "department";
 export type PkDirection = "higher" | "lower";
 export type PkScoring = "absolute" | "improvement" | "completion";
 
@@ -38,12 +38,16 @@ export type PkParticipant = {
   baseline: number | null;
   target: number | null;
   current_value: number | null;
+  completed_properly: boolean;
+  stopped_updates_at: string | null;
+  stopped_updates_note: string | null;
   profile: PkPerson | null;
 };
 
 export type Pk = {
   id: string;
   pk_version: number;
+  rules_version: string;
   creator_id: string;
   opponent_id: string | null;
   topic: string;
@@ -63,6 +67,24 @@ export type Pk = {
   reward: string | null;
   punishment: string | null;
   pk_money: number;
+  base_tier: 5 | 8 | 10 | null;
+  tier_reason: string | null;
+  upgrade_tier: 8 | 10 | null;
+  upgrade_requirement: string | null;
+  upgrade_evidence: string | null;
+  upgrade_completed: boolean;
+  effective_tier: 5 | 8 | 10 | null;
+  tier_approved_by: string | null;
+  tier_approved_at: string | null;
+  tier_disputed_by: string | null;
+  tier_disputed_at: string | null;
+  tier_dispute_note: string | null;
+  stake_kind: "honour" | "title" | "task" | "privilege" | "pk_points" | null;
+  point_stake: number;
+  is_revenge: boolean;
+  opponent_department: string | null;
+  settled_month: string | null;
+  scoring_breakdown: Record<string, unknown>[] | null;
   proof_method: string | null;
   tiebreaker: string | null;
   status: PkStatus;
@@ -164,24 +186,22 @@ export type PkChampion = {
   wins: number;
 };
 
-/** Calendar quarter start (yyyy-MM-dd) for a date, as the database does it. */
-export function quarterStart(d: Date) {
-  const m = Math.floor(d.getMonth() / 3) * 3;
-  return `${d.getFullYear()}-${String(m + 1).padStart(2, "0")}-01`;
+/** Calendar month start (yyyy-MM-dd) for a date, as the v3.43 database does it. */
+export function monthStart(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-export function quarterLabel(start: string) {
+export function monthLabel(start: string) {
   const [y, m] = start.split("-").map(Number);
-  return `Q${Math.floor((m - 1) / 3) + 1} ${y}`;
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
-/** The current quarter and the ones before it, newest first. */
-export function recentQuarters(count: number, now = new Date()) {
+export function recentMonths(count: number, now = new Date()) {
   const out: string[] = [];
-  const d = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  const d = new Date(now.getFullYear(), now.getMonth(), 1);
   for (let i = 0; i < count; i++) {
-    out.push(quarterStart(d));
-    d.setMonth(d.getMonth() - 3);
+    out.push(monthStart(d));
+    d.setMonth(d.getMonth() - 1);
   }
   return out;
 }
@@ -190,6 +210,7 @@ export type PkTerms = {
   method: PkMethod;
   format: PkFormat;
   team: boolean;
+  match_type: PkType;
   title: string;
   description: string;
   metric: string;
@@ -202,7 +223,14 @@ export type PkTerms = {
   update_frequency: string;
   reward: string;
   punishment: string;
-  pk_money: string;
+  base_tier: "5" | "8" | "10";
+  tier_reason: string;
+  company_metric: boolean;
+  upgrade_tier: "" | "8" | "10";
+  upgrade_requirement: string;
+  stake_kind: "" | "honour" | "title" | "task" | "privilege" | "pk_points";
+  point_stake: string;
+  is_revenge: boolean;
   proof_method: string;
   tiebreaker: string;
   compliance_agreed: boolean;
@@ -230,6 +258,7 @@ export const PK_TYPE_LABEL: Record<PkType, string> = {
   one_v_one: "1v1",
   vs_upline: "vs Upline",
   team: "Team",
+  department: "Department vs Department",
 };
 
 export const PK_SCORING_LABEL: Record<PkScoring, string> = {
@@ -281,6 +310,7 @@ export function termsFromPk(pk: Pk): PkTerms {
     method: pk.method ?? "named",
     format: pk.format ?? "head_to_head",
     team: pk.pk_type === "team",
+    match_type: pk.pk_type ?? "one_v_one",
     title: pk.topic,
     description: pk.description ?? "",
     metric: pk.metric ?? "",
@@ -293,7 +323,14 @@ export function termsFromPk(pk: Pk): PkTerms {
     update_frequency: pk.update_frequency ?? "",
     reward: pk.reward ?? "",
     punishment: pk.punishment ?? "",
-    pk_money: pk.pk_money ? String(pk.pk_money) : "",
+    base_tier: String(pk.base_tier ?? 5) as "5" | "8" | "10",
+    tier_reason: pk.tier_reason ?? "",
+    company_metric: pk.format === "self_declaration" && pk.base_tier === 10,
+    upgrade_tier: pk.upgrade_tier ? String(pk.upgrade_tier) as "8" | "10" : "",
+    upgrade_requirement: pk.upgrade_requirement ?? "",
+    stake_kind: pk.stake_kind ?? "",
+    point_stake: pk.point_stake ? String(pk.point_stake) : "",
+    is_revenge: pk.is_revenge,
     proof_method: pk.proof_method ?? "",
     tiebreaker: pk.tiebreaker ?? "",
     compliance_agreed: true,
@@ -308,20 +345,20 @@ export function termsFromPk(pk: Pk): PkTerms {
 export const PK_UPDATE_FREQUENCIES = [
   { value: "Daily", hint: "Good for PKs of a week or two" },
   { value: "Every 2 days", hint: "" },
+  { value: "Every 3 days", hint: "" },
   { value: "Weekly", hint: "Handbook minimum for longer PKs" },
+  { value: "Every 2 weeks", hint: "" },
   { value: "Monthly", hint: "" },
 ] as const;
 
 export type PkSettings = {
-  max_one_v_one: number;
-  max_team: number;
-  max_vs_upline: number;
-  max_total: number;
   open_expiry_days: number;
   max_counter_rounds: number;
-  money_limit_default: number;
-  money_limit_atl_tl: number;
-  money_limit_above_tl: number;
+  bonus_stacking: "additive" | "multiplicative";
+  prize_pic: string;
+  prize_amount: string;
+  penalty_pic: string;
+  penalty_notice: string;
   reminders_enabled: boolean;
   announce_live: boolean;
   announce_winner: boolean;
@@ -336,6 +373,11 @@ export type PkViolation = {
   created_at: string;
   resolved_at: string | null;
   resolution: string | null;
+  required_update: string | null;
+  consequence: string | null;
+  monthly_count: number | null;
+  ban_start: string | null;
+  ban_end: string | null;
   person: { username: string | null } | null;
   challenge: { topic: string } | null;
 };

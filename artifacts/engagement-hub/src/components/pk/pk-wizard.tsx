@@ -19,10 +19,11 @@ const MAX_TEAM = 5;
 function blankTerms(): PkTerms {
   const today = format(new Date(), "yyyy-MM-dd");
   return {
-    method: "named", format: "head_to_head", team: false,
+    method: "named", format: "head_to_head", team: false, match_type: "one_v_one",
     title: "", description: "", metric: "", metric_definition: "", direction: "higher", scoring: "absolute",
     winning_target: "", starts_at: today, ends_at: "", update_frequency: "Daily", reward: "", punishment: "",
-    pk_money: "", proof_method: "", tiebreaker: "", compliance_agreed: false,
+    base_tier: "5", tier_reason: "", company_metric: false, upgrade_tier: "", upgrade_requirement: "",
+    stake_kind: "", point_stake: "", is_revenge: false, proof_method: "", tiebreaker: "", compliance_agreed: false,
     creator: { baseline: "", target: "" },
     participants: [{ user_id: "", side: "B", is_captain: true, baseline: "", target: "" }],
   };
@@ -77,8 +78,8 @@ export function PkWizard({
   const me = session?.user.id;
   const myDept = profile?.department ?? null;
   const colleagues = useMemo(
-    () => directory.filter((p) => p.id !== me && p.department === myDept),
-    [directory, me, myDept],
+    () => directory.filter((p) => p.id !== me),
+    [directory, me],
   );
   const nameOf = (id: string) => directory.find((p) => p.id === id)?.username ?? "someone";
 
@@ -98,7 +99,10 @@ export function PkWizard({
 
   const chooseType = (patch: Partial<PkTerms>) => {
     const next = { ...t, ...patch };
-    if (next.method === "open" || next.format === "self_declaration") next.team = false;
+    if (next.method === "open" || next.format === "self_declaration") {
+      next.team = false;
+      next.match_type = "one_v_one";
+    }
     if (next.format === "self_declaration") next.scoring = null;
     else if (!next.scoring) next.scoring = "absolute";
     if (next.method === "open") next.participants = [];
@@ -120,6 +124,7 @@ export function PkWizard({
       if (!t.title.trim()) return "Give it a title.";
       if (!t.metric.trim() || !t.metric_definition.trim()) return "Say what's measured and exactly how it's counted.";
       if (!t.proof_method.trim()) return "Say what counts as proof.";
+      if (!t.tier_reason.trim()) return "Explain why this challenge belongs in the selected tier.";
     }
     if (step === 3) {
       if (needsBaseline && !t.creator.baseline) return "Fill in your baseline.";
@@ -129,6 +134,8 @@ export function PkWizard({
       }
     }
     if (step === 4 && !t.ends_at) return "Pick an end date.";
+    if (step === 4 && t.stake_kind === "pk_points" && (Number(t.point_stake) <= 0 || Number(t.point_stake) > 3)) return "PK point stakes must be from 0.01 to 3 points.";
+    if (step === 4 && t.upgrade_tier && !t.upgrade_requirement.trim()) return "Describe the evidence required for the tier upgrade.";
     return null;
   };
 
@@ -166,15 +173,19 @@ export function PkWizard({
 
   const personPicker = (index: number, label: string) => {
     const p = t.participants[index];
+    const eligible = colleagues.filter((c) => {
+      if (t.match_type !== "department") return c.department === myDept;
+      return p.side === "A" ? c.department === myDept : !!c.department && c.department !== myDept;
+    });
     return (
       <div key={index} className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <SearchableSelect
             value={p.user_id}
             onValueChange={(v) => setPerson(index, { user_id: v })}
-            options={colleagues.filter((c) => c.id === p.user_id || !taken.has(c.id)).map(personOption)}
+            options={eligible.filter((c) => c.id === p.user_id || !taken.has(c.id)).map(personOption)}
             placeholder={label}
-            searchPlaceholder="Search your department..."
+            searchPlaceholder={t.match_type === "department" && p.side === "B" ? "Search another department..." : "Search your department..."}
             emptyText={myDept ? `Nobody else in ${myDept}` : "Set your department first"}
             aria-label={label}
           />
@@ -250,10 +261,12 @@ export function PkWizard({
               </Field>
               {t.method === "named" && !isSelf && (
                 <Field label="Size">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Choice active={!t.team} onClick={() => chooseType({ team: false })} icon={<UserRound className="w-4 h-4" />} title="1 on 1" text="Against someone more senior counts as vs Upline." />
-                    <Choice active={t.team} onClick={() => chooseType({ team: true })} icon={<Users className="w-4 h-4" />} title="Team" text="2 to 5 a side, each side has a captain." />
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    <Choice active={t.match_type === "one_v_one"} onClick={() => chooseType({ team: false, match_type: "one_v_one" })} icon={<UserRound className="w-4 h-4" />} title="1 on 1" text="A senior opponent becomes vs Upline automatically." />
+                    <Choice active={t.match_type === "team"} onClick={() => chooseType({ team: true, match_type: "team" })} icon={<Users className="w-4 h-4" />} title="Team" text="2 to 5 a side in one department." />
+                    <Choice active={t.match_type === "department"} onClick={() => chooseType({ team: true, match_type: "department" })} icon={<Users className="w-4 h-4" />} title="Departments" text="Department vs department with both HODs signing." />
                   </div>
+                  {t.match_type === "one_v_one" && <label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={t.is_revenge} onChange={(e) => set("is_revenge", e.target.checked)} /> Use my one revenge match this month</label>}
                 </Field>
               )}
             </>
@@ -284,7 +297,7 @@ export function PkWizard({
                     )}
                   </div>
                 </Field>
-                <p className="text-xs text-muted-foreground">Only people in {myDept ?? "your department"} are listed.</p>
+                <p className="text-xs text-muted-foreground">{t.match_type === "department" ? "Your side stays in your department; the other side must be from one other department." : `Only people in ${myDept ?? "your department"} are listed.`}</p>
               </>
             )
           )}
@@ -313,10 +326,16 @@ export function PkWizard({
                 </Field>
               )}
               <Field label="What counts as proof"><input className={input} value={t.proof_method} onChange={(e) => set("proof_method", e.target.value)} placeholder="e.g. CRM screenshot showing the date range" /></Field>
+              <Field label="Point tier">
+                <SearchableSelect value={t.base_tier} onValueChange={(v) => set("base_tier", v as PkTerms["base_tier"])} searchable={false} aria-label="Point tier"
+                  options={[{ value: "5", label: "5 points", description: "Normal work target" }, { value: "8", label: "8 points", description: "Stretch result" }, { value: "10", label: "10 points", description: "Major company or customer result" }]} />
+              </Field>
+              <Field label="Why this tier fits"><textarea className={cn(input, "h-auto min-h-[56px] py-2")} value={t.tier_reason} onChange={(e) => set("tier_reason", e.target.value)} placeholder="The approver will confirm this reasoning" /></Field>
+              {isSelf && <label className="flex items-start gap-2 text-xs"><input type="checkbox" className="mt-0.5" checked={t.company_metric} onChange={(e) => { set("company_metric", e.target.checked); if (e.target.checked) set("base_tier", "10"); }} /> This self-declaration directly measures a company or customer result (eligible for Tier 10)</label>}
               <Field label="How often scores are updated">
-                <SearchableSelect value={t.update_frequency} onValueChange={(v) => set("update_frequency", v)} searchable={false} aria-label="Update frequency"
-                  options={PK_UPDATE_FREQUENCIES.map((f) => ({ value: f.value, label: f.value, description: f.hint }))} />
-                <p className="text-[11px] text-muted-foreground mt-1">Miss one and you get a reminder, miss 2 in a row and it's a warning, 3 is a violation.</p>
+                <input list="pk-update-frequencies" className={input} value={t.update_frequency} onChange={(e) => set("update_frequency", e.target.value)} placeholder="Daily, every Monday, every 3 days..." />
+                <datalist id="pk-update-frequencies">{PK_UPDATE_FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.hint}</option>)}</datalist>
+                <p className="text-[11px] text-muted-foreground mt-1">Choose the schedule both sides can maintain. Stopping agreed updates forfeits the completion point and records a violation.</p>
               </Field>
               <Field label="Description (optional)">
                 <textarea className={cn(input, "h-auto min-h-[56px] py-2")} value={t.description} onChange={(e) => set("description", e.target.value)} placeholder="Anything else people should know" />
@@ -356,9 +375,15 @@ export function PkWizard({
                 <Field label="Winner gets"><input className={input} value={t.reward} onChange={(e) => set("reward", e.target.value)} placeholder="e.g. Loser buys lunch" /></Field>
                 <Field label="Loser does"><input className={input} value={t.punishment} onChange={(e) => set("punishment", e.target.value)} placeholder="e.g. Presents the playbook" /></Field>
               </div>
-              <Field label="PK Money, USD (optional)">
-                <input type="number" min={0} step="0.01" className={input} value={t.pk_money} onChange={(e) => set("pk_money", e.target.value)} placeholder="0" />
-                <p className="text-[11px] text-muted-foreground mt-1">Tracked only, nothing is paid through the app. Monthly limit: USD 50, ATL/TL 100, above TL 200.</p>
+              <Field label="Optional stake">
+                <SearchableSelect value={t.stake_kind} onValueChange={(v) => set("stake_kind", v as PkTerms["stake_kind"])} searchable={false} aria-label="Stake type"
+                  options={[{ value: "", label: "No stake" }, { value: "honour", label: "Honour" }, { value: "title", label: "Title" }, { value: "task", label: "Task" }, { value: "privilege", label: "Privilege" }, { value: "pk_points", label: "PK points" }]} />
+                {t.stake_kind === "pk_points" && <input type="number" min={0.01} max={3} step="0.01" className={cn(input, "mt-2")} value={t.point_stake} onChange={(e) => set("point_stake", e.target.value)} placeholder="Maximum 3, limited by monthly balance" />}
+              </Field>
+              <Field label="Optional tier upgrade">
+                <SearchableSelect value={t.upgrade_tier} onValueChange={(v) => set("upgrade_tier", v as PkTerms["upgrade_tier"])} searchable={false} aria-label="Tier upgrade"
+                  options={[{ value: "", label: "No upgrade" }, ...(t.base_tier === "5" ? [{ value: "8", label: "Upgrade to 8" }, { value: "10", label: "Upgrade to 10" }] : t.base_tier === "8" ? [{ value: "10", label: "Upgrade to 10" }] : [])]} />
+                {t.upgrade_tier && <textarea className={cn(input, "h-auto min-h-[56px] py-2 mt-2")} value={t.upgrade_requirement} onChange={(e) => set("upgrade_requirement", e.target.value)} placeholder="Pre-agreed requirement and evidence for the upgrade" />}
               </Field>
               <Field label="Tiebreaker (optional)"><input className={input} value={t.tiebreaker} onChange={(e) => set("tiebreaker", e.target.value)} placeholder="e.g. Whoever got there first" /></Field>
             </>
@@ -375,14 +400,16 @@ export function PkWizard({
                 {!isSelf && t.scoring && <Summary k="Scoring" v={PK_SCORING_LABEL[t.scoring]} />}
                 {isSelf && <Summary k="Declared" v={`${t.creator.baseline} → ${t.creator.target}`} />}
                 <Summary k="Dates" v={`${t.starts_at} to ${t.ends_at}`} />
+                <Summary k="Tier" v={`${t.base_tier} points — ${t.tier_reason}`} />
+                {t.is_revenge && <Summary k="Revenge" v="Win pays 3× tier; failure costs 1 point; no streak or bounty bonus" />}
                 {t.reward && <Summary k="Winner gets" v={t.reward} />}
                 {t.punishment && <Summary k="Loser does" v={t.punishment} />}
-                {t.pk_money && Number(t.pk_money) > 0 && <Summary k="PK Money" v={`USD ${t.pk_money}`} />}
+                {t.stake_kind && <Summary k="Stake" v={t.stake_kind === "pk_points" ? `${t.point_stake} PK points` : t.stake_kind} />}
                 <Summary k="Proof" v={t.proof_method} />
               </dl>
               <label className="flex items-start gap-2 text-sm bg-muted/40 rounded-lg p-3 cursor-pointer">
                 <input type="checkbox" className="mt-0.5" checked={t.compliance_agreed} onChange={(e) => set("compliance_agreed", e.target.checked)} />
-                <span>I'll play fair: real numbers only, proof with every update, no pressuring anyone into joining. Breaking this can void the PK.</span>
+                <span>I'll play fair: real numbers and proof, no pressure to join, no pre-arranged winner, and no artificial PK-point transfers. Manipulation or collusion can void the match.</span>
               </label>
             </>
           )}

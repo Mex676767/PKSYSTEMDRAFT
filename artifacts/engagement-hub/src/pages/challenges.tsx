@@ -23,7 +23,6 @@ import { PkCard, pkNextStep } from "@/components/pk/pk-card";
 import { PkWizard } from "@/components/pk/pk-wizard";
 import { PkLeaderboard } from "@/components/pk/pk-leaderboard";
 import { PkLibrary } from "@/components/pk/pk-library";
-import { PkMoneyCard } from "@/components/pk/pk-money-card";
 import { PK_CLOSED, PK_LIVE, PK_SETUP, type Pk } from "@/lib/pk";
 import { useComments } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
@@ -82,7 +81,7 @@ export default function Challenges() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Battle Arena</h1>
-          <p className="text-muted-foreground mt-1">Challenge someone in your department. Agree the terms, get it approved, prove every score.</p>
+          <p className="text-muted-foreground mt-1">1v1, team, upline and department battles. Agree the tier and terms, get every required signature, then prove each score.</p>
         </div>
         <Button className="shrink-0 hover-elevate" disabled={!session} onClick={() => setWizardOpen(true)}>
           <Plus className="w-4 h-4 mr-2" /> Start a PK
@@ -112,7 +111,6 @@ export default function Challenges() {
 
       {tab === "mine" && (
         <>
-          <PkMoneyCard />
           <Section title="Being set up" icon={Clock}>
             {myPks.filter((pk) => PK_SETUP.includes(pk.status)).length === 0
               ? <EmptyState text="Nothing waiting. Start a PK or take an open one in the Arena." />

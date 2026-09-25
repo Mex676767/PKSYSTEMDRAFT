@@ -15,35 +15,25 @@ type NumberKey = {
   [K in keyof PkSettings]: PkSettings[K] extends number ? K : never;
 }[keyof PkSettings];
 type FlagKey = "reminders_enabled" | "announce_live" | "announce_winner";
-
-const LIMITS: { key: NumberKey; label: string }[] = [
-  { key: "max_one_v_one", label: "1v1 at once" },
-  { key: "max_team", label: "Team at once" },
-  { key: "max_vs_upline", label: "vs Upline at once" },
-  { key: "max_total", label: "Total at once" },
-];
-const MONEY: { key: NumberKey; label: string }[] = [
-  { key: "money_limit_default", label: "Everyone else" },
-  { key: "money_limit_atl_tl", label: "ATL / TL" },
-  { key: "money_limit_above_tl", label: "Above TL" },
-];
+type TextKey = "prize_pic" | "prize_amount" | "penalty_pic" | "penalty_notice";
 const OTHER: { key: NumberKey; label: string; hint: string }[] = [
   { key: "open_expiry_days", label: "Open challenge expiry (days)", hint: "Open challenges nobody takes are closed after this" },
   { key: "max_counter_rounds", label: "Counter-proposals per PK", hint: "How many times terms can be countered" },
 ];
 const FLAGS: { key: FlagKey; label: string; hint: string }[] = [
-  { key: "reminders_enabled", label: "Missed-update reminders", hint: "Reminder, then a warning, then a violation at 3 misses" },
+  { key: "reminders_enabled", label: "Score-update reminders", hint: "Remind participants on the schedule they agreed; stopping updates is recorded separately" },
   { key: "announce_live", label: "Announce new PKs", hint: "Tell the department when a PK is approved" },
   { key: "announce_winner", label: "Announce winners", hint: "Tell the department when a PK settles" },
 ];
 
-/** Admin: PK limits, PK Money allowances, automation switches and violations. */
+/** Admin: v3.43 season display, automation and violations. */
 export function AdminPkCard() {
   const { data: settings } = usePkSettings();
   const update = useUpdatePkSettings();
   const { data: violations = [] } = usePkViolations(true);
   const resolve = useResolvePkViolation();
   const [draft, setDraft] = useState<Partial<Record<NumberKey, string>>>({});
+  const [textDraft, setTextDraft] = useState<Partial<Record<TextKey, string>>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -51,19 +41,21 @@ export function AdminPkCard() {
   useEffect(() => {
     if (!settings) return;
     const next: Partial<Record<NumberKey, string>> = {};
-    for (const { key } of [...LIMITS, ...MONEY, ...OTHER]) next[key] = String(Number(settings[key]));
+    for (const { key } of OTHER) next[key] = String(Number(settings[key]));
     setDraft(next);
+    setTextDraft({ prize_pic: settings.prize_pic, prize_amount: settings.prize_amount, penalty_pic: settings.penalty_pic, penalty_notice: settings.penalty_notice });
   }, [settings]);
 
   if (!settings) return null;
 
-  const changed = [...LIMITS, ...MONEY, ...OTHER].filter(({ key }) => draft[key] !== undefined && Number(draft[key]) !== Number(settings[key]));
+  const changed = OTHER.filter(({ key }) => draft[key] !== undefined && Number(draft[key]) !== Number(settings[key]));
+  const changedText = (Object.keys(textDraft) as TextKey[]).filter((key) => (textDraft[key] ?? "").trim() !== settings[key]);
   const save = async () => {
     setError(null);
     setSaved(false);
     if (changed.some(({ key }) => draft[key] === "" || Number.isNaN(Number(draft[key])))) return setError("Fill in every number.");
     try {
-      await update.mutateAsync(Object.fromEntries(changed.map(({ key }) => [key, Number(draft[key])])));
+      await update.mutateAsync({ ...Object.fromEntries(changed.map(({ key }) => [key, Number(draft[key])])), ...Object.fromEntries(changedText.map((key) => [key, (textDraft[key] ?? "").trim()])) });
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -97,20 +89,9 @@ export function AdminPkCard() {
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold">PK Arena</h2>
-            <p className="text-xs text-muted-foreground">Limits and automation for PKs. Changes apply to new PKs and the next checks straight away.</p>
+            <p className="text-xs text-muted-foreground">Monthly season display, approval automation and violations. There is no concurrent match cap.</p>
           </div>
         </div>
-
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">Active PKs per person</h3>
-          <p className="text-[11px] text-muted-foreground">Counts PKs waiting for approval as well as live ones.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{LIMITS.map((f) => numberField(f.key, f.label))}</div>
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">Monthly PK Money allowance</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{MONEY.map((f) => numberField(f.key, f.label, "USD"))}</div>
-        </section>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {OTHER.map((f) => (
@@ -121,11 +102,25 @@ export function AdminPkCard() {
           ))}
         </section>
 
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Monthly ranking display</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([['prize_pic','Prize PIC'],['prize_amount','Prize amount'],['penalty_pic','Penalty PIC'],['penalty_notice','Penalty notice']] as [TextKey,string][]).map(([key,label]) => <div key={key} className="space-y-1"><Label htmlFor={`pk-${key}`} className="text-xs">{label}</Label><Input id={`pk-${key}`} value={textDraft[key] ?? ""} onChange={(e) => { setSaved(false); setTextDraft({ ...textDraft, [key]: e.target.value }); }} /></div>)}
+          </div>
+          <p className="text-[11px] text-muted-foreground">Bottom-two action must be announced in advance and cannot reduce salary or KPI.</p>
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium">Streak and bounty stacking</h3>
+          <div className="flex gap-2"><Button size="sm" variant={settings.bonus_stacking === "additive" ? "secondary" : "outline"} onClick={() => update.mutateAsync({ bonus_stacking: "additive" })}>Add percentages</Button><Button size="sm" variant={settings.bonus_stacking === "multiplicative" ? "secondary" : "outline"} onClick={() => update.mutateAsync({ bonus_stacking: "multiplicative" })}>Compound bonuses</Button></div>
+          <p className="text-[11px] text-muted-foreground">This central setting resolves the handbook's stacking ambiguity for every new settlement.</p>
+        </section>
+
         <div className="flex items-center gap-3">
-          <Button size="sm" disabled={changed.length === 0 || update.isPending} onClick={save}>
-            {update.isPending ? "Saving..." : "Save limits"}
+          <Button size="sm" disabled={(changed.length === 0 && changedText.length === 0) || update.isPending} onClick={save}>
+            {update.isPending ? "Saving..." : "Save PK settings"}
           </Button>
-          {saved && changed.length === 0 && <span className="text-xs text-emerald-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span>}
+          {saved && changed.length === 0 && changedText.length === 0 && <span className="text-xs text-emerald-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span>}
         </div>
 
         <section className="space-y-3 border-t border-border/50 pt-4">
@@ -154,6 +149,7 @@ export function AdminPkCard() {
                 </p>
                 <span className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "MMM d, h:mm a")}</span>
               </div>
+              {v.kind === "stopped_updates" && <p className="text-[11px] text-muted-foreground">Required: {v.required_update ?? "agreed schedule"} · Monthly count: {v.monthly_count ?? 1} · {v.consequence ?? "Loss and no completion point"}{v.ban_end ? ` · Banned until ${format(new Date(v.ban_end), "MMM d, yyyy")}` : ""}</p>}
               <div className="flex gap-2">
                 <Input value={notes[v.id] ?? ""} onChange={(e) => setNotes({ ...notes, [v.id]: e.target.value })} placeholder="How it was handled, e.g. excused, on leave" className="h-8 text-xs" />
                 <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" disabled={resolve.isPending}

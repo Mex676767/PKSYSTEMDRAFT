@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Link } from "wouter";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Clock, Crown, DollarSign, Gift, Megaphone, Skull, Trash2 } from "lucide-react";
+import { Clock, Crown, Gift, Megaphone, Skull, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { colorForId, initialsForUsername, useAuth } from "@/hooks/use-auth";
@@ -174,7 +174,9 @@ export function PkCard({ pk, viewerId, canApprove }: { pk: Pk; viewerId: string 
             </span>
             {pk.reward && <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-600 rounded-full px-2 py-0.5"><Gift className="w-3 h-3" />{pk.reward}</span>}
             {pk.punishment && <span className="flex items-center gap-1 bg-destructive/10 text-destructive rounded-full px-2 py-0.5"><Skull className="w-3 h-3" />{pk.punishment}</span>}
-            {pk.pk_money > 0 && <span className="flex items-center gap-0.5 bg-amber-500/10 text-amber-600 rounded-full px-2 py-0.5"><DollarSign className="w-3 h-3" />{formatPkNumber(pk.pk_money)}</span>}
+            {pk.base_tier && <span className="rounded-full bg-secondary/10 text-secondary px-2 py-0.5">Tier {pk.base_tier}</span>}
+            {pk.is_revenge && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5">Revenge</span>}
+            {pk.point_stake > 0 && <span className="rounded-full bg-amber-500/10 text-amber-600 px-2 py-0.5">{formatPkNumber(pk.point_stake)} PK pts stake</span>}
           </div>
 
           {next && <p className="text-xs font-medium text-amber-600 dark:text-amber-400 border-t border-border/50 pt-2">{next}</p>}

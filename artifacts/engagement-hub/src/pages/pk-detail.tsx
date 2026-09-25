@@ -14,8 +14,8 @@ import { PkAvatar, PkSideBlock, pkNextStep } from "@/components/pk/pk-card";
 import { PkWizard } from "@/components/pk/pk-wizard";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  getPkProofUrl, useAcceptOpenPk, useCancelPk, useDeletePk, usePk, usePkApprovals, usePkSettings, useRespondPk,
-  useMarkPkPaid, usePkCanApprove, useRequestSettlement, useReviewPk, useTerminatePk, useSubmitPlaybook, useUpdatePkScore, useVerifyPk, type PkTermsVersion,
+  getPkProofUrl, useAcceptOpenPk, useCancelPk, useDeletePk, useDisputePkTier, usePk, usePkApprovals, usePkSettings, useRespondPk,
+  useMarkPkStopped, usePkCanApprove, useRequestSettlement, useReviewPk, useTerminatePk, useSubmitPlaybook, useSubmitPkUpgradeEvidence, useUpdatePkScore, useVerifyPk, type PkTermsVersion,
 } from "@/hooks/use-pk";
 import {
   PK_LIVE, PK_SCORING_LABEL, PK_SETUP, PK_STATUS_LABEL, PK_TYPE_LABEL, formatPkNumber, pkScoreSuffix, pkSide, pkStatusTone,
@@ -99,10 +99,12 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
         </CardContent>
       </Card>
 
-      <PkResult pk={pk} playbook={data.playbook} debts={data.debts} viewerId={viewerId} />
+      <PkResult pk={pk} playbook={data.playbook} debts={data.debts} />
       {next && <p className="text-sm font-medium text-amber-600 dark:text-amber-400">{next}</p>}
       <PkActions pk={pk} viewerId={viewerId} canApprove={canApprove} isAdmin={isAdmin} playbook={data.playbook}
         canTerminate={isAdmin || canApproveThis} />
+
+      {pk.upgrade_tier && pk.participants.some((p) => p.user_id === viewerId) && PK_LIVE.includes(pk.status) && <UpgradeEvidence pk={pk} />}
 
       <PkTerms pk={pk} />
 
@@ -171,6 +173,20 @@ function PkDetailBody({ data, viewerId }: { data: Detail; viewerId: string | und
   );
 }
 
+function UpgradeEvidence({ pk }: { pk: Pk }) {
+  const submit = useSubmitPkUpgradeEvidence();
+  const [evidence, setEvidence] = useState(pk.upgrade_evidence ?? "");
+  const [error, setError] = useState<string | null>(null);
+  return <Card className="border-secondary/30"><CardContent className="p-4 space-y-2">
+    <p className="text-sm font-semibold">Tier upgrade evidence · {pk.base_tier} → {pk.upgrade_tier} points</p>
+    <p className="text-xs text-muted-foreground">Pre-agreed requirement: {pk.upgrade_requirement}</p>
+    <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[64px]" value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="Describe the result and where the approver can verify it" />
+    <Button size="sm" variant="outline" disabled={submit.isPending} onClick={async () => { setError(null); try { await submit.mutateAsync({ id: pk.id, evidence }); } catch (err) { setError(getErrorMessage(err)); } }}>{submit.isPending ? "Saving..." : pk.upgrade_evidence ? "Update evidence" : "Submit evidence"}</Button>
+    {error && <p className="text-xs text-destructive">{error}</p>}
+    {pk.upgrade_evidence && <p className="text-[11px] text-muted-foreground">The result confirmer will approve this upgrade when settling the match.</p>}
+  </CardContent></Card>;
+}
+
 function PkActions({ pk, viewerId, canApprove, isAdmin, playbook, canTerminate }: {
   pk: Pk; viewerId: string | undefined; canApprove: boolean; isAdmin: boolean; playbook: PkPlaybook | null; canTerminate: boolean;
 }) {
@@ -181,6 +197,8 @@ function PkActions({ pk, viewerId, canApprove, isAdmin, playbook, canTerminate }
   const review = useReviewPk();
   const remove = useDeletePk();
   const settle = useRequestSettlement();
+  const stop = useMarkPkStopped();
+  const dispute = useDisputePkTier();
   const { data: settings } = usePkSettings();
   const [error, setError] = useState<string | null>(null);
   const [counterOpen, setCounterOpen] = useState(false);
@@ -260,6 +278,21 @@ function PkActions({ pk, viewerId, canApprove, isAdmin, playbook, canTerminate }
   }
 
   if (canScore) blocks.push(<ScoreForm key="score" pk={pk} onError={setError} />);
+
+  const disputeOpen = pk.rules_version === "v3.43" && pk.status === "active" && !!me && !!pk.approved_at && Date.now() <= new Date(pk.approved_at).getTime() + 86_400_000;
+  if (disputeOpen && !pk.tier_disputed_at) blocks.push(<button key="tier-dispute" type="button" className="text-xs text-muted-foreground hover:text-destructive" onClick={() => {
+    const concern = window.prompt("Explain why this tier should be reviewed. Tier disputes must be raised within 24 hours.");
+    if (concern) run(() => dispute.mutateAsync({ id: pk.id, note: concern }));
+  }}>Dispute this tier within 24 hours</button>);
+  if (pk.tier_disputed_at) blocks.push(<p key="tier-disputed" className="text-xs text-amber-600">Tier disputed: {pk.tier_dispute_note}</p>);
+
+  if (pk.status === "active" && canTerminate && pk.rules_version === "v3.43") {
+    const updating = pk.participants.filter((p) => !p.stopped_updates_at);
+    blocks.push(<details key="stoppage" className="text-xs border-t border-border/50 pt-3"><summary className="cursor-pointer text-muted-foreground">Record a participant who stopped updates</summary><div className="flex flex-wrap gap-2 mt-2">{updating.map((p) => <Button key={p.user_id} size="sm" variant="outline" className="text-destructive" disabled={stop.isPending} onClick={() => {
+      const noteText = window.prompt(`Why is @${p.profile?.username ?? "this participant"} being marked as stopped?`, "Stopped providing the agreed score updates.");
+      if (noteText !== null && window.confirm("This records a violation, forces a loss and removes the completed-loss point. Continue?")) run(() => stop.mutateAsync({ id: pk.id, participantId: p.user_id, note: noteText }));
+    }}>@{p.profile?.username ?? "participant"}</Button>)}</div></details>);
+  }
 
   const ended = new Date(pk.ends_at) <= new Date();
   const canEarly = pk.format === "self_declaration" ? me?.side === "A" : pk.winning_target !== null;
@@ -409,7 +442,7 @@ function TerminatePanel({ pk, onError }: { pk: Pk; onError: (e: string | null) =
   return (
     <div className="space-y-2 rounded-lg border border-destructive/30 p-3">
       <p className="text-sm font-semibold flex items-center gap-1.5"><Ban className="w-4 h-4 text-destructive" /> Terminate this PK</p>
-      <p className="text-xs text-muted-foreground">For things outside anyone's control. It doesn't count as quitting: no winner, no PK points, and the PK Money stake is void.</p>
+      <p className="text-xs text-muted-foreground">For special cases outside anyone's control. It ends without a winner or PK points.</p>
       <SearchableSelect value={reason} onValueChange={(v) => setReason(v as PkTerminateReason)} searchable={false} placeholder="Reason" aria-label="Reason"
         options={(Object.keys(PK_TERMINATE_REASONS) as PkTerminateReason[]).map((r) => ({ value: r, label: PK_TERMINATE_REASONS[r] }))} />
       <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[56px]" value={note}
@@ -427,30 +460,22 @@ function TerminatePanel({ pk, onError }: { pk: Pk; onError: (e: string | null) =
   );
 }
 
-function PkDebts({ debts, viewerId }: { debts: PkDebt[]; viewerId: string | undefined }) {
-  const mark = useMarkPkPaid();
-  const { isAdmin } = useAuth();
+function PkDebts({ debts }: { debts: PkDebt[] }) {
   if (debts.length === 0) return null;
   return (
     <div className="space-y-1.5 border-t border-border/50 pt-3">
-      <p className="text-sm font-semibold flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-amber-500" /> PK Money (tracked only)</p>
+      <p className="text-sm font-semibold flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-amber-500" /> Historical PK Money record</p>
       {debts.map((d) => (
         <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span>@{d.debtor?.username ?? "someone"} owes @{d.creditor?.username ?? "someone"} <span className="font-semibold">USD {formatPkNumber(d.amount)}</span></span>
-          {d.paid_at ? (
-            <span className="text-xs text-emerald-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Received</span>
-          ) : d.creditor_id === viewerId || isAdmin ? (
-            <Button size="sm" variant="outline" className="h-7 text-xs" disabled={mark.isPending} onClick={() => mark.mutate({ id: d.id, paid: true })}>Mark received</Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">Not paid yet</span>
-          )}
+          <span className={cn("text-xs", d.paid_at ? "text-emerald-500" : "text-muted-foreground")}>{d.paid_at ? "Historically marked received" : "Historical status: unpaid"}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function PkResult({ pk, playbook, debts, viewerId }: { pk: Pk; playbook: PkPlaybook | null; debts: PkDebt[]; viewerId: string | undefined }) {
+function PkResult({ pk, playbook, debts }: { pk: Pk; playbook: PkPlaybook | null; debts: PkDebt[] }) {
   if (pk.status === "terminated") {
     return (
       <Card className="border-destructive/30">
@@ -460,7 +485,7 @@ function PkResult({ pk, playbook, debts, viewerId }: { pk: Pk; playbook: PkPlayb
             <p className="font-semibold">Terminated{pk.terminated_reason && `: ${PK_TERMINATE_REASONS[pk.terminated_reason]}`}</p>
             {pk.terminated_note && <p className="text-sm">{pk.terminated_note}</p>}
             <p className="text-xs text-muted-foreground mt-1">
-              {pk.terminated_at && `${format(new Date(pk.terminated_at), "MMM d, yyyy")}. `}No winner, no PK points, and any PK Money stake is void.
+              {pk.terminated_at && `${format(new Date(pk.terminated_at), "MMM d, yyyy")}. `}No winner or PK points.
             </p>
           </div>
         </CardContent>
@@ -482,11 +507,29 @@ function PkResult({ pk, playbook, debts, viewerId }: { pk: Pk; playbook: PkPlayb
             </p>
             <p className="text-xs text-muted-foreground">
               {pk.status === "settled"
-                ? `Settled${pk.settled_at ? ` on ${format(new Date(pk.settled_at), "MMM d, yyyy")}` : ""}. ${pk.winner_side ? "Winners +3.5 PK points, the other side -0.5." : "+0.5 PK points each."}`
+                ? `Settled${pk.settled_at ? ` on ${format(new Date(pk.settled_at), "MMM d, yyyy")}` : ""}. ${pk.rules_version === "v3.43" ? "Points use the approved tier and the monthly v3.43 settlement engine." : pk.winner_side ? "Historical rule: winners +3.5, other side -0.5." : "Historical rule: +0.5 each."}`
                 : "Scores are locked. Not settled yet."}
             </p>
           </div>
         </div>
+        {pk.status === "settled" && pk.rules_version === "v3.43" && pk.scoring_breakdown && (
+          <div className="grid sm:grid-cols-2 gap-2 border-t border-border/50 pt-3">
+            {pk.scoring_breakdown.map((raw, i) => {
+              const row = raw as Record<string, string | number | boolean>;
+              const person = pk.participants.find((p) => p.user_id === row.user_id);
+              const revenge = Boolean(row.revenge);
+              return <div key={`${row.user_id ?? i}`} className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1">
+                <p className="font-semibold">@{person?.profile?.username ?? "participant"} · {String(row.outcome ?? "result")}</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Base tier</span><span>{String(row.tier ?? 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Win streak bonus</span><span>{revenge ? "Not applied" : `+${String(row.streak_percent ?? 0)}%`}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bounty</span><span>{revenge ? "Not applied" : `+${String(row.bounty_percent ?? 0)}%`}</span></div>
+                {revenge && <div className="flex justify-between"><span className="text-muted-foreground">Revenge</span><span>{row.outcome === "win" ? "×3" : "Failure −1"}</span></div>}
+                <div className="flex justify-between border-t border-border/50 pt-1 font-semibold"><span>Match score</span><span>{formatPkNumber(Number(row.points ?? 0))} PK pts</span></div>
+              </div>;
+            })}
+            {pk.point_stake > 0 && <p className="sm:col-span-2 text-[11px] text-muted-foreground">Point stake transfers are recorded separately in the PK point ledger: winners receive the losing side's agreed stake.</p>}
+          </div>
+        )}
         {playbook && (
           <div className="space-y-2 border-t border-border/50 pt-3">
             <p className="text-sm font-semibold flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-secondary" /> Winner playbook</p>
@@ -498,7 +541,7 @@ function PkResult({ pk, playbook, debts, viewerId }: { pk: Pk; playbook: PkPlayb
             ))}
           </div>
         )}
-        <PkDebts debts={debts} viewerId={viewerId} />
+        {pk.rules_version !== "v3.43" && <PkDebts debts={debts} />}
       </CardContent>
     </Card>
   );
@@ -556,10 +599,15 @@ function PkTerms({ pk }: { pk: Pk }) {
     ...(pk.winning_target !== null ? [[pk.format === "self_declaration" ? "Declared target" : "Winning target", formatPkNumber(pk.winning_target)] as [string, ReactNode]] : []),
     ["Dates", `${format(new Date(pk.starts_at), "MMM d, yyyy")} to ${format(new Date(pk.ends_at), "MMM d, yyyy")}`],
     ["Updates", pk.update_frequency],
+    ["Rules", pk.rules_version],
+    ...(pk.base_tier ? [["Approved tier", `${pk.effective_tier ?? pk.base_tier} points`] as [string, ReactNode], ["Tier reasoning", pk.tier_reason] as [string, ReactNode]] : []),
+    ...(pk.upgrade_tier ? [["Tier upgrade", `${pk.upgrade_tier} points if completed: ${pk.upgrade_requirement ?? "Requirement not recorded"}`] as [string, ReactNode]] : []),
+    ...(pk.is_revenge ? [["Revenge", "3× tier for a win; −1 for failure; no streak or bounty bonus"] as [string, ReactNode]] : []),
+    ...(pk.stake_kind ? [["Stake", pk.stake_kind === "pk_points" ? `${formatPkNumber(pk.point_stake)} PK points` : pk.stake_kind] as [string, ReactNode]] : []),
     ["Proof", pk.proof_method],
     ...(pk.reward ? [["Winner gets", pk.reward] as [string, ReactNode]] : []),
     ...(pk.punishment ? [["Loser does", pk.punishment] as [string, ReactNode]] : []),
-    ...(pk.pk_money > 0 ? [["PK Money", `USD ${formatPkNumber(pk.pk_money)} (tracked only)`] as [string, ReactNode]] : []),
+    ...(pk.rules_version !== "v3.43" && pk.pk_money > 0 ? [["Historical PK Money", `USD ${formatPkNumber(pk.pk_money)}`] as [string, ReactNode]] : []),
     ...(pk.tiebreaker ? [["Tiebreaker", pk.tiebreaker] as [string, ReactNode]] : []),
     ...(pk.review_note ? [["Approver's note", pk.review_note] as [string, ReactNode]] : []),
   ];
@@ -614,7 +662,9 @@ function PkTerms({ pk }: { pk: Pk }) {
 const TERM_LABELS: Record<string, string> = {
   title: "Title", description: "Description", metric: "Metric", metric_definition: "Counted as", direction: "Direction",
   scoring: "Scoring", winning_target: "Winning target", starts_at: "Starts", ends_at: "Ends", update_frequency: "Updates",
-  reward: "Winner gets", punishment: "Loser does", pk_money: "PK Money", proof_method: "Proof", tiebreaker: "Tiebreaker",
+  reward: "Winner gets", punishment: "Loser does", pk_money: "Historical PK Money", proof_method: "Proof", tiebreaker: "Tiebreaker",
+  base_tier: "Point tier", tier_reason: "Tier reasoning", upgrade_tier: "Upgrade tier", upgrade_requirement: "Upgrade requirement",
+  stake_kind: "Stake", point_stake: "PK point stake", rules_version: "Rules",
 };
 const ACTION_LABELS: Record<string, string> = {
   proposed: "Proposed", countered: "Counter-proposal", agreed: "Agreed by everyone", approved: "Approved", accepted_open: "Accepted (open)",
