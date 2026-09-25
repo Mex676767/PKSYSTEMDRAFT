@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export function FloatingCallBar() {
   const [location] = useLocation();
   const { profile } = useAuth();
-  const { channelId, participants, speakingIds, connectionStates, muted, deafened, leave, toggleMute, toggleDeafen, audioBlocked, unlockAudio } = useVoiceCall();
+  const { channelId, participants, speakingIds, connectionStates, isStreaming, stopScreenShare, muted, deafened, leave, toggleMute, toggleDeafen, audioBlocked, unlockAudio } = useVoiceCall();
   const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
   const directoryById = new Map(directory.map((p) => [p.id, p]));
   const [minimized, setMinimized] = useState(false);
@@ -40,7 +40,7 @@ export function FloatingCallBar() {
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2 bg-card/90 backdrop-blur-xl border border-primary/40 rounded-full shadow-lg pl-3 pr-4 py-2 hover:border-primary/70 transition-colors"
         >
           <Radio className="w-4 h-4 text-primary animate-pulse" />
-          <span className="text-xs font-medium">{channel.name}</span>
+          <span className="text-xs font-medium">{channel.name}{isStreaming ? " · Sharing screen" : ""}</span>
           <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
         </motion.button>
       ) : (
@@ -77,6 +77,7 @@ export function FloatingCallBar() {
             </button>
           )}
 
+          {isStreaming && <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs"><Link href="/voice">You are sharing your screen</Link><Button size="sm" variant="destructive" onClick={stopScreenShare}>Stop</Button></div>}
           <div className="p-3 grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
             {participants.map((p) => (
               <VoiceParticipantAvatar

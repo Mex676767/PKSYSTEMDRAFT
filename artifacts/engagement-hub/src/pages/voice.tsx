@@ -1,3 +1,4 @@
+import { ScreenShareTile } from "@/components/screen-share-tile";
 import { useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +29,8 @@ export default function Voice() {
     volumes,
     setParticipantVolume,
     isStreaming,
+    localScreenStream,
+    startingScreenShare,
     remoteVideoStreams,
     startScreenShare,
     stopScreenShare,
@@ -69,7 +72,7 @@ export default function Voice() {
 
       {error && (
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive">
-          {error} Check your browser's microphone permissions for this site.
+          {error}
         </div>
       )}
 
@@ -162,31 +165,11 @@ export default function Voice() {
                   })}
                 </div>
 
-                {(isStreaming || remoteVideoStreams.size > 0) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/50">
-                    {isStreaming && (
-                      <div className="rounded-lg overflow-hidden border border-primary/40 bg-black/50 aspect-video flex items-center justify-center text-xs text-muted-foreground">
-                        You're sharing your screen
-                      </div>
-                    )}
-                    {Array.from(remoteVideoStreams.entries()).map(([peerId, stream]) => {
-                      const streamer = participants.find((p) => p.id === peerId);
-                      return (
-                        <div key={peerId} className="relative rounded-lg overflow-hidden border border-border bg-black/50 aspect-video">
-                          <video
-                            ref={(el) => {
-                              if (el) el.srcObject = stream;
-                            }}
-                            autoPlay
-                            playsInline
-                            className="w-full h-full object-contain"
-                          />
-                          <span className="absolute bottom-1.5 left-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
-                            @{streamer?.username ?? "Someone"}'s screen
-                          </span>
-                        </div>
-                      );
-                    })}
+                {(localScreenStream || remoteVideoStreams.size > 0) && (
+                  <div className="grid grid-cols-1 gap-3 pt-3 border-t border-border/50">
+                    {localScreenStream && <ScreenShareTile stream={localScreenStream} label="Your screen (preview)" onStop={stopScreenShare} />}
+                    {Array.from(remoteVideoStreams.entries()).filter(([id]) => participants.some(p => p.id === id && p.streaming)).map(([peerId, stream]) => <ScreenShareTile key={peerId} stream={stream} label={`@${participants.find(p => p.id === peerId)?.username ?? "Someone"}'s screen`} />)}
+                    <p className="text-xs text-muted-foreground">Screen video only. Your microphone follows the call's mute control.</p>
                   </div>
                 )}
 
@@ -213,6 +196,8 @@ export default function Voice() {
                     size="icon"
                     variant={isStreaming ? "destructive" : "outline"}
                     className="rounded-full"
+                    disabled={startingScreenShare}
+                    aria-label={isStreaming ? "Stop sharing" : startingScreenShare ? "Choosing screen" : "Share your screen"}
                     onClick={isStreaming ? stopScreenShare : startScreenShare}
                     title={isStreaming ? "Stop sharing" : "Share your screen"}
                   >

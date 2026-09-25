@@ -74,7 +74,7 @@ export function VoiceParticipantAvatar({
         <input
           type="range"
           min={0}
-          max={1.5}
+          max={1}
           step={0.05}
           value={volume ?? 1}
           onChange={(e) => onVolumeChange(Number(e.target.value))}
@@ -85,3 +85,4 @@ export function VoiceParticipantAvatar({
     </div>
   );
 }
+

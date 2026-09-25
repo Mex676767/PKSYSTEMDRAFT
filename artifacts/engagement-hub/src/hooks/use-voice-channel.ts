@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { playVoiceCue } from "@/lib/voice-sfx";
+import { reserveScreenSender, clampVoiceVolume } from "@/lib/voice-media";
 import { getIceServers } from "@/lib/turn-credentials";
 
 type SignalPayload =
@@ -38,6 +39,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
+  const [localScreenStream, setLocalScreenStream] = useState<MediaStream | null>(null);
+  const [startingScreenShare, setStartingScreenShare] = useState(false);
+  const shareRequestRef = useRef(false);
+  const callGenerationRef = useRef(0);
+  const screenSendersRef = useRef(new Map<string, RTCRtpSender>());
   const [isStreaming, setIsStreaming] = useState(false);
   const [remoteVideoStreams, setRemoteVideoStreams] = useState<Map<string, MediaStream>>(new Map());
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -86,7 +92,10 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   }, []);
 
   const cleanupPeer = useCallback((peerId: string) => {
-    pcsRef.current.get(peerId)?.close();
+    const closingPc = pcsRef.current.get(peerId);
+    if (closingPc) closingPc.onconnectionstatechange = null;
+    closingPc?.close();
+    screenSendersRef.current.delete(peerId);
     pcsRef.current.delete(peerId);
     const el = audioElsRef.current.get(peerId);
     if (el) {
@@ -94,6 +103,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       el.remove();
     }
     audioElsRef.current.delete(peerId);
+    analysersRef.current.get(peerId)?.analyser.disconnect();
     analysersRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
     pendingPlaybackRef.current.delete(peerId);
@@ -163,11 +173,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
           sender.setParameters(params).catch((err) => console.warn(`[voice] couldn't set bitrate for ${peerId}`, err));
         }
       });
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((track) => {
-          if (screenStreamRef.current) pc.addTrack(track, screenStreamRef.current);
-        });
-      }
+      screenSendersRef.current.set(peerId, reserveScreenSender(pc, screenStreamRef.current?.getVideoTracks()[0]));
       pc.onicecandidate = (e) => {
         if (e.candidate && userId) {
           console.log(`[voice] local ICE candidate for ${peerId}:`, e.candidate.type, e.candidate.candidate);
@@ -176,10 +182,12 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
       };
       pc.ontrack = (e) => {
         console.log(`[voice] ontrack (${e.track.kind}) fired for ${peerId} -- remote media arrived`);
-        const stream = e.streams[0];
+        const stream = e.streams[0] ?? new MediaStream([e.track]);
         if (e.track.kind === "video") {
-          setRemoteVideoStreams((prev) => new Map(prev).set(peerId, stream));
-          e.track.onended = () => {
+          const show = () => setRemoteVideoStreams((prev) => new Map(prev).set(peerId, stream));
+          e.track.onunmute = show;
+          if (!e.track.muted) show();
+          const hide = () => {
             setRemoteVideoStreams((prev) => {
               if (!prev.has(peerId)) return prev;
               const next = new Map(prev);
@@ -187,6 +195,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
               return next;
             });
           };
+          e.track.onended = hide;
+          e.track.onmute = hide;
           return;
         }
         let el = audioElsRef.current.get(peerId);
@@ -217,7 +227,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         // the very first negotiation -- initiateCall/handleSignal already
         // drive that offer/answer cycle manually, so acting on it here too
         // would race a second, conflicting offer.
-        if (!hasConnectedOnce || !userId) return;
+        if (!hasConnectedOnce || !userId || pc.signalingState !== "stable") return;
         try {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
@@ -307,7 +317,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         sendSignal({ type: "answer", from: userId, to: payload.from, sdp: answer });
       } else if (payload.type === "answer") {
         const pc = pcsRef.current.get(payload.from);
-        if (pc) {
+        if (pc && pc.signalingState === "have-local-offer") {
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
           await flushPendingCandidates(payload.from, pc);
         }
@@ -356,7 +366,9 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         if (joinedIdRef.current === id) cleanupPeer(key);
       });
       channel.on("broadcast", { event: "signal" }, ({ payload }: { payload: SignalPayload }) => {
-        if (channelsRef.current.get(id) === channel) void handleSignal(payload);
+        if (channelsRef.current.get(id) === channel && joinedIdRef.current === id) {
+          void handleSignal(payload).catch((err) => { console.error("[voice] signalling failed", err); setError("A call connection failed. Leave and rejoin the channel to retry."); });
+        }
       });
       channel.subscribe();
       channelsRef.current.set(id, channel);
@@ -387,6 +399,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
         if (joinedIdRef.current !== null) {
           leaveRef.current();
         }
+        const generation = callGenerationRef.current;
         const channel = channelsRef.current.get(targetId);
         if (!channel) return;
         setError(null);
@@ -406,10 +419,11 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
             },
             video: false,
           });
+          if (generation !== callGenerationRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
           localStreamRef.current = stream;
           attachAnalyser(userId, stream);
           iceServersRef.current = await getIceServers();
-          console.log("[voice] ICE servers for this call:", iceServersRef.current);
+          if (generation !== callGenerationRef.current) return;
 
           joinedIdRef.current = targetId;
           mutedRef.current = false;
@@ -442,6 +456,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   );
 
   const leave = useCallback(() => {
+    callGenerationRef.current += 1;
     const wasConnected = joinedIdRef.current !== null;
     const channel = joinedIdRef.current ? channelsRef.current.get(joinedIdRef.current) : null;
     if (wasConnected) {
@@ -464,9 +479,13 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     setJoinedId(null);
     setParticipants([]);
     setSpeakingIds(new Set());
+    analysersRef.current.clear();
+    void audioCtxRef.current?.close();
+    audioCtxRef.current = null;
     setMuted(false);
     setDeafened(false);
     setIsStreaming(false);
+    setLocalScreenStream(null);
     setRemoteVideoStreams(new Map());
     setVolumes(new Map());
     volumesRef.current = new Map();
@@ -480,6 +499,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   leaveRef.current = leave;
 
   const setParticipantVolume = useCallback((peerId: string, volume: number) => {
+    volume = clampVoiceVolume(volume);
     setVolumes((prev) => {
       const next = new Map(prev);
       next.set(peerId, volume);
@@ -491,32 +511,48 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
   }, []);
 
   const startScreenShare = useCallback(async () => {
-    if (screenStreamRef.current) return;
+    if (!joinedIdRef.current || screenStreamRef.current || shareRequestRef.current) return;
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      setError("Screen sharing is unavailable in this browser. Try desktop Chrome, Edge or Firefox.");
+      return;
+    }
+    const generation = callGenerationRef.current;
+    shareRequestRef.current = true;
+    setStartingScreenShare(true);
+    setError(null);
+    let capture: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-      const track = stream.getVideoTracks()[0];
-      screenStreamRef.current = stream;
+      capture = await navigator.mediaDevices.getDisplayMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15, max: 15 } }, audio: false });
+      if (generation !== callGenerationRef.current || !joinedIdRef.current) { capture.getTracks().forEach((t) => t.stop()); return; }
+      const track = capture.getVideoTracks()[0];
+      if (!track || track.readyState === "ended") { capture.getTracks().forEach((t) => t.stop()); return; }
+      screenStreamRef.current = capture;
       track.onended = () => stopScreenShareRef.current();
-      pcsRef.current.forEach((pc) => {
-        pc.addTrack(track, stream);
-      });
+      await Promise.all(Array.from(screenSendersRef.current.values(), (sender) => sender.replaceTrack(track)));
+      if (generation !== callGenerationRef.current || screenStreamRef.current !== capture ) return;
       isStreamingRef.current = true;
       setIsStreaming(true);
-      if (username) {
-        activeChannel()?.track({ username, muted: mutedRef.current, deafened: deafenedRef.current, streaming: true });
-      }
+      setLocalScreenStream(capture);
+      if (username) void activeChannel()?.track({ username, muted: mutedRef.current, deafened: deafenedRef.current, streaming: true });
     } catch (err) {
-      console.error("[voice] failed to start screen share", err);
+      capture?.getTracks().forEach((t) => t.stop());
+      if (generation === callGenerationRef.current) {
+        stopScreenShareRef.current();
+        if (!(err instanceof DOMException && err.name === "NotAllowedError")) {
+          setError("Couldn't share that screen. Try another window or check your browser's screen-recording permissions.");
+        }
+      }
+    } finally {
+      shareRequestRef.current = false;
+      setStartingScreenShare(false);
     }
   }, [activeChannel, username]);
 
   const stopScreenShare = useCallback(() => {
     const stream = screenStreamRef.current;
     if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    pcsRef.current.forEach((pc) => {
-      const sender = pc.getSenders().find((s) => s.track === track);
-      if (sender) pc.removeTrack(sender);
+    screenSendersRef.current.forEach((sender) => {
+      void sender.replaceTrack(null).catch(() => {});
     });
     stream.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
@@ -532,6 +568,7 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
+      if (deafenedRef.current) return prev;
       const next = !prev;
       mutedRef.current = next;
       localStreamRef.current?.getAudioTracks().forEach((track) => {
@@ -664,6 +701,8 @@ export function useVoiceChannels(channelIds: string[], userId: string | undefine
     volumes,
     setParticipantVolume,
     isStreaming,
+    localScreenStream,
+    startingScreenShare,
     remoteVideoStreams,
     startScreenShare,
     stopScreenShare,
