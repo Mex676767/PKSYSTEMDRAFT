@@ -27,6 +27,12 @@ insert into achievements (key, label, description, builtin) values
   ('quiz_whiz', 'Quiz Whiz', 'Answered 5 quiz questions correctly', true)
 on conflict (key) do nothing;
 
+-- New sign-ups get a profile. The trigger sits on auth.users, which a
+-- public-schema export doesn't include.
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function public.handle_new_user();
+
 -- Scheduled jobs (these live outside the table structure).
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
