@@ -85,7 +85,7 @@ export default function Birthdays() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">@{b.username ?? "unknown"}</p>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-sm text-muted-foreground line-clamp-2 break-words">
                         {[b.role, b.department].filter(Boolean).join(" · ")}
                       </p>
                     </div>
