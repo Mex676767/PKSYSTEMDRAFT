@@ -493,7 +493,7 @@ begin
   if not (select reminders_enabled from pk_settings where id=1) then return 0; end if;
   for r in select cp.challenge_id,cp.user_id,c.topic from challenge_participants cp join challenges c on c.id=cp.challenge_id
     where c.rules_version='v3.43' and c.status='active' and cp.stopped_updates_at is null
-      and not exists(select 1 from challenge_score_updates u where u.challenge_id=c.id and u.user_id=cp.user_id and u.created_at>now()-pk_update_interval(c.update_frequency))
+      and not exists(select 1 from challenge_score_updates u where u.challenge_id=c.id and u.user_id=cp.user_id and u.created_at>now()-make_interval(days=>pk_update_interval(c.update_frequency)))
   loop
     insert into notifications(user_id,type,target_type,target_id,message) values(r.user_id,'challenge','pk',r.challenge_id,'Score update due for "' || r.topic || '". If you stop updating, the loss completion point is forfeited and a violation is recorded.'); n:=n+1;
   end loop;
@@ -505,15 +505,15 @@ $$;
 drop trigger if exists challenges_pk_money on challenges;
 
 create or replace function pk_update_interval(freq text)
-returns interval language plpgsql immutable set search_path=public as $$
+returns integer language plpgsql immutable set search_path=public as $$
 declare f text:=lower(trim(coalesce(freq,'weekly'))); n integer;
 begin
-  if f='daily' then return interval '1 day'; end if;
-  if f in ('weekly','every monday','every tuesday','every wednesday','every thursday','every friday','every saturday','every sunday') then return interval '7 days'; end if;
-  if f='monthly' then return interval '1 month'; end if;
-  if f~'^every [0-9]+ days?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return make_interval(days=>greatest(n,1)); end if;
-  if f~'^every [0-9]+ weeks?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return make_interval(days=>greatest(n,1)*7); end if;
-  return interval '7 days';
+  if f='daily' then return 1; end if;
+  if f in ('weekly','every monday','every tuesday','every wednesday','every thursday','every friday','every saturday','every sunday') then return 7; end if;
+  if f='monthly' then return 30; end if;
+  if f~'^every [0-9]+ days?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return greatest(n,1); end if;
+  if f~'^every [0-9]+ weeks?$' then n:=(regexp_match(f,'[0-9]+'))[1]::int; return greatest(n,1)*7; end if;
+  return 7;
 end;
 $$;
 
