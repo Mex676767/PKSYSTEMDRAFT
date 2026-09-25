@@ -88,6 +88,26 @@ export function useMyGoals() {
   });
 }
 
+/** Lightweight source of truth for the daily reminder. This deliberately
+ * avoids the profile join used by goal cards, so a hidden profile or a stale
+ * relationship cache cannot make an existing goal look missing. */
+export function useHasAnyGoal() {
+  const { session } = useAuth();
+  useRealtimeInvalidate("goals", [["my-goals"]]);
+  return useQuery({
+    queryKey: ["my-goals", session?.user.id, "exists"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("goals")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", session!.user.id);
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    },
+  });
+}
+
 export function useCreateGoal() {
   const { session } = useAuth();
   const qc = useQueryClient();
