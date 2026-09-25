@@ -20,11 +20,21 @@ revoke all on public.account_approvals from anon, authenticated;
 revoke update on public.profiles from authenticated;
 grant update (username, avatar_url) on public.profiles to authenticated;
 
--- Everyone who was already using either hub remains approved.
+-- Everyone who existed before the approval feature was deployed remains
+-- approved. Accounts created after that deployment stay pending even when an
+-- organisation applies this migration later.
 insert into public.account_approvals (user_id, approved_at)
-select id, now() from public.profiles
+select id, now()
+from public.profiles
+where created_at < timestamptz '2026-09-25 15:36:10+00'
 on conflict (user_id) do update
 set approved_at = coalesce(public.account_approvals.approved_at, excluded.approved_at);
+
+-- Ensure profiles created during the gap between the frontend deployment and
+-- this migration also get a pending approval row.
+insert into public.account_approvals (user_id)
+select id from public.profiles
+on conflict (user_id) do nothing;
 
 create or replace function public.create_pending_account_approval()
 returns trigger language plpgsql security definer set search_path = public as $$
