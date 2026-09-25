@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAchievements } from "@/hooks/use-achievements";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, BRAND_LOGO } from "@/lib/brand";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -114,8 +114,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <button type="button" onClick={scrollNavLeft} disabled={!canScrollLeft} aria-label="Scroll navigation left" className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
           <nav ref={navRef} aria-label="Main navigation" className="relative min-w-0 flex items-center gap-1 px-1 py-2 overflow-x-auto">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 shrink-0">
-            <div className="bg-gradient-flame text-primary-foreground w-7 h-7 rounded-lg shadow-glow-primary flex items-center justify-center shrink-0">
-              <Trophy className="w-3.5 h-3.5" />
+            <div className="w-9 h-9 flex items-center justify-center shrink-0">
+              <img src={BRAND_LOGO} alt="" className="w-9 h-9 object-contain" />
             </div>
             <span className="hidden sm:inline font-display font-bold text-sm tracking-tight whitespace-nowrap">{BRAND_NAME}</span>
           </Link>

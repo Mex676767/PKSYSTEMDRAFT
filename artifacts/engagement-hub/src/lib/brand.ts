@@ -9,6 +9,7 @@
 const env = import.meta.env;
 
 export const BRAND_NAME: string = env.VITE_BRAND_NAME || "C9MYR";
+export const BRAND_LOGO = `${import.meta.env.BASE_URL}brands/${BRAND_NAME.toUpperCase().startsWith("C6") ? "c6" : "c9"}/logo.png`;
 export const BRAND_FULL_NAME = `${BRAND_NAME} Employee's Hub`;
 export const BRAND_HUB_NAME = `${BRAND_NAME} Hub`;
 

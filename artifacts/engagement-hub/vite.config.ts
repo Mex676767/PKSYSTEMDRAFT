@@ -32,6 +32,7 @@ if (!basePath) {
 // files in public/ mention the organisation by name, so rewrite them for
 // non-C9MYR builds.
 const brandName = process.env.VITE_BRAND_NAME || 'C9MYR';
+const brandKey = brandName.toUpperCase().startsWith('C6') ? 'c6' : 'c9';
 const outDir = path.resolve(import.meta.dirname, 'dist/public');
 const brandFiles = ['privacy.html', 'push-sw.js'];
 
@@ -40,6 +41,9 @@ function brand(): Plugin {
     name: 'brand',
     transformIndexHtml: (html) => html.replaceAll('C9MYR', brandName),
     closeBundle() {
+      for (const file of ['favicon.ico', 'favicon-16.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']) {
+        fs.copyFileSync(path.join(outDir, 'brands', brandKey, file), path.join(outDir, file));
+      }
       if (brandName === 'C9MYR') return;
       for (const file of brandFiles) {
         const target = path.join(outDir, file);
