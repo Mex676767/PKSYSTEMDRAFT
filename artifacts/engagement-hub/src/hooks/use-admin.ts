@@ -12,6 +12,7 @@ export type AdminProfileRow = {
   is_admin: boolean;
   permissions: string[];
   is_deleted: boolean;
+  is_hidden?: boolean;
   birthday: string | null;
 };
 
@@ -52,6 +53,14 @@ export function useAdminAdjustPoints() {
     const { error } = await supabase.rpc("admin_adjust_points", { target_user: userId, amount, reason: reason ?? null });
     if (error) throw error;
   });
+}
+
+/** Hide an account from everyone else (still active, can still sign in). */
+export function useSetUserHidden() {
+  return useAdminMutation(async ({ userId, hidden }: { userId: string; hidden: boolean }) => {
+    const { error } = await supabase.rpc("admin_set_hidden", { target_user: userId, hidden });
+    if (error) throw error;
+  }, [["directory"], ["birthdays"], ["giftable-profiles"]]);
 }
 
 export function useSetUserAdmin() {

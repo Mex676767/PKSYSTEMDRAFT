@@ -135,11 +135,12 @@ Deno.serve(async (req) => {
   const today = isoDate(now);
   const { data: profiles, error: pError } = await admin
     .from("profiles")
-    .select("id, username, email, birthday, is_deleted")
+    .select("id, username, email, birthday, is_deleted, is_hidden")
     .not("email", "is", null);
   if (pError) return json({ error: pError.message }, 500);
   const active = (profiles ?? []).filter((p) => !p.is_deleted && p.email);
-  const birthdayPeople = active.filter((p) => p.birthday && isBirthdayOn(p.birthday, now));
+  // Hidden accounts still get the team email, but their own birthday isn't announced.
+  const birthdayPeople = active.filter((p) => !p.is_hidden && p.birthday && isBirthdayOn(p.birthday, now));
   if (birthdayPeople.length === 0) return json({ sent: 0, reason: "No birthdays today." });
 
   // Failed attempts from earlier today are retried.

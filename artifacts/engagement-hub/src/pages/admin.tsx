@@ -4,11 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, Eye, EyeOff } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
   useSetUserAdmin,
+  useSetUserHidden,
   useSetUserPermissions,
   useDeactivateUser,
   useReactivateUser,
@@ -98,6 +99,7 @@ export default function Admin() {
 function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const { roles, departments } = useOrgStructure();
   const setAdmin = useSetUserAdmin();
+  const setHidden = useSetUserHidden();
   const setPermissions = useSetUserPermissions();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
@@ -139,9 +141,26 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               <span className="font-semibold text-sm">@{row.username ?? "(no username)"}</span>
               {row.is_admin && <Badge className="text-[10px] bg-primary hover:bg-primary">Admin</Badge>}
               {row.is_deleted && <Badge variant="destructive" className="text-[10px]">Deactivated</Badge>}
+              {row.is_hidden && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
             </div>
             <p className="text-xs text-muted-foreground truncate">{row.email} · {row.points} pts{row.department ? ` · ${row.department}` : ""}</p>
           </div>
+
+          <button
+            onClick={() =>
+              (row.is_hidden || window.confirm(`Hide @${row.username ?? row.email}? They stay active and can still sign in, but nobody else will see them in lists, pickers, birthdays or the tree.`)) &&
+              setHidden.mutate({ userId: row.id, hidden: !row.is_hidden })
+            }
+            disabled={setHidden.isPending}
+            title={row.is_hidden ? "Show to everyone again" : "Hide from other people"}
+            aria-label={row.is_hidden ? "Unhide account" : "Hide account"}
+            className={cn(
+              "p-2 rounded-lg transition-colors shrink-0",
+              row.is_hidden ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {row.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
 
           {!isSelf && (
             <div className="flex items-center gap-2 shrink-0">
