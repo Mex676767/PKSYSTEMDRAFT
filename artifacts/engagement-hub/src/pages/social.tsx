@@ -78,7 +78,7 @@ export default function Social() {
         <CardContent className="p-4">
           {session ? (
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
                 <UserAvatar
                   user={{ name: profile?.username ?? "unknown", initials: initialsForUsername(profile?.username ?? "?"), color: colorForId(session.user.id) }}
                   photoUrl={profile?.avatar_url}

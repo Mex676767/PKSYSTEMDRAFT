@@ -20,7 +20,10 @@ interface UserAvatarProps {
 
 export function UserAvatar({ user, className, style, accessory, photoUrl, border, reserveSpace = true }: UserAvatarProps) {
   const avatarRef = useRef<HTMLSpanElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
+  // The gap the parent layout already leaves beside the avatar; decorations can use it.
+  const [gap, setGap] = useState({ left: 0, right: 0 });
   const acc = isAccessoryKey(accessory) ? ACCESSORY_EXTENTS[accessory] : null;
   const bor = isBorderKey(border) ? BORDER_EXTENTS[border] : null;
   const decorated = reserveSpace && !!(acc || bor);
@@ -28,20 +31,29 @@ export function UserAvatar({ user, className, style, accessory, photoUrl, border
   useLayoutEffect(() => {
     const el = avatarRef.current;
     if (!decorated || !el) return;
-    setSize(el.offsetWidth);
-    const ro = new ResizeObserver(() => setSize(el.offsetWidth));
+    const measure = () => {
+      setSize(el.offsetWidth);
+      const wrap = wrapRef.current;
+      const parent = wrap?.parentElement;
+      const g = parent ? parseFloat(getComputedStyle(parent).columnGap) : 0;
+      const usable = Number.isFinite(g) ? g : 0;
+      // Only count the gap on a side that actually has a neighbour.
+      setGap({ left: wrap?.previousElementSibling ? usable : 0, right: wrap?.nextElementSibling ? usable : 0 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, [decorated]);
 
   // Accessory and border art overlap, so the room needed on a side is the larger of the two.
-  const side = (s: "left" | "right") => Math.ceil(Math.max(acc?.[s] ?? 0, bor?.[s] ?? 0) * size);
+  const side = (s: "left" | "right") => Math.max(0, Math.ceil(Math.max(acc?.[s] ?? 0, bor?.[s] ?? 0) * size - Math.max(0, gap[s] - 3)));
   const margins: CSSProperties | undefined = decorated && size
     ? { marginLeft: side("left"), marginRight: side("right") }
     : undefined;
 
   return (
-    <div className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
+    <div ref={wrapRef} className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
       <AccessoryDecoration accessory={accessory} layer="back" />
       <Avatar ref={avatarRef} className={cn("border-2 border-background bg-muted relative z-10", className, isBorderKey(border) && "border-0")} style={style}>
         {photoUrl && <AvatarImage src={photoUrl} alt={user.name} />}
