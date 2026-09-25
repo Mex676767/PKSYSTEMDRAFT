@@ -13,7 +13,7 @@ import {
 } from "@/lib/pk";
 import { cn } from "@/lib/utils";
 
-export function PkAvatar({ p, className }: { p: PkParticipant; className?: string }) {
+export function PkAvatar({ p, className, reserveSpace = true }: { p: PkParticipant; className?: string; reserveSpace?: boolean }) {
   const name = p.profile?.username ?? "unknown";
   return (
     <UserAvatar
@@ -22,6 +22,7 @@ export function PkAvatar({ p, className }: { p: PkParticipant; className?: strin
       border={p.profile?.active_border}
       accessory={p.profile?.active_accessory}
       className={cn("w-10 h-10 text-xs", className)}
+      reserveSpace={reserveSpace}
     />
   );
 }
@@ -42,7 +43,7 @@ export function PkSideBlock({ people, align, placeholder }: { people: PkParticip
   return (
     <div className={cn("flex items-center gap-2 min-w-0 flex-1", align === "right" && "flex-row-reverse text-right")}>
       <div className={cn("flex shrink-0", align === "right" ? "flex-row-reverse -space-x-reverse -space-x-3" : "-space-x-3")}>
-        {people.slice(0, 3).map((p) => <PkAvatar key={p.user_id} p={p} className="ring-2 ring-background" />)}
+        {people.slice(0, 3).map((p) => <PkAvatar key={p.user_id} p={p} className="ring-2 ring-background" reserveSpace={people.length === 1} />)}
       </div>
       <div className="min-w-0">
         <div className="text-sm font-medium truncate flex items-center gap-1" style={{ justifyContent: align === "right" ? "flex-end" : undefined }}>

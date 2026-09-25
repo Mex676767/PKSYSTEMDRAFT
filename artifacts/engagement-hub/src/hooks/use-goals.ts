@@ -187,6 +187,24 @@ export function useGoalUpdates(goalId: string | null) {
   });
 }
 
+/** Number of progress updates and when the latest was, for the card's stats. */
+export function useGoalUpdateStats(goalId: string) {
+  return useQuery({
+    queryKey: ["goal-updates", goalId, "stats"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, count, error } = await supabase
+        .from("goal_updates")
+        .select("created_at", { count: "exact" })
+        .eq("goal_id", goalId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return { count: count ?? 0, last: (data?.[0]?.created_at as string | undefined) ?? null };
+    },
+  });
+}
+
 export function useAddGoalUpdate() {
   const { session } = useAuth();
   const qc = useQueryClient();

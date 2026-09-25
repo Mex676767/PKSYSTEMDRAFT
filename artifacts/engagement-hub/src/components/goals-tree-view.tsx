@@ -161,6 +161,7 @@ function TreePersonNode(
           photoUrl={person.avatar_url}
           border={person.active_border}
           accessory={person.active_accessory}
+          reserveSpace={false}
           style={{ width: avatarSize, height: avatarSize }}
           className={cn(
             "relative z-10 border-2 border-white shadow-md group-hover:scale-110 transition-transform",

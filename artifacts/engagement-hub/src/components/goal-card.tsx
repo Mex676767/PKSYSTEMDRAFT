@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { format, formatDistanceToNow, isPast } from "date-fns";
+import { differenceInCalendarDays, format, formatDistanceToNow, isPast } from "date-fns";
 import {
-  Circle,
   Clock,
+  Plus,
   MessageCircle,
   ChevronDown,
   ChevronUp,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,6 +32,7 @@ import {
   useDeleteGoal,
   useUpdateGoal,
   useGoalUpdates,
+  useGoalUpdateStats,
   useAddGoalUpdate,
   useDeleteGoalUpdate,
   type Goal,
@@ -45,10 +45,10 @@ import { SearchableSelect } from "@/components/searchable-select";
 const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
 const CATEGORY_ORDER: GoalCategory[] = ["personal", "career"];
 
-const TERM_STYLES: Record<Goal["term"], { border: string; from: string; text: string }> = {
-  long: { border: "border-l-accent", from: "from-accent/15", text: "text-accent" },
-  mid: { border: "border-l-secondary", from: "from-secondary/10", text: "text-secondary" },
-  short: { border: "border-l-primary", from: "from-primary/10", text: "text-primary" },
+const TERM_STYLES: Record<Goal["term"], { text: string; dot: string; button: string }> = {
+  long: { text: "text-accent", dot: "bg-accent shadow-[0_0_10px_hsl(var(--accent))]", button: "text-accent border-accent/50 bg-accent/10 hover:bg-accent/20" },
+  mid: { text: "text-secondary", dot: "bg-secondary shadow-[0_0_10px_hsl(var(--secondary))]", button: "text-secondary border-secondary/50 bg-secondary/10 hover:bg-secondary/20" },
+  short: { text: "text-primary", dot: "bg-primary shadow-[0_0_10px_hsl(var(--primary))]", button: "text-primary border-primary/50 bg-primary/10 hover:bg-primary/20" },
 };
 
 export function GoalCard({
@@ -70,123 +70,134 @@ export function GoalCard({
   const [isLoggingUpdate, setIsLoggingUpdate] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const style = TERM_STYLES[goal.term];
+  const { data: stats } = useGoalUpdateStats(goal.id);
   const overdue = goal.target_date && !goal.completed && isPast(new Date(goal.target_date));
+  const daysLeft = goal.target_date && !goal.completed ? differenceInCalendarDays(new Date(goal.target_date), new Date()) : null;
   const canDelete = isOwner || isAdmin;
+  const canLog = isOwner && !goal.completed;
 
   return (
-    <Card className={cn("border-l-4 shadow-sm hover:shadow-md transition-all bg-gradient-to-r to-card", style.border, style.from)}>
+    <Card className="shadow-sm hover:shadow-md transition-all overflow-hidden p-0">
       <Confetti active={showConfetti} />
-      <CardContent className="p-4 md:p-6 space-y-4">
-        <div className="flex flex-col md:flex-row gap-4 md:items-center">
-          <button
-            onClick={() => setIsLoggingUpdate(true)}
-            disabled={!isOwner || goal.completed}
-            className={cn(
-              "shrink-0 transition-colors focus:outline-none disabled:opacity-40 hover:scale-110 transition-transform",
-              style.text
+      <CardContent className="p-0">
+        <div className="px-4 md:px-5 pt-4 flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
+          <span className={cn("font-display font-bold text-[10px] tracking-[0.12em] uppercase", style.text)}>{GOAL_TERM_META[goal.term].label}</span>
+          <span aria-hidden>·</span>
+          <UserAvatar
+            user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
+            photoUrl={goal.owner?.avatar_url ?? null}
+            border={goal.owner?.active_border ?? null}
+            accessory={goal.owner?.active_accessory ?? null}
+            className="w-5 h-5 text-[9px]"
+          />
+          <span className="min-w-0 truncate">
+            @{goal.owner?.username ?? "unknown"}
+            {goal.owner?.role && ` · ${goal.owner.role}`}
+            {` · ${GOAL_CATEGORY_META[goal.category ?? "personal"].label.replace(" Goal", "")}`}
+          </span>
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            {overdue && <Badge variant="destructive" className="text-[10px]">Overdue</Badge>}
+            {goal.completed && <Badge className="text-[10px] bg-emerald-500 hover:bg-emerald-600">Completed</Badge>}
+            {isOwner && (
+              <button onClick={() => setIsEditing(true)} title="Edit goal" className="hover:text-primary transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
             )}
-            title={isOwner ? "Log a progress update" : "Only the owner can update this goal"}
-          >
-            <Circle className={cn("w-8 h-8 stroke-2", goal.completed && "fill-emerald-500 text-emerald-500")} />
-          </button>
+            {canDelete && (
+              <button
+                onClick={() => window.confirm("Delete this goal?") && deleteGoal.mutate(goal.id)}
+                disabled={deleteGoal.isPending}
+                title="Delete goal"
+                className="hover:text-destructive transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
 
-          <div className="flex-1 space-y-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <UserAvatar
-                user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
-                photoUrl={goal.owner?.avatar_url ?? null}
-                border={goal.owner?.active_border ?? null}
-                accessory={goal.owner?.active_accessory ?? null}
-                className="w-5 h-5 text-[9px]"
+        <div className="px-4 md:px-5 pt-2.5 pb-4 space-y-3">
+          <div>
+            <h3 className="font-display font-bold text-xl leading-tight break-words">{goal.title}</h3>
+            {goal.description && <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words mt-1">{goal.description}</p>}
+          </div>
+
+          <div>
+            <div className="relative h-3 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100} aria-label="Progress">
+              <div
+                className={cn("absolute inset-y-0 left-0 rounded-full min-w-3 transition-[width] duration-500", goal.completed ? "bg-emerald-500" : "bg-gradient-flame shadow-glow-primary")}
+                style={{ width: `${goal.progress}%` }}
               />
-              <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>
-              {goal.owner?.role && <Badge variant="outline" className="text-[9px]">{goal.owner.role}</Badge>}
-              <Badge variant="outline" className="text-[9px]">{GOAL_CATEGORY_META[goal.category ?? "personal"].label}</Badge>
-              {overdue && <Badge variant="destructive" className="text-[10px]">Overdue</Badge>}
-              {goal.completed && <Badge className="text-[10px] bg-emerald-500 hover:bg-emerald-600">Completed</Badge>}
-              {(isOwner || canDelete) && (
-                <div className="ml-auto flex items-center gap-2.5 shrink-0">
-                  {isOwner && (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      title="Edit goal"
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      onClick={() => window.confirm("Delete this goal?") && deleteGoal.mutate(goal.id)}
-                      disabled={deleteGoal.isPending}
-                      title="Delete goal"
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="absolute inset-0 flex justify-evenly pointer-events-none" aria-hidden>
+                <span className="w-px bg-border" /><span className="w-px bg-border" /><span className="w-px bg-border" />
+              </div>
             </div>
-            <h3 className="font-semibold text-lg break-words">{goal.title}</h3>
-            {goal.description && (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{goal.description}</p>
-            )}
-            {goal.accountability && (
-              <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 mt-1.5">
-                <ListChecks className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>{goal.accountability}</span>
-              </div>
-            )}
-            {goal.action_plan && (
-              <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 mt-1.5">
-                <ClipboardList className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span className="whitespace-pre-wrap">{goal.action_plan}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex-1">
-                <div className="flex justify-between text-xs mb-1 font-medium text-muted-foreground">
-                  <span>Progress</span>
-                  <span>{goal.progress}%</span>
-                </div>
-                <Progress value={goal.progress} className="h-2" />
-              </div>
-              {goal.target_date && (
-                <div className="flex items-center text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {format(new Date(goal.target_date), "MMM d, yyyy")}
-                </div>
-              )}
+            <div className="flex items-baseline justify-between gap-2 mt-1.5 text-xs text-muted-foreground">
+              <span><b className="font-display text-lg text-foreground">{goal.progress}%</b> done</span>
+              <span className={cn("flex items-center gap-1", overdue && "text-destructive")}>
+                <Clock className="w-3 h-3" />
+                {goal.target_date
+                  ? `${format(new Date(goal.target_date), "MMM d, yyyy")}${daysLeft !== null ? ` · ${daysLeft >= 0 ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left` : `${-daysLeft} day${daysLeft === -1 ? "" : "s"} over`}` : ""}`
+                  : "No target date"}
+              </span>
             </div>
-
-            <ProgressPhotos targetType="goal" targetId={goal.id} canUpload={isOwner} />
           </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <Stat label="Updates" value={stats ? String(stats.count) : "–"} />
+            <Stat label="Last update" value={stats?.last ? formatDistanceToNow(new Date(stats.last), { addSuffix: true }).replace("about ", "") : "Never"} />
+            <Stat label="Started" value={format(new Date(goal.created_at), "MMM yyyy")} />
+          </div>
+
+          {goal.accountability && (
+            <div className="flex items-start gap-2 text-xs rounded-xl bg-muted/50 px-3 py-2">
+              <ListChecks className={cn("w-3.5 h-3.5 shrink-0 mt-0.5", style.text)} />
+              <span><span className="font-semibold">If I miss it:</span> <span className="text-muted-foreground">{goal.accountability}</span></span>
+            </div>
+          )}
+          {goal.action_plan && (
+            <details className="group rounded-xl bg-muted/40 px-3 py-2" open={!goal.accountability}>
+              <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1.5"><ClipboardList className={cn("w-3.5 h-3.5", style.text)} /> The plan</span>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words mt-2">{goal.action_plan}</p>
+            </details>
+          )}
+
+          <ProgressPhotos targetType="goal" targetId={goal.id} canUpload={isOwner} />
         </div>
 
-        <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-border/50 -mx-4 md:-mx-6 px-4 md:px-6 pt-3">
+        <div className="flex items-center gap-x-4 gap-y-2 flex-wrap px-4 md:px-5 py-3 bg-background/40 border-t border-border/60">
           <ReactionBar targetType="goal" targetId={goal.id} />
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowUpdates((s) => !s)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <History className="w-4 h-4" />
+            Updates
+            {showUpdates ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          <button
+            onClick={() => setShowComments((s) => !s)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
+            {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          {canLog && (
             <button
-              onClick={() => setShowUpdates((s) => !s)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setIsLoggingUpdate(true)}
+              className={cn("ml-auto flex items-center gap-1 text-xs font-semibold rounded-full border px-3 py-1.5 transition-colors", style.button)}
             >
-              <History className="w-4 h-4" />
-              Updates
-              {showUpdates ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              <Plus className="w-3.5 h-3.5" /> Log progress
             </button>
-            <button
-              onClick={() => setShowComments((s) => !s)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
-              {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
+          )}
         </div>
 
+        <div className={cn("px-4 md:px-5", (showUpdates || showComments) && "pb-4 pt-3 space-y-3")}>
         {showUpdates && (
           <div className="pt-1 space-y-2">
             {updates.length === 0 ? (
@@ -230,6 +241,7 @@ export function GoalCard({
             <CommentSection targetType="goal" targetId={goal.id} />
           </div>
         )}
+        </div>
       </CardContent>
 
       {isOwner && (
@@ -247,6 +259,15 @@ export function GoalCard({
         </>
       )}
     </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-muted/60 px-2.5 py-2 min-w-0">
+      <p className="text-[10.5px] text-muted-foreground">{label}</p>
+      <p className="font-display font-semibold text-sm truncate">{value}</p>
+    </div>
   );
 }
 
