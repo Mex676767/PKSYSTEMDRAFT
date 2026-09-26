@@ -170,13 +170,16 @@ export default function Dashboard() {
                       key={goal.id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
                     >
-                      <UserAvatar
-                        user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
-                        photoUrl={goal.owner?.avatar_url ?? null}
-                        border={goal.owner?.active_border ?? null}
-                        accessory={goal.owner?.active_accessory ?? null}
-                        className="w-9 h-9 text-xs shrink-0"
-                      />
+                      <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
+                        <UserAvatar
+                          user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
+                          photoUrl={goal.owner?.avatar_url ?? null}
+                          border={goal.owner?.active_border ?? null}
+                          accessory={goal.owner?.active_accessory ?? null}
+                          className="w-9 h-9 text-xs"
+                          reserveSpace={false}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>

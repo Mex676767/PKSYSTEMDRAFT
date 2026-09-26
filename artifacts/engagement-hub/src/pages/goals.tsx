@@ -576,7 +576,7 @@ function PersonGoalCard(
   };
 
   return (
-    <div className="flex flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+    <div className="flex h-[30rem] min-h-0 flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
       <button onClick={onClick} className="flex items-center gap-2.5 min-w-0 mb-4 text-left hover:opacity-80 transition-opacity">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
@@ -593,8 +593,8 @@ function PersonGoalCard(
         </div>
       </button>
 
-      <div className="flex-1 flex gap-4 mb-3">
-        <button onClick={onClick} className="flex-1 min-w-0 space-y-3 text-left hover:opacity-80 transition-opacity">
+      <div className="flex min-h-0 flex-1 gap-4 mb-3">
+        <button onClick={onClick} className="flex-1 min-w-0 space-y-3 overflow-y-auto pr-1 text-left hover:opacity-80 transition-opacity">
           {TERM_ORDER.slice().reverse().map((term) => {
             const goal = latestByTerm.get(term);
             const category = goal?.category ?? "personal";
@@ -615,12 +615,12 @@ function PersonGoalCard(
                   {goal && <span className="text-xs text-muted-foreground">: {goal.title}</span>}
                 </div>
                 {goal?.description && (
-                  <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{goal.description}</p>
+                  <p className="text-[11px] text-muted-foreground whitespace-pre-wrap break-words mt-0.5">{goal.description}</p>
                 )}
                 {goal?.accountability && (
                   <div className="flex items-start gap-1 text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-1 mt-1">
                     <ListChecks className="w-3 h-3 shrink-0 mt-0.5" />
-                    <span className="line-clamp-1">{goal.accountability}</span>
+                    <span className="break-words">{goal.accountability}</span>
                   </div>
                 )}
                 {!goal && <p className="text-[11px] text-muted-foreground italic opacity-70">No goal set</p>}
@@ -629,12 +629,12 @@ function PersonGoalCard(
           })}
         </button>
 
-        <div className="w-2/5 shrink-0 border-l border-border/50 pl-4 flex flex-col">
+        <div className="w-2/5 min-h-0 shrink-0 border-l border-border/50 pl-4 flex flex-col">
           <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-2 shrink-0">
             <MessageCircle className="w-3.5 h-3.5" />
             Comments {comments.length > 0 && `(${comments.length})`}
           </div>
-          <div className="flex-1 space-y-1.5 mb-2 overflow-y-auto max-h-36 pr-0.5">
+          <div className="min-h-0 flex-1 space-y-1.5 mb-2 overflow-y-auto pr-0.5">
             {comments.length > 0 ? (
               comments.map((c) => (
                 <div key={c.id} className="text-[11px] bg-muted/40 rounded-md px-2 py-1.5 flex items-start gap-1">
