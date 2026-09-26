@@ -576,7 +576,7 @@ function PersonGoalCard(
   };
 
   return (
-    <div className="flex h-[30rem] min-h-0 flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+    <div className="flex h-[23rem] min-h-0 flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
       <button onClick={onClick} className="flex items-center gap-2.5 min-w-0 mb-4 text-left hover:opacity-80 transition-opacity">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
@@ -594,7 +594,7 @@ function PersonGoalCard(
       </button>
 
       <div className="flex min-h-0 flex-1 gap-4 mb-3">
-        <button onClick={onClick} className="flex-1 min-w-0 space-y-3 overflow-y-auto pr-1 text-left hover:opacity-80 transition-opacity">
+        <button onClick={onClick} className="block flex-1 min-w-0 space-y-3 overflow-y-auto pr-1 text-left hover:opacity-80 transition-opacity">
           {TERM_ORDER.slice().reverse().map((term) => {
             const goal = latestByTerm.get(term);
             const category = goal?.category ?? "personal";
