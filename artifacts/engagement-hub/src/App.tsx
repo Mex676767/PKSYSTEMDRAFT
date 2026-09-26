@@ -30,6 +30,8 @@ import Birthdays from '@/pages/birthdays';
 import Voice from '@/pages/voice';
 import HallOfFame from '@/pages/hall-of-fame';
 import GuinnessRecords from '@/pages/guinness-records';
+import LearningHub from '@/pages/learning-hub';
+import Gratitude from '@/pages/gratitude';
 import ApprovalPending from '@/pages/approval-pending';
 import { DailyGoalReminder } from '@/components/daily-goal-reminder';
 
@@ -51,6 +53,8 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/hall-of-fame" component={HallOfFame} />
           <Route path="/guinness-records" component={GuinnessRecords} />
+          <Route path="/learning" component={LearningHub} />
+          <Route path="/gratitude" component={Gratitude} />
           <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
           <Route path="/birthdays" component={Birthdays} />
           <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />

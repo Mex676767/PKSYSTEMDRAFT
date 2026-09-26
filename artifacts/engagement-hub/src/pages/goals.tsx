@@ -139,7 +139,7 @@ export default function Goals() {
 
     const missingAccountability = valid.find((d) => d.term === "short" && !d.accountability.trim());
     if (missingAccountability) {
-      setCreateError(`"${missingAccountability.title}" needs an accountability action since it's short-term.`);
+      setCreateError(`"${missingAccountability.title}" needs a follow-through plan since it's short-term.`);
       return;
     }
 
@@ -351,7 +351,7 @@ export default function Goals() {
                       <textarea
                         value={d.accountability}
                         onChange={(e) => updateDraft(d.key, { accountability: e.target.value })}
-                        placeholder="Accountability action: what will you actually do to hold yourself to this?"
+                        placeholder="Follow-through plan: what will help you keep moving on this?"
                         className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       />
                     )}

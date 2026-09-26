@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio, ShoppingBag } from "lucide-react";
+import { Home, Target, Rss, Swords, MessageSquare, Trophy, Medal, Users, Cake, Gift, LogOut, UserCircle, Gamepad2, ShieldAlert, Dices, Clock, PartyPopper, ChevronDown, ChevronRight, ChevronLeft, Radio, ShoppingBag, BookOpen, HeartHandshake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRevampEnabled } from "@/hooks/use-rewards";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -16,6 +16,7 @@ import { TabVisibilityPause } from "./tab-visibility-pause";
 import { UserAvatar } from "./user-avatar";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
+import { GratitudeCelebration } from "./gratitude-celebration";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,8 @@ const navItems = [
   { href: "/social", label: "Social", icon: Rss },
   { href: "/challenges", label: "Challenges", icon: Swords },
   { href: "/rewards", label: "Rewards", icon: ShoppingBag },
+  { href: "/learning", label: "Learning Hub", icon: BookOpen },
+  { href: "/gratitude", label: "Gratitude", icon: HeartHandshake },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/guinness-records", label: "Guinness Records", icon: Medal },
   { href: "/mentors", label: "Mentors", icon: Users },
@@ -104,6 +107,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 -z-10 pointer-events-none app-gradient-bg atmosphere-hue" />
       <TabVisibilityPause />
       <BirthdayCelebration active={isMyBirthdayToday} />
+      <GratitudeCelebration />
       <ConfettiBurstOnClick />
       <CursorSparkleTrail />
       <Fireflies />

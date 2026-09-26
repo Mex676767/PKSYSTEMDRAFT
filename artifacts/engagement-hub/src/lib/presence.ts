@@ -26,6 +26,8 @@ const ROUTE_ACTIVITY: { test: (path: string) => boolean; label: string }[] = [
   { test: (p) => p === "/challenges" || p.startsWith("/challenges/"), label: "In the Battle Arena" },
   { test: (p) => p === "/hall-of-fame", label: "Browsing Hall of Fame" },
   { test: (p) => p === "/guinness-records", label: "Checking Guinness Records" },
+  { test: (p) => p === "/learning", label: "Browsing the Learning Hub" },
+  { test: (p) => p === "/gratitude", label: "Sharing Gratitude" },
   { test: (p) => p === "/mentors", label: "Browsing Mentors" },
   { test: (p) => p === "/lottery", label: "Checking Lucky Draw" },
   { test: (p) => p === "/games", label: "Browsing Games" },

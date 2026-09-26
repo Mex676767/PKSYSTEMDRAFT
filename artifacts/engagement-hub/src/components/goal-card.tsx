@@ -388,7 +388,7 @@ export function EditGoalDialog({
     e.preventDefault();
     if (!title.trim()) return;
     if (term === "short" && !accountability.trim()) {
-      setError("Short-term goals need an accountability action.");
+      setError("Short-term goals need a follow-through plan.");
       return;
     }
     setError(null);
@@ -467,7 +467,7 @@ export function EditGoalDialog({
             <textarea
               value={accountability}
               onChange={(e) => setAccountability(e.target.value)}
-              placeholder="Accountability action: what will you actually do to hold yourself to this?"
+              placeholder="Follow-through plan: what will help you keep moving on this?"
               className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           )}

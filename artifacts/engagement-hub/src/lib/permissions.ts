@@ -5,6 +5,7 @@ export const PERMISSIONS = {
   manage_mentors: "Manage Mentors & Departments",
   manage_users: "Manage Users (deactivate accounts)",
   manage_bets: "Resolve Bets",
+  manage_learning: "Manage Learning Hub",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
