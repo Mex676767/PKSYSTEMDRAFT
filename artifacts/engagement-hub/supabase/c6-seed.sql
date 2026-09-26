@@ -61,9 +61,20 @@ select cron.schedule('pk-missed-updates', '50 * * * *', 'select pk_check_missed_
 do $$
 declare t text;
 begin
-  foreach t in array array['posts', 'comments', 'reactions', 'goals', 'goal_updates', 'notifications', 'direct_messages',
-    'challenges', 'challenge_participants', 'challenge_events', 'challenge_score_updates', 'pk_points', 'pk_playbooks',
-    'pk_money_debts', 'discord_presence', 'gratitude_letters'] loop
+  foreach t in array array[
+    'profiles', 'account_approvals', 'posts', 'comments', 'reactions', 'goals', 'goal_updates', 'progress_photos',
+    'notifications', 'dm_conversations', 'direct_messages',
+    'challenges', 'challenge_participants', 'challenge_terms_history', 'challenge_events', 'challenge_score_updates',
+    'pk_settings', 'pk_violations', 'pk_playbooks', 'pk_points', 'pk_money_debts', 'pk_approval_requirements',
+    'pk_point_ledger', 'pk_streaks', 'pk_monthly_bans', 'pk_ranking_groups', 'pk_monthly_seasons',
+    'hof_categories', 'hof_records', 'hof_award_categories', 'hof_award_winners', 'hof_deletion_logs',
+    'org_roles', 'org_departments', 'mentorships',
+    'learning_resources', 'learning_requests', 'learning_shares', 'gratitude_letters', 'achievements',
+    'birthday_email_settings', 'birthday_email_log',
+    'points_settings', 'point_transactions', 'missions', 'mission_claims', 'rewards', 'reward_redemptions',
+    'bets', 'bet_options', 'bet_wagers', 'quiz_questions', 'quiz_answers', 'wordle_attempts', 'wordle_results',
+    'login_sessions', 'voice_sessions', 'discord_presence'
+  ] loop
     if to_regclass('public.' || t) is not null and not exists (
       select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);

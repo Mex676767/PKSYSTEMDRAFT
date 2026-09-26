@@ -34,6 +34,7 @@ import LearningHub from '@/pages/learning-hub';
 import Gratitude from '@/pages/gratitude';
 import ApprovalPending from '@/pages/approval-pending';
 import { DailyGoalReminder } from '@/components/daily-goal-reminder';
+import { LiveDataSync } from '@/components/live-data-sync';
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ function App() {
             <TooltipProvider>
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
                 <AppPresenceBoundary>
+                  <LiveDataSync />
                   <AuthGate />
                   <FloatingCallBar />
                 </AppPresenceBoundary>
