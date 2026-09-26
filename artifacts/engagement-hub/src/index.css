@@ -430,6 +430,63 @@ body.tab-hidden .progress-shimmer::after {
   z-index: 9999;
 }
 
+@keyframes gratitude-glow {
+  0%, 100% { box-shadow: 0 16px 45px -28px rgba(236, 72, 153, 0.7); }
+  50% { box-shadow: 0 20px 60px -24px rgba(251, 146, 60, 0.8), 0 0 28px -18px rgba(244, 114, 182, 0.9); }
+}
+@keyframes gratitude-float {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(.85); opacity: .35; }
+  50% { transform: translateY(-9px) rotate(12deg) scale(1.15); opacity: 1; }
+}
+@keyframes gratitude-shimmer {
+  0% { transform: translateX(-145%) skewX(-18deg); opacity: 0; }
+  15% { opacity: .7; }
+  42%, 100% { transform: translateX(175%) skewX(-18deg); opacity: 0; }
+}
+@keyframes gratitude-heartbeat {
+  0%, 100% { transform: scale(1); }
+  18% { transform: scale(1.22); }
+  34% { transform: scale(.96); }
+  48% { transform: scale(1.13); }
+}
+@keyframes gratitude-popup-glow {
+  0%, 100% { box-shadow: 0 0 75px -18px rgba(236, 72, 153, .72); }
+  50% { box-shadow: 0 0 110px -8px rgba(251, 146, 60, .58), 0 0 48px -16px rgba(244, 114, 182, .95); }
+}
+.gratitude-letter {
+  animation: gratitude-glow 4.5s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+.gratitude-letter-shimmer {
+  overflow: hidden;
+}
+.gratitude-letter-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: -30% auto -30% -35%;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+  animation: gratitude-shimmer 5.5s ease-in-out infinite;
+}
+.gratitude-float { animation: gratitude-float 2.6s ease-in-out infinite; }
+.gratitude-float-delay { animation-delay: .7s; }
+.gratitude-float-delay-2 { animation-delay: 1.35s; }
+.gratitude-seal { animation: gratitude-heartbeat 2.4s ease-in-out infinite; }
+.gratitude-heartbeat { animation: gratitude-heartbeat 1.8s ease-in-out infinite; }
+.gratitude-popup { animation: gratitude-popup-glow 2.8s ease-in-out infinite; }
+.gratitude-open-letter { perspective: 900px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gratitude-letter,
+  .gratitude-letter-shimmer::after,
+  .gratitude-float,
+  .gratitude-seal,
+  .gratitude-heartbeat,
+  .gratitude-popup {
+    animation: none !important;
+  }
+}
+
 /* Profile cosmetics (borders/accessories): shared keyframes reused across
    every cosmetic item's SVG/CSS animation. SMIL (<animate>/<animateTransform>)
    inside the cosmetic SVGs is conditionally omitted in JS when the user

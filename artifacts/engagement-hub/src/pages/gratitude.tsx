@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 import { Heart, Mail, Send, Sparkles, Trash2 } from "lucide-react";
 import { PageTransition } from "@/components/animations";
 import { SearchableSelect } from "@/components/searchable-select";
@@ -65,7 +66,7 @@ export default function Gratitude() {
         <CardContent className="p-0">
           <div className="border-b bg-pink-500/5 px-5 py-4">
             <h2 className="font-bold">Write a thank-you letter</h2>
-            <p className="text-sm text-muted-foreground">They’ll get a special surprise the next time they open the Hub.</p>
+            <p className="text-sm text-muted-foreground">They’ll get a special surprise immediately if they’re online, or next time they open the Hub.</p>
           </div>
           <form onSubmit={submit} className="space-y-4 p-5">
             <SearchableSelect
@@ -89,7 +90,7 @@ export default function Gratitude() {
                 <Send className="mr-2 h-4 w-4" />{send.isPending ? "Sending..." : "Send gratitude"}
               </Button>
             </div>
-            {sent && <p className="text-sm font-medium text-emerald-600 dark:text-emerald-300">Sent! They’ll see your surprise when they open the Hub.</p>}
+            {sent && <p className="text-sm font-medium text-emerald-600 dark:text-emerald-300">Sent! If they’re online, the surprise is appearing for them now.</p>}
             {send.isError && <p className="text-sm text-destructive">Could not send this letter. The new database migration may still need to be applied.</p>}
           </form>
         </CardContent>
@@ -114,9 +115,22 @@ export default function Gratitude() {
               const recipientName = letter.recipient?.username ?? "teammate";
               const canDelete = isAdmin || letter.sender_id === session?.user.id;
               return (
-                <Card key={letter.id} className="group relative overflow-hidden border-pink-500/20 bg-gradient-to-br from-card to-pink-500/5">
-                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-pink-500/10 blur-2xl" />
-                  <CardContent className="relative space-y-5 p-5">
+                <motion.div
+                  key={letter.id}
+                  initial={{ opacity: 0, y: 20, rotateX: -5 }}
+                  animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                  whileHover={{ y: -5, rotate: 0.35 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 18 }}
+                  className="h-full"
+                >
+                <Card className="gratitude-letter group relative h-full overflow-hidden border-pink-500/30 bg-gradient-to-br from-card via-card to-pink-500/10 shadow-[0_16px_45px_-28px_rgba(236,72,153,0.85)]">
+                  <div className="gratitude-letter-shimmer absolute inset-0 pointer-events-none" />
+                  <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-pink-500/15 blur-2xl" />
+                  <span className="gratitude-float absolute left-[12%] top-5 text-sm text-pink-400/70">✦</span>
+                  <span className="gratitude-float gratitude-float-delay absolute right-[16%] top-10 text-xs text-amber-300/80">✧</span>
+                  <span className="gratitude-float gratitude-float-delay-2 absolute bottom-12 right-7 text-sm text-pink-300/70">♥</span>
+                  <CardContent className="relative space-y-5 p-5 pt-7">
+                    <div className="absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-pink-400/70 to-transparent" />
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <UserAvatar
@@ -126,17 +140,25 @@ export default function Gratitude() {
                           accessory={letter.recipient?.active_accessory}
                           className="h-12 w-12 shrink-0"
                         />
-                        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-500">Thank you</p><h3 className="truncate text-lg font-bold">@{recipientName}</h3></div>
+                        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-500">A letter of gratitude</p><h3 className="truncate text-lg font-bold">For @{recipientName}</h3></div>
                       </div>
                       {canDelete && <button onClick={() => window.confirm("Remove this gratitude letter?") && remove.mutate(letter.id)} className="rounded-lg p-1.5 text-muted-foreground opacity-50 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" aria-label="Delete gratitude letter"><Trash2 className="h-4 w-4" /></button>}
                     </div>
-                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed">“{letter.message}”</p>
+                    <div className="relative rounded-2xl border border-pink-500/15 bg-background/35 px-4 py-5 text-center shadow-inner">
+                      <span className="absolute -left-1 -top-5 font-serif text-5xl text-pink-500/25">“</span>
+                      <p className="whitespace-pre-wrap font-serif text-[16px] italic leading-relaxed">{letter.message}</p>
+                      <span className="absolute -bottom-8 -right-1 font-serif text-5xl text-orange-400/25">”</span>
+                    </div>
                     <div className="flex items-center justify-between gap-3 border-t border-pink-500/15 pt-3 text-xs text-muted-foreground">
-                      <span>From <strong className="text-foreground">@{senderName}</strong></span>
+                      <span className="flex items-center gap-2">
+                        <span className="gratitude-seal grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-pink-500 to-rose-700 text-white shadow-lg"><Heart className="h-3.5 w-3.5 fill-current" /></span>
+                        From <strong className="text-foreground">@{senderName}</strong>
+                      </span>
                       <span>{formatDistanceToNow(new Date(letter.created_at), { addSuffix: true })}</span>
                     </div>
                   </CardContent>
                 </Card>
+                </motion.div>
               );
             })}
           </div>

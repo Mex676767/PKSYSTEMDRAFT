@@ -63,7 +63,7 @@ declare t text;
 begin
   foreach t in array array['posts', 'comments', 'reactions', 'goals', 'goal_updates', 'notifications', 'direct_messages',
     'challenges', 'challenge_participants', 'challenge_events', 'challenge_score_updates', 'pk_points', 'pk_playbooks',
-    'pk_money_debts', 'discord_presence'] loop
+    'pk_money_debts', 'discord_presence', 'gratitude_letters'] loop
     if to_regclass('public.' || t) is not null and not exists (
       select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);

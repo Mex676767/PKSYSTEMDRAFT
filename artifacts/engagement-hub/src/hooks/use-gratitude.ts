@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
@@ -25,7 +26,8 @@ const GRATITUDE_SELECT =
   "*, sender:profiles!gratitude_letters_sender_id_fkey(username,avatar_url,active_border,active_accessory,department), recipient:profiles!gratitude_letters_recipient_id_fkey(username,avatar_url,active_border,active_accessory,department)";
 
 export function useGratitudeLetters() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ["gratitude-letters"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -36,11 +38,27 @@ export function useGratitudeLetters() {
       return data as unknown as GratitudeLetter[];
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("gratitude-wall-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gratitude_letters" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["gratitude-letters"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return query;
 }
 
 export function useUnseenGratitude(enabled = true) {
   const { session } = useAuth();
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ["gratitude-unseen", session?.user.id],
     enabled: enabled && Boolean(session),
     queryFn: async () => {
@@ -55,6 +73,28 @@ export function useUnseenGratitude(enabled = true) {
       return data as unknown as GratitudeLetter[];
     },
   });
+
+  useEffect(() => {
+    if (!enabled || !session) return;
+    const userId = session.user.id;
+    const channel = supabase
+      .channel(`gratitude-inbox-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gratitude_letters", filter: `recipient_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["gratitude-unseen", userId] });
+          queryClient.invalidateQueries({ queryKey: ["gratitude-letters"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, queryClient, session?.user.id]);
+
+  return query;
 }
 
 export function useSendGratitude() {
@@ -70,7 +110,10 @@ export function useSendGratitude() {
       });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["gratitude-letters"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gratitude-letters"] });
+      queryClient.invalidateQueries({ queryKey: ["gratitude-unseen"] });
+    },
   });
 }
 
