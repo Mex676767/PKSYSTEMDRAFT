@@ -505,7 +505,10 @@ $$;
 drop trigger if exists challenges_pk_money on challenges;
 
 create or replace function pk_update_interval(freq text)
-returns integer language sql immutable set search_path=public as $$
+returns integer
+language sql
+immutable
+as $pk_update_interval$
   select case
     when lower(trim(coalesce(freq,'weekly')))='daily' then 1
     when lower(trim(coalesce(freq,'weekly'))) in ('weekly','every monday','every tuesday','every wednesday','every thursday','every friday','every saturday','every sunday') then 7
@@ -516,7 +519,7 @@ returns integer language sql immutable set search_path=public as $$
       then greatest(substring(lower(trim(freq)) from '([0-9]+)')::integer,1)*7
     else 7
   end;
-$$;
+$pk_update_interval$;
 
 create or replace function pk_terms_snapshot(cid uuid)
 returns jsonb language sql stable security definer set search_path=public as $$
