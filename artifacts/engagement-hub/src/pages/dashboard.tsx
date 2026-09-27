@@ -5,10 +5,11 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useChallengesList } from "@/hooks/use-challenges";
 import { useBirthdays } from "@/hooks/use-birthdays";
 import { useGoalsFeed, GOAL_TERM_META, type GoalTerm } from "@/hooks/use-goals";
+import { useGratitudeLetters } from "@/hooks/use-gratitude";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, Flame, Target, Trophy, Medal, Cake, PartyPopper } from "lucide-react";
+import { ArrowRight, Crown, Flame, Target, Trophy, Medal, Cake, Megaphone, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -30,11 +31,13 @@ export default function Dashboard() {
   const { data: goalsFeed = [] } = useGoalsFeed();
   const { data: challenges = [] } = useChallengesList();
   const { data: birthdays = [] } = useBirthdays();
+  const { data: shoutouts = [] } = useGratitudeLetters();
   const [showConfetti, setShowConfetti] = useState(false);
 
   const recentGoals = goalsFeed.slice(0, DASHBOARD_GOAL_PREVIEW_COUNT);
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const todayBirthdays = birthdays.filter((b) => b.isToday);
+  const recentShoutouts = shoutouts.slice(0, 4);
 
   const birthdayHeadline =
     todayBirthdays.length === 1
@@ -141,6 +144,62 @@ export default function Dashboard() {
 
         <motion.div variants={slideUp}>
           <TeamStatusCard />
+        </motion.div>
+
+        <motion.div variants={slideUp}>
+          <Card className="relative overflow-hidden border-amber-400/25 bg-gradient-to-br from-violet-600/15 via-card to-amber-400/10 shadow-md">
+            <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-amber-400/15 blur-3xl" />
+            <CardHeader className="relative flex flex-row items-center justify-between gap-4 space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="h-5 w-5 text-fuchsia-500" /> MVP Shoutouts
+                </CardTitle>
+                <CardDescription>Teammates whose work deserves the spotlight</CardDescription>
+              </div>
+              <Link href="/gratitude" className="shrink-0">
+                <Button variant="outline" size="sm" className="group border-amber-400/30 bg-amber-400/5">
+                  View all <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="relative">
+              {recentShoutouts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-amber-400/25 bg-muted/30 py-7 text-center">
+                  <Trophy className="mx-auto mb-2 h-6 w-6 text-amber-500" />
+                  <p className="text-sm font-medium">No MVP shoutouts yet</p>
+                  <p className="text-xs text-muted-foreground">Spot someone doing great work? Give them the first one.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {recentShoutouts.map((shoutout) => {
+                    const recipientName = shoutout.recipient?.username ?? "teammate";
+                    const senderName = shoutout.sender?.username ?? "Someone";
+                    return (
+                      <div key={shoutout.id} className="group relative flex min-h-28 items-start gap-3 overflow-hidden rounded-xl border border-amber-400/15 bg-background/45 p-3 transition-colors hover:bg-background/65">
+                        <Crown className="absolute right-2 top-2 h-4 w-4 rotate-12 text-amber-400/50 transition-transform group-hover:scale-110" />
+                        <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
+                          <UserAvatar
+                            user={{ name: recipientName, initials: initialsForUsername(recipientName), color: colorForId(shoutout.recipient_id) }}
+                            photoUrl={shoutout.recipient?.avatar_url ?? null}
+                            border={shoutout.recipient?.active_border ?? null}
+                            accessory={shoutout.recipient?.active_accessory ?? null}
+                            className="h-10 w-10 text-xs"
+                            reserveSpace={false}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 pr-3">
+                          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">MVP Spotlight</p>
+                          <p className="truncate text-sm font-bold">@{recipientName}</p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{shoutout.message}</p>
+                          <p className="mt-1.5 text-[10px] text-muted-foreground">Shouted out by <strong className="text-foreground">@{senderName}</strong></p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
 
         <motion.div variants={slideUp}>

@@ -30,6 +30,13 @@ import { format } from "date-fns";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useOrgStructure } from "@/hooks/use-org-structure";
 
+function getAvatarUploadError(error: unknown) {
+  const message = getErrorMessage(error);
+  return /row-level security/i.test(message)
+    ? "Photo upload permission needs the latest database update. Ask an admin to apply migration 0055."
+    : message;
+}
+
 export default function Profile() {
   const { label: achievementLabel, description: achievementDescription } = useAchievements();
   const { profile } = useAuth();
@@ -50,7 +57,7 @@ export default function Profile() {
     setAvatarError(null);
     uploadAvatar.mutate(file, {
       onSuccess: () => setIsAvatarDialogOpen(false),
-      onError: (err) => setAvatarError(getErrorMessage(err)),
+      onError: (err) => setAvatarError(getAvatarUploadError(err)),
     });
   };
 
