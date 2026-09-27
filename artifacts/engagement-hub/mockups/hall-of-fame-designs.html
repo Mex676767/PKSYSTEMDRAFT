@@ -42,5 +42,7 @@
     document.querySelectorAll('[data-controls]').forEach(group=>group.addEventListener('click',event=>{const button=event.target.closest('[data-show]');if(!button)return;const name=group.dataset.controls;document.querySelectorAll(`[data-group="${name}"]`).forEach(panel=>panel.classList.remove('active'));document.querySelectorAll(`[data-controls="${name}"] .pick`).forEach(item=>item.classList.remove('active'));document.getElementById(button.dataset.show).classList.add('active');button.classList.add('active')}));
   </script>
   <script src="hall-of-fame-details.js"></script>
+  <link rel="stylesheet" href="celestial-crown.css">
+  <script src="celestial-crown.js"></script>
 </body>
 </html>

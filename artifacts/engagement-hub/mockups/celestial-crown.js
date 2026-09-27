@@ -1,0 +1,20 @@
+const celestial = document.querySelector('#podium-1 .frame');
+celestial.classList.add('celestial-refined');
+celestial.insertAdjacentHTML('afterbegin', `<svg class="celestial-map" viewBox="0 0 1000 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g fill="none" stroke="#d4ad66" stroke-width=".6"><circle cx="500" cy="375" r="285"/><circle cx="500" cy="375" r="270" stroke-dasharray="1 12"/><path d="M180 170 256 220 207 330 110 285 180 170M820 170 744 220 793 330 890 285 820 170M340 90 500 125 660 90M400 50 500 125 600 50"/></g><g fill="#ebc989">${[[180,170],[256,220],[207,330],[110,285],[820,170],[744,220],[793,330],[890,285],[340,90],[500,125],[660,90]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.5"/>`).join('')}</g></svg><div class="crown-stage-arch" aria-hidden="true"></div>`);
+celestial.querySelector('.stage-head').insertAdjacentHTML('beforeend', '<div class="award-category"><span>RTN VIP</span><span>MONTHLY KPI</span><span>SEPTEMBER 2026</span></div>');
+const crownIcon = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="m7 12 10 10L30 5l13 17 10-10-6 24H13z" fill="url(#crown-metal)" stroke="#fff0c4"/><path d="M14 40h32M17 32h26" stroke="#e4b654" stroke-width="3"/><circle cx="7" cy="10" r="3" fill="#ffdfa0"/><circle cx="30" cy="4" r="3" fill="#ffdfa0"/><circle cx="53" cy="10" r="3" fill="#ffdfa0"/><defs><linearGradient id="crown-metal" x2="0" y2="1"><stop stop-color="#ffebae"/><stop offset="1" stop-color="#aa6d23"/></linearGradient></defs></svg>';
+celestial.querySelector('.crown').innerHTML = crownIcon;
+celestial.querySelectorAll('.royal-place').forEach((place,index)=>{
+  const rank = [2,1,3][index];
+  place.dataset.rank = rank;
+  place.querySelector('.medal').innerHTML = `<span class="rank-jewel">${rank === 1 ? '✦' : rank === 2 ? 'II' : 'III'}</span><span>${rank === 1 ? 'THE MONTHLY CHAMPION' : rank === 2 ? 'SILVER HONORS' : 'BRONZE HONORS'}</span>`;
+  place.querySelector('.score').insertAdjacentHTML('afterend', '<span class="score-caption">ACHIEVEMENT SCORE</span>');
+  place.querySelector('.rank-detail').remove();
+  place.querySelector('.place-number').insertAdjacentHTML('beforebegin', '<div class="engraved-divider" aria-hidden="true"><i></i>✧<i></i></div>');
+  place.insertAdjacentHTML('beforeend', `<div class="podium-foot-label">${rank===1?'GOLD DISTINCTION':rank===2?'SILVER DISTINCTION':'BRONZE DISTINCTION'}</div>`);
+});
+celestial.insertAdjacentHTML('beforeend', '<div class="stage-dedication"><span>✦</span> CELEBRATING EXCELLENCE, TOGETHER <span>✦</span></div>');
+document.querySelector('#podium-1 .concept-note').innerHTML = '<span class="option-no">01</span><div><b>Celestial Crown · refined</b><br>A celestial backdrop, sculpted metallic crown, engraved rank badges, inset panels, and a layered awards stage. Clean avatar circles with no surrounding branches.</div>';
+document.querySelector('[data-show="cert-3"]').textContent = 'C · Midnight Registry ✓ Confirmed';
+document.querySelectorAll('[data-group="certificate"]').forEach(panel => panel.classList.toggle('active',panel.id==='cert-3'));
+document.querySelectorAll('[data-controls="certificate"] .pick').forEach(button=>button.classList.toggle('active',button.dataset.show==='cert-3'));
