@@ -14,7 +14,7 @@ function RegistryEmblem() {
   const pathId = `registry-emblem-${BRAND_NAME.replace(/[^a-z0-9]/gi, "").toLowerCase()}`;
 
   return (
-    <svg className="record-certificate__emblem" viewBox="0 0 240 240" role="img" aria-label={`${BRAND_NAME} Guinness Record emblem`}>
+    <svg className="record-certificate__emblem" viewBox="0 0 240 255" role="img" aria-label={`${BRAND_NAME} Guinness Record emblem`}>
       <defs>
         <path id={`${pathId}-top`} d="M 45,118 A 75,75 0 0,1 195,118" />
         <path id={`${pathId}-bottom`} d="M 35,132 A 88,88 0 0,0 205,132" />
@@ -31,7 +31,8 @@ function RegistryEmblem() {
       <path d="m120 55 8 17 19 2-14 13 4 19-17-9-17 9 4-19-14-13 19-2Z" fill="#d3a72e" />
       <path d="M91 116h58v13c0 19-12 32-29 32s-29-13-29-32Zm29 45v19m-18 0h36" fill="none" stroke="#112840" strokeWidth="7" strokeLinecap="square" />
       <path d="M91 122H78c0 16 7 24 20 26m51-26h13c0 16-7 24-20 26" fill="none" stroke="#112840" strokeWidth="6" />
-      <text x="120" y="196" textAnchor="middle" textLength="80" lengthAdjust="spacingAndGlyphs" className="record-certificate__emblem-caption">COMPANY HONORS</text>
+      <rect x="66" y="230" width="108" height="20" rx="10" className="record-certificate__emblem-caption-bg" />
+      <text x="120" y="244" textAnchor="middle" textLength="88" lengthAdjust="spacingAndGlyphs" className="record-certificate__emblem-caption">COMPANY HONORS</text>
     </svg>
   );
 }
