@@ -7,6 +7,7 @@ import {
   useReactions,
   useToggleReaction,
   EMOJI_PICKER_OPTIONS,
+  type Reaction,
   type TargetType,
 } from "@/hooks/use-social";
 import { cn } from "@/lib/utils";
@@ -15,13 +16,16 @@ export function ReactionBar({
   targetType,
   targetId,
   onDark,
+  reactions: suppliedReactions,
 }: {
   targetType: TargetType;
   targetId: string;
   onDark?: boolean
+  reactions?: Reaction[];
 }) {
   const { session } = useAuth();
-  const { data: reactions = [] } = useReactions(targetType, targetId);
+  const { data: loadedReactions = [] } = useReactions(targetType, targetId, suppliedReactions === undefined);
+  const reactions = suppliedReactions ?? loadedReactions;
   const toggle = useToggleReaction(targetType, targetId);
   const [pickerOpen, setPickerOpen] = useState(false);
 

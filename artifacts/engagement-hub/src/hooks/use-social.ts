@@ -127,10 +127,11 @@ export function useDeleteComment(targetType: TargetType, targetId: string) {
   });
 }
 
-export function useReactions(targetType: TargetType, targetId: string) {
+export function useReactions(targetType: TargetType, targetId: string, enabled = true) {
   useRealtimeInvalidate("reactions", targetType);
   return useQuery({
     queryKey: ["reactions", targetType, targetId],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
@@ -169,11 +170,11 @@ export function useReactionsForTargets(targetType: TargetType, targetIds: string
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reactions")
-        .select("target_id, emoji")
+        .select("*, user:profiles(username)")
         .eq("target_type", targetType)
         .in("target_id", targetIds);
       if (error) throw error;
-      return data as { target_id: string; emoji: string }[];
+      return data as unknown as Reaction[];
     },
   });
 }
@@ -208,6 +209,9 @@ export function useToggleReaction(targetType: TargetType, targetId: string) {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reactions", targetType, targetId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reactions", targetType, targetId] });
+      qc.invalidateQueries({ queryKey: ["reactions-bulk", targetType] });
+    },
   });
 }

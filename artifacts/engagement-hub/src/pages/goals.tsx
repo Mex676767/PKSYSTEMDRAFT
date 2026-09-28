@@ -19,7 +19,14 @@ import {
   type GoalCategory,
   type Goal,
 } from "@/hooks/use-goals";
-import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-social";
+import {
+  useCommentsForTargets,
+  useReactionsForTargets,
+  useAddComment,
+  useDeleteComment,
+  type Comment,
+  type Reaction,
+} from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { useDirectory, type DirectoryProfile } from "@/hooks/use-mentors";
 import { uploadProgressPhoto } from "@/hooks/use-progress-photos";
@@ -200,10 +207,13 @@ export default function Goals() {
   }, [goals]);
 
   const q = search.trim().toLowerCase();
-  const filtered = directory.filter(
-    (p) =>
-      (!q || p.username.toLowerCase().includes(q)) &&
-      (view !== "card" || !departmentFilter || p.department === departmentFilter),
+  const filtered = useMemo(
+    () => directory.filter(
+      (p) =>
+        (!q || p.username.toLowerCase().includes(q)) &&
+        (view !== "card" || !departmentFilter || p.department === departmentFilter),
+    ),
+    [departmentFilter, directory, q, view],
   );
 
   const sortedPeople = useMemo(() => {
@@ -220,6 +230,30 @@ export default function Goals() {
         a.username.localeCompare(b.username)
     );
   }, [filtered, session?.user.id, roles]);
+
+  const profileIds = useMemo(() => view === "card" ? directory.map((person) => person.id) : [], [directory, view]);
+  const { data: profileComments = [] } = useCommentsForTargets("profile", profileIds);
+  const { data: profileReactions = [] } = useReactionsForTargets("profile", profileIds);
+
+  const commentsByProfile = useMemo(() => {
+    const grouped = new Map<string, Comment[]>();
+    for (const comment of profileComments) {
+      const group = grouped.get(comment.target_id) ?? [];
+      group.push(comment);
+      grouped.set(comment.target_id, group);
+    }
+    return grouped;
+  }, [profileComments]);
+
+  const reactionsByProfile = useMemo(() => {
+    const grouped = new Map<string, Reaction[]>();
+    for (const reaction of profileReactions) {
+      const group = grouped.get(reaction.target_id) ?? [];
+      group.push(reaction);
+      grouped.set(reaction.target_id, group);
+    }
+    return grouped;
+  }, [profileReactions]);
 
   if (goalsLoading || directoryLoading) {
     return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" /></div>;
@@ -495,6 +529,8 @@ export default function Goals() {
               key={p.id}
               person={p}
               goals={goalsByOwner.get(p.id) ?? []}
+              comments={commentsByProfile.get(p.id) ?? []}
+              reactions={reactionsByProfile.get(p.id) ?? []}
               onClick={() => setSelected(p)}
             />
           ))}
@@ -545,15 +581,18 @@ function PersonGoalCard(
   {
     person,
     goals,
+    comments,
+    reactions,
     onClick,
   }: {
     person: DirectoryProfile;
     goals: Goal[];
+    comments: Comment[];
+    reactions: Reaction[];
     onClick: () => void;
   }
 ) {
   const { session, isAdmin } = useAuth();
-  const { data: comments = [] } = useComments("profile", person.id);
   const addComment = useAddComment("profile", person.id);
   const deleteComment = useDeleteComment("profile", person.id);
   const [commentText, setCommentText] = useState("");
@@ -680,7 +719,7 @@ function PersonGoalCard(
       </div>
 
       <div className="pt-2 border-t border-border/50">
-        <ReactionBar targetType="profile" targetId={person.id} />
+        <ReactionBar targetType="profile" targetId={person.id} reactions={reactions} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
+import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/hooks/use-social";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { ImagePickerButton } from "@/components/image-picker-button";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/draft-storage";
@@ -17,7 +18,26 @@ const NEW_POST_DRAFT_KEY = "c9myr:new-post-draft";
 export default function Social() {
   const { session, profile } = useAuth();
   const { data: posts = [], isLoading } = usePostsFeed();
+  const postIds = useMemo(() => posts.map((post) => post.id), [posts]);
+  const { data: comments = [] } = useCommentsForTargets("post", postIds);
+  const { data: reactions = [] } = useReactionsForTargets("post", postIds);
   const createPost = useCreatePost();
+
+  const commentCountByPost = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const comment of comments) counts.set(comment.target_id, (counts.get(comment.target_id) ?? 0) + 1);
+    return counts;
+  }, [comments]);
+
+  const reactionsByPost = useMemo(() => {
+    const grouped = new Map<string, Reaction[]>();
+    for (const reaction of reactions) {
+      const group = grouped.get(reaction.target_id) ?? [];
+      group.push(reaction);
+      grouped.set(reaction.target_id, group);
+    }
+    return grouped;
+  }, [reactions]);
 
   const [body, setBody] = useState(() => loadDraft<string>(NEW_POST_DRAFT_KEY) ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -136,7 +156,11 @@ export default function Social() {
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
           {posts.map((post) => (
             <motion.div key={post.id} variants={slideUp}>
-              <PostCard post={post} />
+              <PostCard
+                post={post}
+                commentCount={commentCountByPost.get(post.id) ?? 0}
+                reactions={reactionsByPost.get(post.id) ?? []}
+              />
             </motion.div>
           ))}
         </motion.div>

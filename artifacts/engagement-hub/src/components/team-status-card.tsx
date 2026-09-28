@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
@@ -38,10 +38,13 @@ export function TeamStatusCard() {
   const { occupants } = useVoiceCall();
   const [historyUser, setHistoryUser] = useState<{ id: string; username: string } | null>(null);
 
-  const voiceChannelByUserId = new Map<string, string>();
-  for (const [channelId, participants] of occupants) {
-    for (const p of participants) voiceChannelByUserId.set(p.id, channelId);
-  }
+  const voiceChannelByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [channelId, participants] of occupants) {
+      for (const participant of participants) map.set(participant.id, channelId);
+    }
+    return map;
+  }, [occupants]);
 
   return (
     <Card className="border-primary/20 shadow-sm bg-gradient-to-br from-primary/10 via-card to-card">

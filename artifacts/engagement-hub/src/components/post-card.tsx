@@ -5,14 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
-import { useComments } from "@/hooks/use-social";
+import type { Reaction } from "@/hooks/use-social";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { getPostImageUrl, useDeletePost, type Post } from "@/hooks/use-posts";
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post, commentCount, reactions }: { post: Post; commentCount: number; reactions: Reaction[] }) {
   const { session, isAdmin } = useAuth();
   const [showComments, setShowComments] = useState(false);
-  const { data: comments = [] } = useComments("post", post.id);
   const deletePost = useDeletePost();
   const isOwner = post.author_id === session?.user.id;
   const canDelete = isOwner || isAdmin;
@@ -48,18 +47,18 @@ export function PostCard({ post }: { post: Post }) {
         {post.body && <p className="px-4 pb-3 text-sm whitespace-pre-wrap">{post.body}</p>}
 
         {post.image_path && (
-          <img src={getPostImageUrl(post.image_path)} alt="" className="w-full max-h-[480px] object-cover" />
+          <img src={getPostImageUrl(post.image_path)} alt="" loading="lazy" decoding="async" className="w-full max-h-[480px] object-cover" />
         )}
 
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <ReactionBar targetType="post" targetId={post.id} />
+            <ReactionBar targetType="post" targetId={post.id} reactions={reactions} />
             <button
               onClick={() => setShowComments((s) => !s)}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
-              {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
+              {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? "" : "s"}` : "Comment"}
               {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>

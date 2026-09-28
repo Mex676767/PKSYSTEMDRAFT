@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { BorderDecoration } from "./border-decoration";
 import { AccessoryDecoration } from "./accessory-decoration";
@@ -18,7 +18,7 @@ interface UserAvatarProps {
   reserveSpace?: boolean
 }
 
-export function UserAvatar({ user, className, style, accessory, photoUrl, border, reserveSpace = true }: UserAvatarProps) {
+function UserAvatarComponent({ user, className, style, accessory, photoUrl, border, reserveSpace = true }: UserAvatarProps) {
   const avatarRef = useRef<HTMLSpanElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
@@ -56,7 +56,7 @@ export function UserAvatar({ user, className, style, accessory, photoUrl, border
     <div ref={wrapRef} className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
       <AccessoryDecoration accessory={accessory} layer="back" />
       <Avatar ref={avatarRef} className={cn("border-2 border-background bg-muted relative z-10", className, isBorderKey(border) && "border-0")} style={style}>
-        {photoUrl && <AvatarImage src={photoUrl} alt={user.name} />}
+        {photoUrl && <AvatarImage src={photoUrl} alt={user.name} loading="lazy" decoding="async" />}
         <AvatarFallback className={cn("text-white font-bold", user.color)}>
           {user.initials}
         </AvatarFallback>
@@ -66,3 +66,26 @@ export function UserAvatar({ user, className, style, accessory, photoUrl, border
     </div>
   );
 }
+
+function sameStyle(a?: CSSProperties, b?: CSSProperties) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a) as (keyof CSSProperties)[];
+  const bKeys = Object.keys(b) as (keyof CSSProperties)[];
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+}
+
+export const UserAvatar = memo(
+  UserAvatarComponent,
+  (previous, next) =>
+    previous.user.name === next.user.name &&
+    previous.user.initials === next.user.initials &&
+    previous.user.color === next.user.color &&
+    previous.className === next.className &&
+    previous.accessory === next.accessory &&
+    previous.photoUrl === next.photoUrl &&
+    previous.border === next.border &&
+    previous.reserveSpace === next.reserveSpace &&
+    sameStyle(previous.style, next.style),
+);
+UserAvatar.displayName = "UserAvatar";
