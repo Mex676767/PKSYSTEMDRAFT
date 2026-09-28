@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
@@ -11,6 +11,23 @@ import {
   type TargetType,
 } from "@/hooks/use-social";
 import { cn } from "@/lib/utils";
+
+const EmojiPickerGrid = memo(function EmojiPickerGrid({
+  onPick,
+}: {
+  onPick: (emoji: string) => void;
+}) {
+  return EMOJI_PICKER_OPTIONS.map((emoji) => (
+    <button
+      key={emoji}
+      type="button"
+      onClick={() => onPick(emoji)}
+      className="text-base leading-none p-1.5 rounded hover:bg-muted"
+    >
+      {emoji}
+    </button>
+  ));
+});
 
 export function ReactionBar({
   targetType,
@@ -28,6 +45,13 @@ export function ReactionBar({
   const reactions = suppliedReactions ?? loadedReactions;
   const toggle = useToggleReaction(targetType, targetId);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerPrepared, setPickerPrepared] = useState(false);
+
+  const preparePicker = useCallback(() => setPickerPrepared(true), []);
+  const pickEmoji = useCallback((emoji: string) => {
+    toggle.mutate(emoji);
+    setPickerOpen(false);
+  }, [toggle]);
 
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -88,6 +112,9 @@ export function ReactionBar({
           <button
             disabled={!session}
             title="Add a reaction"
+            onPointerEnter={preparePicker}
+            onPointerDown={preparePicker}
+            onFocus={preparePicker}
             className={cn(
               "w-6 h-6 rounded-full border border-dashed flex items-center justify-center shrink-0 transition-colors",
               !session && "cursor-not-allowed opacity-40",
@@ -98,22 +125,12 @@ export function ReactionBar({
           </button>
         </PopoverTrigger>
         <PopoverContent
+          forceMount={pickerPrepared ? true : undefined}
           side="top"
           align="end"
-          className="w-64 max-h-48 overflow-y-auto p-2 grid grid-cols-8 gap-0.5"
+          className="reaction-picker w-64 max-h-48 overflow-y-auto p-2 grid grid-cols-8 gap-0.5 data-[state=open]:animate-none data-[state=closed]:animate-none data-[state=closed]:pointer-events-none data-[state=closed]:invisible"
         >
-          {EMOJI_PICKER_OPTIONS.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => {
-                toggle.mutate(emoji);
-                setPickerOpen(false);
-              }}
-              className="text-base leading-none p-1.5 rounded hover:bg-muted transition-colors"
-            >
-              {emoji}
-            </button>
-          ))}
+          <EmojiPickerGrid onPick={pickEmoji} />
         </PopoverContent>
       </Popover>
     </div>

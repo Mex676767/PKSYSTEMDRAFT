@@ -365,6 +365,12 @@ body.tab-hidden .progress-shimmer::after {
   contain-intrinsic-size: auto 380px;
 }
 
+.reaction-picker {
+  contain: layout paint style;
+  isolation: isolate;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
 .dark .app-gradient-bg {
   background-image:
     radial-gradient(ellipse 900px 600px at 8% -10%, hsl(var(--flame-1) / 0.25), transparent 60%),
