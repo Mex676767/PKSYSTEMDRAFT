@@ -308,13 +308,7 @@
   animation: screen-shake 0.35s ease-in-out;
 }
 
-@keyframes atmosphere-hue-cycle {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
-}
-.atmosphere-hue {
-  animation: atmosphere-hue-cycle 20s linear infinite;
-}
+.atmosphere-hue { transform: translateZ(0); }
 
 @keyframes firefly-float-up {
   0% { transform: translateY(0) translateX(0); opacity: 0; }
@@ -330,6 +324,7 @@
   animation-name: firefly-float-up;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes progress-shimmer-sweep {
@@ -361,7 +356,13 @@ body.tab-hidden .progress-shimmer::after {
     radial-gradient(ellipse 900px 600px at 8% -10%, hsl(var(--flame-1) / 0.16), transparent 60%),
     radial-gradient(ellipse 800px 700px at 100% 0%, hsl(var(--electric-1) / 0.14), transparent 55%),
     radial-gradient(ellipse 700px 600px at 50% 100%, hsl(var(--flame-2) / 0.1), transparent 55%);
-  background-attachment: fixed;
+}
+
+/* Skip layout and paint work for long-feed cards until they approach the
+   viewport. The intrinsic height keeps the scrollbar stable while skipped. */
+.render-when-visible {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 380px;
 }
 
 .dark .app-gradient-bg {

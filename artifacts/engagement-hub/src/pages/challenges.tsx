@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 import { PageTransition, staggerContainer } from "@/components/animations";
@@ -24,7 +24,7 @@ import { PkWizard } from "@/components/pk/pk-wizard";
 import { PkLeaderboard } from "@/components/pk/pk-leaderboard";
 import { PkLibrary } from "@/components/pk/pk-library";
 import { PK_CLOSED, PK_LIVE, PK_SETUP, type Pk } from "@/lib/pk";
-import { useComments } from "@/hooks/use-social";
+import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/hooks/use-social";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { ProgressPhotos } from "@/components/progress-photos";
@@ -44,6 +44,25 @@ export default function Challenges() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("arena");
   const [showClosed, setShowClosed] = useState(false);
+  const legacyIds = useMemo(() => tab === "old" ? legacy.map((challenge) => challenge.id) : [], [legacy, tab]);
+  const { data: legacyComments = [] } = useCommentsForTargets("challenge", legacyIds);
+  const { data: legacyReactions = [] } = useReactionsForTargets("challenge", legacyIds);
+
+  const commentCountByChallenge = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const comment of legacyComments) counts.set(comment.target_id, (counts.get(comment.target_id) ?? 0) + 1);
+    return counts;
+  }, [legacyComments]);
+
+  const reactionsByChallenge = useMemo(() => {
+    const grouped = new Map<string, Reaction[]>();
+    for (const reaction of legacyReactions) {
+      const group = grouped.get(reaction.target_id) ?? [];
+      group.push(reaction);
+      grouped.set(reaction.target_id, group);
+    }
+    return grouped;
+  }, [legacyReactions]);
 
   const involved = (pk: Pk) => pk.participants.some((p) => p.user_id === mine);
   const myPks = pks.filter(involved);
@@ -141,7 +160,15 @@ export default function Challenges() {
 
       {tab === "old" && (
         <Section title="Challenges from before the PK system" icon={Trophy}>
-          {legacy.length === 0 ? <EmptyState text="No old challenges." /> : legacy.map((c) => <ChallengeCard key={c.id} challenge={c} viewerId={mine} />)}
+          {legacy.length === 0 ? <EmptyState text="No old challenges." /> : legacy.map((c) => (
+            <ChallengeCard
+              key={c.id}
+              challenge={c}
+              viewerId={mine}
+              commentCount={commentCountByChallenge.get(c.id) ?? 0}
+              reactions={reactionsByChallenge.get(c.id) ?? []}
+            />
+          ))}
         </Section>
       )}
 
@@ -203,7 +230,7 @@ function PersonBadge({
   );
 }
 
-function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewerId: string | undefined }) {
+function ChallengeCard({ challenge: c, viewerId, commentCount, reactions }: { challenge: Challenge; viewerId: string | undefined; commentCount: number; reactions: Reaction[] }) {
   const { roles } = useOrgStructure();
   const { isAdmin } = useAuth();
   const respond = useRespondChallenge();
@@ -214,7 +241,6 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
   const [error, setError] = useState<string | null>(null);
   const [scoreInput, setScoreInput] = useState<string>("");
   const [showComments, setShowComments] = useState(false);
-  const { data: comments = [] } = useComments("challenge", c.id);
 
   const isCreator = c.creator_id === viewerId;
   const isOpponent = c.opponent_id === viewerId;
@@ -237,7 +263,7 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
 
   return (
     <Card className={cn(
-      "shadow-sm",
+      "render-when-visible shadow-sm",
       c.status === "completed" && "border-emerald-500/30",
       c.status === "declined" && "opacity-60 border-dashed"
     )}>
@@ -362,13 +388,13 @@ function ChallengeCard({ challenge: c, viewerId }: { challenge: Challenge; viewe
         <ProgressPhotos targetType="challenge" targetId={c.id} canUpload={isParticipant} />
 
         <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-border/50 -mx-4 px-4 pt-3">
-          <ReactionBar targetType="challenge" targetId={c.id} />
+          <ReactionBar targetType="challenge" targetId={c.id} reactions={reactions} />
           <button
             onClick={() => setShowComments((s) => !s)}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <MessageCircle className="w-4 h-4" />
-            {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
+            {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? "" : "s"}` : "Comment"}
             {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>

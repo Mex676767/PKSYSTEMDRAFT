@@ -820,14 +820,26 @@ export function useVoiceChannels(
 
   useEffect(() => {
     if (!joinedId) return;
-    const tick = () => {
+    let lastSampleAt = 0;
+    const tick = (now: number) => {
+      // Audio analysis does not need display-refresh frequency. Updating this
+      // context every animation frame made every voice-aware surface rerender
+      // up to 60 times per second while a call was active.
+      if (now - lastSampleAt < 100) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      lastSampleAt = now;
       const speaking = new Set<string>();
       analysersRef.current.forEach(({ analyser, data }, id) => {
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((sum, v) => sum + v, 0) / data.length;
         if (avg > 12) speaking.add(id);
       });
-      setSpeakingIds(speaking);
+      setSpeakingIds((current) => {
+        if (current.size === speaking.size && [...current].every((id) => speaking.has(id))) return current;
+        return speaking;
+      });
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);

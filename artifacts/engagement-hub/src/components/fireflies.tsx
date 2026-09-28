@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 const FIREFLY_COLORS = ["#ec4899", "#fb923c", "#a855f7", "#22d3ee", "#facc15"];
-const FIREFLY_COUNT = 22;
+const FIREFLY_COUNT = 12;
 
 type Firefly = {
   id: number;

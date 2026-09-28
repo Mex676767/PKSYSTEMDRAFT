@@ -6,11 +6,11 @@ import { useBirthdays, type BirthdayEntry } from "@/hooks/use-birthdays";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Cake, CalendarHeart, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Confetti } from "@/components/confetti";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
-import { useComments } from "@/hooks/use-social";
+import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/hooks/use-social";
 import { SendBirthdayWish } from "@/components/send-birthday-wish";
 
 function displayDate(birthday: string) {
@@ -22,6 +22,25 @@ export default function Birthdays() {
   const { data: birthdays = [], isLoading } = useBirthdays();
   const { profile } = useAuth();
   const [showConfetti, setShowConfetti] = useState(false);
+  const birthdayIds = useMemo(() => birthdays.map((birthday) => birthday.id), [birthdays]);
+  const { data: comments = [] } = useCommentsForTargets("birthday", birthdayIds);
+  const { data: reactions = [] } = useReactionsForTargets("birthday", birthdayIds);
+
+  const commentCountByBirthday = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const comment of comments) counts.set(comment.target_id, (counts.get(comment.target_id) ?? 0) + 1);
+    return counts;
+  }, [comments]);
+
+  const reactionsByBirthday = useMemo(() => {
+    const grouped = new Map<string, Reaction[]>();
+    for (const reaction of reactions) {
+      const group = grouped.get(reaction.target_id) ?? [];
+      group.push(reaction);
+      grouped.set(reaction.target_id, group);
+    }
+    return grouped;
+  }, [reactions]);
 
   if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-pulse w-8 h-8 rounded-full bg-pink-500/20" /></div>;
 
@@ -55,7 +74,13 @@ export default function Birthdays() {
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4">
             {todayBdays.map((b) => (
               <motion.div variants={slideUp} key={b.id}>
-                <TodayBirthdayCard birthday={b} isMe={b.id === profile?.id} onSent={celebrate} />
+                <TodayBirthdayCard
+                  birthday={b}
+                  isMe={b.id === profile?.id}
+                  onSent={celebrate}
+                  commentCount={commentCountByBirthday.get(b.id) ?? 0}
+                  reactions={reactionsByBirthday.get(b.id) ?? []}
+                />
               </motion.div>
             ))}
           </motion.div>
@@ -69,7 +94,7 @@ export default function Birthdays() {
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcomingBdays.map((b) => (
             <motion.div variants={slideUp} whileHover={{ y: -2 }} key={b.id}>
-              <Card className="hover:border-secondary/40 hover:shadow-md transition-all bg-gradient-to-br from-secondary/10 to-card">
+              <Card className="render-when-visible hover:border-secondary/40 hover:shadow-md transition-all bg-gradient-to-br from-secondary/10 to-card">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-xl w-14 h-14 shrink-0 text-center shadow-sm">
@@ -91,7 +116,7 @@ export default function Birthdays() {
                     </div>
                   </div>
                   <div className="pt-1 border-t border-border/50">
-                    <ReactionBar targetType="birthday" targetId={b.id} />
+                    <ReactionBar targetType="birthday" targetId={b.id} reactions={reactionsByBirthday.get(b.id) ?? []} />
                   </div>
                 </CardContent>
               </Card>
@@ -112,13 +137,16 @@ function TodayBirthdayCard({
   birthday,
   isMe,
   onSent,
+  commentCount,
+  reactions,
 }: {
   birthday: BirthdayEntry;
   isMe: boolean;
   onSent: () => void;
+  commentCount: number;
+  reactions: Reaction[];
 }) {
   const [showComments, setShowComments] = useState(false);
-  const { data: comments = [] } = useComments("birthday", birthday.id);
   const username = birthday.username ?? "unknown";
 
   return (
@@ -151,13 +179,13 @@ function TodayBirthdayCard({
 
         <div className="pt-4 border-t border-white/20 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <ReactionBar targetType="birthday" targetId={birthday.id} onDark />
+            <ReactionBar targetType="birthday" targetId={birthday.id} onDark reactions={reactions} />
             <button
               onClick={() => setShowComments((s) => !s)}
               className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
-              {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "Comment"}
+              {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? "" : "s"}` : "Comment"}
               {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageCircle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import type { Reaction } from "@/hooks/use-social";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { getPostImageUrl, useDeletePost, type Post } from "@/hooks/use-posts";
 
-export function PostCard({ post, commentCount, reactions }: { post: Post; commentCount: number; reactions: Reaction[] }) {
+function PostCardComponent({ post, commentCount, reactions }: { post: Post; commentCount: number; reactions: Reaction[] }) {
   const { session, isAdmin } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const deletePost = useDeletePost();
@@ -17,7 +17,7 @@ export function PostCard({ post, commentCount, reactions }: { post: Post; commen
   const canDelete = isOwner || isAdmin;
 
   return (
-    <Card className="shadow-sm overflow-hidden">
+    <Card className="render-when-visible shadow-sm overflow-hidden">
       <CardContent className="p-0">
         <div className="p-4 flex items-center gap-3">
           <UserAvatar
@@ -68,3 +68,19 @@ export function PostCard({ post, commentCount, reactions }: { post: Post; commen
     </Card>
   );
 }
+
+function sameReactions(previous: Reaction[], next: Reaction[]) {
+  return previous.length === next.length && previous.every((reaction, index) => {
+    const candidate = next[index];
+    return reaction.id === candidate?.id && reaction.emoji === candidate.emoji && reaction.user_id === candidate.user_id;
+  });
+}
+
+export const PostCard = memo(
+  PostCardComponent,
+  (previous, next) =>
+    previous.post === next.post &&
+    previous.commentCount === next.commentCount &&
+    sameReactions(previous.reactions, next.reactions),
+);
+PostCard.displayName = "PostCard";

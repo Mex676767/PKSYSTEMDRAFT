@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -577,7 +577,7 @@ export default function Goals() {
   );
 }
 
-function PersonGoalCard(
+const PersonGoalCard = memo(function PersonGoalCard(
   {
     person,
     goals,
@@ -615,7 +615,7 @@ function PersonGoalCard(
   };
 
   return (
-    <div className="flex h-[23rem] min-h-0 flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+    <div className="render-when-visible flex h-[23rem] min-h-0 flex-col bg-card border-2 border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
       <button onClick={onClick} className="flex items-center gap-2.5 min-w-0 mb-4 text-left hover:opacity-80 transition-opacity">
         <UserAvatar
           user={{ initials: initialsForUsername(person.username), color: colorForId(person.id), name: person.username }}
@@ -723,4 +723,19 @@ function PersonGoalCard(
       </div>
     </div>
   );
-}
+}, (previous, next) => {
+  const sameComments =
+    previous.comments.length === next.comments.length &&
+    previous.comments.every((comment, index) => {
+      const candidate = next.comments[index];
+      return comment.id === candidate?.id && comment.body === candidate.body;
+    });
+  const sameReactions =
+    previous.reactions.length === next.reactions.length &&
+    previous.reactions.every((reaction, index) => {
+      const candidate = next.reactions[index];
+      return reaction.id === candidate?.id && reaction.emoji === candidate.emoji && reaction.user_id === candidate.user_id;
+    });
+  return previous.person === next.person && previous.goals === next.goals && sameComments && sameReactions;
+});
+PersonGoalCard.displayName = "PersonGoalCard";

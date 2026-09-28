@@ -10,7 +10,7 @@ export function CursorSparkleTrail() {
     let lastTime = 0;
     const handler = (e: MouseEvent) => {
       const now = Date.now();
-      if (now - lastTime < 60) return;
+      if (now - lastTime < 120) return;
       lastTime = now;
 
       const sparkle = document.createElement("div");
