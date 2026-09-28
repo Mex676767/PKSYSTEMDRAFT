@@ -14,25 +14,23 @@ function RegistryEmblem() {
   const pathId = `registry-emblem-${BRAND_NAME.replace(/[^a-z0-9]/gi, "").toLowerCase()}`;
 
   return (
-    <svg className="record-certificate__emblem" viewBox="0 0 240 255" role="img" aria-label={`${BRAND_NAME} Guinness Record emblem`}>
+    <svg className="record-certificate__emblem" viewBox="0 0 240 240" role="img" aria-label={`${BRAND_NAME} Guinness Record emblem`}>
       <defs>
-        <path id={`${pathId}-top`} d="M 45,118 A 75,75 0 0,1 195,118" />
-        <path id={`${pathId}-bottom`} d="M 35,132 A 88,88 0 0,0 205,132" />
+        <path id={`${pathId}-top`} d="M 35,120 A 85,85 0 0,1 205,120" />
+        <path id={`${pathId}-bottom`} d="M 25,120 A 95,95 0 0,0 215,120" />
       </defs>
-      <circle cx="120" cy="120" r="105" fill="#112840" stroke="#d9bd68" strokeWidth="3" />
-      <circle cx="120" cy="120" r="96" fill="none" stroke="#f6f0d8" strokeWidth="2" />
-      <circle cx="120" cy="120" r="66" fill="#f7f3df" stroke="#d9bd68" strokeWidth="2" />
+      <circle cx="120" cy="120" r="115" fill="#293b52" />
+      <circle cx="120" cy="120" r="110" fill="none" stroke="#d6d8c9" strokeWidth="2" />
+      <circle cx="120" cy="120" r="76" fill="#fafaf3" />
       <text className="record-certificate__emblem-arc">
         <textPath href={`#${pathId}-top`} startOffset="50%" textAnchor="middle">{BRAND_NAME}</textPath>
       </text>
       <text className="record-certificate__emblem-arc record-certificate__emblem-arc--bottom">
         <textPath href={`#${pathId}-bottom`} startOffset="50%" textAnchor="middle">GUINNESS RECORD</textPath>
       </text>
-      <path d="m120 55 8 17 19 2-14 13 4 19-17-9-17 9 4-19-14-13 19-2Z" fill="#d3a72e" />
-      <path d="M91 116h58v13c0 19-12 32-29 32s-29-13-29-32Zm29 45v19m-18 0h36" fill="none" stroke="#112840" strokeWidth="7" strokeLinecap="square" />
-      <path d="M91 122H78c0 16 7 24 20 26m51-26h13c0 16-7 24-20 26" fill="none" stroke="#112840" strokeWidth="6" />
-      <rect x="66" y="230" width="108" height="20" rx="10" className="record-certificate__emblem-caption-bg" />
-      <text x="120" y="244" textAnchor="middle" textLength="88" lengthAdjust="spacingAndGlyphs" className="record-certificate__emblem-caption">COMPANY HONORS</text>
+      <path d="m120 57 7 16 18 2-13 12 4 18-16-9-16 9 4-18-13-12 18-2Z" fill="#c8a046" />
+      <path d="M94 110h52v11c0 20-11 28-22 32v13h15v7h-38v-7h15v-13c-11-4-22-12-22-32z M94 115H81v8c0 14 9 21 21 21 M146 115h13v8c0 14-9 21-21 21" fill="none" stroke="#293b52" strokeWidth="5" />
+      <text x="120" y="184" textAnchor="middle" textLength="80" lengthAdjust="spacingAndGlyphs" className="record-certificate__emblem-caption">COMPANY HONORS</text>
     </svg>
   );
 }
