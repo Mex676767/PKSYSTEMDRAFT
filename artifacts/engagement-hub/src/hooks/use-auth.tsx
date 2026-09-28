@@ -63,6 +63,28 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+const AUTH_STARTUP_TIMEOUT_MS = 10_000;
+
+function withStartupTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error(`${label} timed out after ${AUTH_STARTUP_TIMEOUT_MS}ms`)),
+      AUTH_STARTUP_TIMEOUT_MS,
+    );
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
@@ -90,10 +112,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (!data.session) setLoading(false);
-    });
+    let cancelled = false;
+
+    withStartupTimeout(supabase.auth.getSession(), "Session check")
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session);
+        if (!data.session) setLoading(false);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to restore saved session", error);
+        // Never hold the whole app behind an endless splash screen. A stale or
+        // unreachable saved session can be replaced from the normal login page.
+        setSession(null);
+        setProfile(null);
+        setLoading(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -103,7 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -112,18 +150,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     setLoading(true);
 
-    fetchProfile(session.user.id).then((p) => {
-      if (cancelled) return;
-      if (p?.is_deleted) {
-        setDeactivatedNotice(true);
+    withStartupTimeout(fetchProfile(session.user.id), "Profile check")
+      .then((p) => {
+        if (cancelled) return;
+        if (p?.is_deleted) {
+          setDeactivatedNotice(true);
+          setProfile(null);
+          setLoading(false);
+          supabase.auth.signOut();
+          return;
+        }
+        setProfile(p);
+        setLoading(false);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to finish account startup", error);
+        // Returning to login is recoverable; leaving loading=true is not.
+        setSession(null);
         setProfile(null);
         setLoading(false);
-        supabase.auth.signOut();
-        return;
-      }
-      setProfile(p);
-      setLoading(false);
-    });
+      });
 
     return () => { cancelled = true; };
     // Supabase silently refreshes the session (a new object, same user) whenever
@@ -157,18 +204,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, fetchProfile]);
 
   const signInWithEmail = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: window.location.origin + import.meta.env.BASE_URL,
-      },
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await withStartupTimeout(supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + import.meta.env.BASE_URL,
+        },
+      }), "Email sign-in");
+      return { error: error?.message ?? null };
+    } catch {
+      return { error: "The sign-in service is taking too long to respond. Please try again shortly." };
+    }
   };
 
   const signInWithPassword = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await withStartupTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        "Password sign-in",
+      );
+      return { error: error?.message ?? null };
+    } catch {
+      return { error: "The sign-in service is taking too long to respond. Please try again shortly." };
+    }
   };
 
   const signInWithGoogle = async () => {
