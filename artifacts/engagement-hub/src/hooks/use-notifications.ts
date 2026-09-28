@@ -46,7 +46,8 @@ export function useNotifications() {
       if (error) throw error;
       return data as AppNotification[];
     },
-    refetchInterval: 60000,
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {

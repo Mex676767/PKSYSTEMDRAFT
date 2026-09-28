@@ -1,89 +1,30 @@
-import { type ReactNode } from 'react';
+import { lazy, Suspense } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { ServiceWorkerCleanup } from '@/components/service-worker-cleanup';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
-import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import { Users, Gift, Gamepad2, Dices } from 'lucide-react';
-import { Shell } from '@/components/shell';
+import { Router as WouterRouter } from 'wouter';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
-import { VoiceCallProvider } from '@/hooks/use-voice-call';
-import { AppPresenceProvider } from '@/hooks/use-app-presence';
-import { FloatingCallBar } from '@/components/floating-call-bar';
-import { ComingSoon } from '@/pages/coming-soon';
 
-import Login from '@/pages/login';
-import Onboarding from '@/pages/onboarding';
-import Dashboard from '@/pages/dashboard';
-import Goals from '@/pages/goals';
-import Social from '@/pages/social';
-import Challenges from '@/pages/challenges';
-import PkDetail from '@/pages/pk-detail';
-import Messages from '@/pages/messages';
-import Profile from '@/pages/profile';
-import Admin from '@/pages/admin';
-import Rewards from '@/pages/rewards';
-import Birthdays from '@/pages/birthdays';
-import Voice from '@/pages/voice';
-import HallOfFame from '@/pages/hall-of-fame';
-import GuinnessRecords from '@/pages/guinness-records';
-import LearningHub from '@/pages/learning-hub';
-import Gratitude from '@/pages/gratitude';
-import ApprovalPending from '@/pages/approval-pending';
-import { DailyGoalReminder } from '@/components/daily-goal-reminder';
-import { LiveDataSync } from '@/components/live-data-sync';
+const Login = lazy(() => import('@/pages/login'));
+const Onboarding = lazy(() => import('@/pages/onboarding'));
+const ApprovalPending = lazy(() => import('@/pages/approval-pending'));
+const AuthenticatedApp = lazy(() => import('@/components/authenticated-app'));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+    mutations: { retry: 0 },
+  },
+});
 
 const REQUIRE_LOGIN = true;
-
-function Router() {
-  return (
-    <Shell>
-      <DailyGoalReminder />
-      <RoutedErrorBoundary>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/goals" component={Goals} />
-          <Route path="/social" component={Social} />
-          <Route path="/challenges" component={Challenges} />
-          <Route path="/challenges/:id" component={PkDetail} />
-          <Route path="/messages" component={Messages} />
-          <Route path="/hall-of-fame" component={HallOfFame} />
-          <Route path="/guinness-records" component={GuinnessRecords} />
-          <Route path="/learning" component={LearningHub} />
-          <Route path="/gratitude" component={Gratitude} />
-          <Route path="/mentors" component={() => <ComingSoon label="Mentors" icon={Users} />} />
-          <Route path="/birthdays" component={Birthdays} />
-          <Route path="/lottery" component={() => <ComingSoon label="Lucky Draw" icon={Gift} />} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/rewards" component={Rewards} />
-          <Route path="/games" component={() => <ComingSoon label="Games" icon={Gamepad2} />} />
-          <Route path="/games/wordle" component={() => <ComingSoon label="Fastest Wordle Guesser" icon={Gamepad2} />} />
-          <Route path="/games/desk-setup" component={() => <ComingSoon label="Best WFH Desk Setup" icon={Gamepad2} />} />
-          <Route path="/games/quiz" component={() => <ComingSoon label="Brand Knowledge Quiz" icon={Gamepad2} />} />
-          <Route path="/betting" component={() => <ComingSoon label="Betting" icon={Dices} />} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/voice" component={Voice} />
-          <Route component={NotFound} />
-        </Switch>
-      </RoutedErrorBoundary>
-    </Shell>
-  );
-}
-
-function RoutedErrorBoundary({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
-}
-
-function AppPresenceBoundary({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
-  return <AppPresenceProvider userId={profile?.is_approved ? profile.id : undefined}>{children}</AppPresenceProvider>;
-}
 
 function isOnboarded(profile: ReturnType<typeof useAuth>['profile']) {
   return !!(
@@ -98,7 +39,7 @@ function AuthGate() {
   const { session, profile, loading } = useAuth();
 
   if (!REQUIRE_LOGIN) {
-    return <Router />;
+    return <Suspense fallback={<AppLoading />}><AuthenticatedApp /></Suspense>;
   }
 
   if (loading) {
@@ -110,18 +51,26 @@ function AuthGate() {
   }
 
   if (!session) {
-    return <Login />;
+    return <Suspense fallback={<AppLoading />}><Login /></Suspense>;
   }
 
   if (profile && !profile.is_approved) {
-    return <ApprovalPending />;
+    return <Suspense fallback={<AppLoading />}><ApprovalPending /></Suspense>;
   }
 
   if (!isOnboarded(profile)) {
-    return <Onboarding />;
+    return <Suspense fallback={<AppLoading />}><Onboarding /></Suspense>;
   }
 
-  return <Router />;
+  return <Suspense fallback={<AppLoading />}><AuthenticatedApp /></Suspense>;
+}
+
+function AppLoading() {
+  return (
+    <div className="min-h-[100dvh] flex items-center justify-center app-gradient-bg">
+      <div className="animate-pulse w-10 h-10 rounded-full bg-primary/30" />
+    </div>
+  );
 }
 
 function App() {
@@ -129,19 +78,13 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="engagement-hub-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <VoiceCallProvider>
-            <TooltipProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-                <AppPresenceBoundary>
-                  <LiveDataSync />
-                  <AuthGate />
-                  <FloatingCallBar />
-                </AppPresenceBoundary>
-              </WouterRouter>
-              <ServiceWorkerCleanup />
-              <Toaster />
-            </TooltipProvider>
-          </VoiceCallProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+              <AuthGate />
+            </WouterRouter>
+            <ServiceWorkerCleanup />
+            <Toaster />
+          </TooltipProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

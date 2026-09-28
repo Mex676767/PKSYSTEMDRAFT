@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Headphones, Mic, MicOff, PhoneOff, Volume2, VolumeX, X, ChevronUp, Radio } from "lucide-react";
@@ -14,8 +14,8 @@ export function FloatingCallBar() {
   const [location] = useLocation();
   const { profile } = useAuth();
   const { channelId, participants, speakingIds, connectionStates, isStreaming, stopScreenShare, muted, deafened, leave, toggleMute, toggleDeafen, audioBlocked, unlockAudio } = useVoiceCall();
-  const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
-  const directoryById = new Map(directory.map((p) => [p.id, p]));
+  const { data: directory = [] } = useDirectory();
+  const directoryById = useMemo(() => new Map(directory.map((p) => [p.id, p])), [directory]);
   const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {

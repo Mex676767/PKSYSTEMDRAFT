@@ -93,7 +93,12 @@ export function useSetRevampEnabled() {
       const { error } = await supabase.from("points_settings").update({ revamp_enabled: enabled, updated_at: new Date().toISOString() }).eq("id", 1);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.settings });
+      qc.invalidateQueries({ queryKey: KEYS.myMissions });
+      qc.invalidateQueries({ queryKey: KEYS.allMissions });
+      qc.invalidateQueries({ queryKey: KEYS.rewards });
+    },
   });
 }
 
@@ -102,7 +107,8 @@ export function useMyMissions(enabled: boolean) {
   return useQuery({
     queryKey: [...KEYS.myMissions, session?.user.id],
     enabled: !!session && enabled,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_missions");
       if (error) throw error;
@@ -269,7 +275,8 @@ export function useDeleteReward() {
 export function usePendingMissionClaims() {
   return useQuery({
     queryKey: KEYS.pendingClaims,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mission_claims")
@@ -296,7 +303,8 @@ export function useReviewMissionClaim() {
 export function useAllRedemptions() {
   return useQuery({
     queryKey: KEYS.redemptions,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reward_redemptions")

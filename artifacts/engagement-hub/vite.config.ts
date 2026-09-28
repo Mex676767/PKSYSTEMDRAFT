@@ -90,6 +90,24 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (id.includes('@tanstack')) return 'vendor-query';
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/scheduler/') ||
+            id.includes('/wouter/')
+          ) {
+            return 'vendor-react';
+          }
+        },
+      },
+    },
   },
   server: {
     port,

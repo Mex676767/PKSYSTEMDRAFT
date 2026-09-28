@@ -1,5 +1,5 @@
 import { ScreenShareTile } from "@/components/screen-share-tile";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,8 +41,8 @@ export default function Voice() {
     audioBlocked,
     unlockAudio,
   } = useVoiceCall();
-  const { data: directory = [] } = useDirectory({ refetchInterval: 15000 });
-  const directoryById = new Map(directory.map((p) => [p.id, p]));
+  const { data: directory = [] } = useDirectory();
+  const directoryById = useMemo(() => new Map(directory.map((p) => [p.id, p])), [directory]);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   if (!isAdmin) return <NotFound />;
