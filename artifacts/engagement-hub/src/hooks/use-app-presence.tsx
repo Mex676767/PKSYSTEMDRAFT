@@ -4,8 +4,9 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { activityLabelForPath } from "@/lib/presence";
 
-const HEARTBEAT_INTERVAL_MS = 45_000;
-const RECONNECT_DELAY_MS = 3_000;
+const HEARTBEAT_INTERVAL_MS = 60_000;
+const RECONNECT_BASE_DELAY_MS = 3_000;
+const RECONNECT_MAX_DELAY_MS = 60_000;
 
 export type AppPresenceEntry = { path: string; activity: string };
 
@@ -33,6 +34,7 @@ export function AppPresenceProvider({ userId, children }: { userId: string | und
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     let channel: RealtimeChannel | null = null;
     let subscribed = false;
+    let reconnectAttempt = 0;
 
     // We always know our own presence -- reflect it locally right away instead
     // of waiting on the realtime round-trip, so a slow/dropped/erroring
@@ -90,14 +92,25 @@ export function AppPresenceProvider({ userId, children }: { userId: string | und
       }
     };
 
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttempt, RECONNECT_MAX_DELAY_MS);
+      reconnectAttempt += 1;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
+
     const connect = () => {
       if (cancelled) return;
 
-      channel = supabase.channel("app-presence", { config: { presence: { key: userId } } });
-      channelRef.current = channel;
+      const nextChannel = supabase.channel("app-presence", { config: { presence: { key: userId } } });
+      channel = nextChannel;
+      channelRef.current = nextChannel;
 
-      channel.on("presence", { event: "sync" }, () => {
-        const state = channel!.presenceState() as Record<string, AppPresenceEntry[]>;
+      nextChannel.on("presence", { event: "sync" }, () => {
+        const state = nextChannel.presenceState() as Record<string, AppPresenceEntry[]>;
         const map: AppPresenceState = new Map();
         for (const [id, entries] of Object.entries(state)) {
           if (entries[0]) map.set(id, entries[0]);
@@ -112,17 +125,22 @@ export function AppPresenceProvider({ userId, children }: { userId: string | und
         setPresenceMap(map);
       });
 
-      channel.subscribe(async (status) => {
+      nextChannel.subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
+          if (channel !== nextChannel || cancelled) return;
           subscribed = true;
+          reconnectAttempt = 0;
           if (isActiveRef.current) {
             markSelfPresent();
-            await channel!.track({ path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
+            await nextChannel.track({ path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
           }
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          if (channel !== nextChannel) return;
           subscribed = false;
-          if (channelRef.current === channel) channelRef.current = null;
-          if (!cancelled) reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+          channel = null;
+          if (channelRef.current === nextChannel) channelRef.current = null;
+          void supabase.removeChannel(nextChannel);
+          scheduleReconnect();
         }
       });
     };
