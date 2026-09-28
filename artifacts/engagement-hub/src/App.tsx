@@ -6,11 +6,11 @@ import { ServiceWorkerCleanup } from '@/components/service-worker-cleanup';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Router as WouterRouter } from 'wouter';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import AuthenticatedApp from '@/components/authenticated-app';
+import Login from '@/pages/login';
 
-const Login = lazy(() => import('@/pages/login'));
 const Onboarding = lazy(() => import('@/pages/onboarding'));
 const ApprovalPending = lazy(() => import('@/pages/approval-pending'));
-const AuthenticatedApp = lazy(() => import('@/components/authenticated-app'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,7 +39,7 @@ function AuthGate() {
   const { session, profile, loading } = useAuth();
 
   if (!REQUIRE_LOGIN) {
-    return <Suspense fallback={<AppLoading />}><AuthenticatedApp /></Suspense>;
+    return <AuthenticatedApp />;
   }
 
   if (loading) {
@@ -51,7 +51,7 @@ function AuthGate() {
   }
 
   if (!session) {
-    return <Suspense fallback={<AppLoading />}><Login /></Suspense>;
+    return <Login />;
   }
 
   if (profile && !profile.is_approved) {
@@ -62,7 +62,7 @@ function AuthGate() {
     return <Suspense fallback={<AppLoading />}><Onboarding /></Suspense>;
   }
 
-  return <Suspense fallback={<AppLoading />}><AuthenticatedApp /></Suspense>;
+  return <AuthenticatedApp />;
 }
 
 function AppLoading() {

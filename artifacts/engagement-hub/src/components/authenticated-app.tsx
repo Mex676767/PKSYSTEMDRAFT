@@ -9,8 +9,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { LiveDataSync } from "@/components/live-data-sync";
 import { Shell } from "@/components/shell";
 import { ComingSoon } from "@/pages/coming-soon";
+import Dashboard from "@/pages/dashboard";
 
-const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Goals = lazy(() => import("@/pages/goals"));
 const Social = lazy(() => import("@/pages/social"));
 const Challenges = lazy(() => import("@/pages/challenges"));
