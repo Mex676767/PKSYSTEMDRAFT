@@ -178,7 +178,8 @@ export default function HallOfFame() {
         categories.data?.map((category) => (
           <DepartmentPodium
             key={category.id}
-            department={`${department} · ${category.name}`}
+            department={department}
+            category={category.name}
             monthLabel={format(month, "MMMM yyyy")}
             entries={(winners.data ?? [])
               .filter((w) => w.category_id === category.id)
