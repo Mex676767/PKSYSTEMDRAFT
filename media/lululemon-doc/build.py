@@ -105,7 +105,9 @@ def cues(tl):
             a = t0
             for p in parts:
                 b = a + (t1 - t0) * len(p) / n
-                disp = p.rstrip(_PUNCT_END).replace("“", "“").strip()
+                disp = p.rstrip(_PUNCT_END).strip()
+                if disp.count("“") != disp.count("”"):
+                    disp = disp.replace("“", "").replace("”", "")
                 out.append((a, b + 0.05, disp))
                 a = b
     return out
