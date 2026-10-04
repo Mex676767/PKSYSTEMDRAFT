@@ -1,6 +1,6 @@
 # 核实记录与修订后的完整版
 
-完整版（`full.html` → `out/korea_leverage_full.mp4`，约 5 分 48 秒）用的是下面核实过的说法。逐句旁白见 `narration.json`，字幕见 `captions.srt`。
+完整版（`full.html` → `out/korea_leverage_full.mp4`，8 分 23 秒）用的是下面核实过的说法。逐句旁白见 `narration.json`。字幕**不烧录在画面里**，单独放在 `captions.srt`，可直接导入剪辑软件或上传到视频平台。
 
 ## 原稿与核实结果
 
@@ -20,17 +20,34 @@
 | 多米诺式连锁强平 | ✅ 有数据支撑：6 月 9 日单日强制卖出 1,698 亿韩元，创纪录；6 月 1–9 日累计超过 5,500 亿 | 加入这组数字 |
 | （原稿未提） | 全市场融资余额 6 月 24 日达 38.63 万亿韩元，历史新高；7 月韩国叫停单只股票杠杆 ETF 新上市（批准后仅两个月）；李同学说攒够钱还会再借，也承认“每一把都梭哈，迟早会输” | 加进第二段和结尾，让故事更完整、更真实 |
 
+## 8–10 分钟版新增的内容（均已核实）
+
+| 新增说法 | 依据 |
+|---|---|
+| KOSPI 半年翻倍，一度是全球表现最好的股指；到 5 月 29 日年内上涨 101%，收于 8,476.15 点 | 路透社 2026-07-20；이투데이 2026-05-31 |
+| 三星电子融资余额 1.65 万亿 → 4.76 万亿韩元，SK 海力士 8,841 亿 → 4.33 万亿（2025 年底 → 2026-06-19） | The Korea Herald（韩国金融投资协会数据） |
+| 5 月底韩国投资者的投资债务（含其他借款）超过 60 万亿韩元 | 路透社 2026-07-20 |
+| 3 月（截至 24 日）：KOSPI 当月跌 11%，外资净卖出 22.26 万亿、散户净买入 26.25 万亿；3 月 23 日熔断，散户单日买入 7.003 万亿，创纪录；散户净买入前 10 名中有 8 只截至当时亏损 | 서울경제 2026-03-24（韩国交易所数据） |
+| 担保比例 140% 的算例：自有 1 亿 + 借款 1 亿 = 2 亿持仓，股票市值须保持在 1.4 亿以上，即股价跌三成就会被要求追加保证金 | 뉴스토마토（例子原文）；140% 为常见设定，各券商规则不同 |
+| 每月强制卖出金额：5 月 7,076 亿、6 月 1.12 万亿、7 月 9,927 亿韩元 | 서울경제 2026-09-03；MTN 2026-08-04（韩国金融投资协会数据） |
+| 7 月 30 日融资余额 32.15 万亿 → 8 月 3 日 27.44 万亿，7 月 31 日至 8 月 3 日两天减少 4.7 万亿，比 6 月 24 日高点低 28.96% | MTN 2026-08-04 |
+| 9 月 1 日融资余额回升到约 33 万亿韩元；韩媒标题称年轻投资者再度涌入 | 서울경제 2026-09-03 |
+
 ## 来源
 
 - Reuters, “‘I couldn't breathe’: South Korea's frenzied stock trading exposes margin loan risks”, 2026-07-20 — [Yahoo Finance 转载](https://finance.yahoo.com/markets/stocks/articles/couldnt-breathe-south-koreas-frenzied-063925408.html)、[Investing.com 转载](https://www.investing.com/news/stock-market-news/i-couldnt-breathesouth-koreas-frenzied-stock-trading-exposes-margin-loan-risks-4799867)
 - 二三十岁融资余额：한국경제，2026-08-19，国会议员公开的数据——20、30 多岁合计 2024 年底 1조7607억 → 2026 年 6 月底 4조1943억韩元（2.4 倍）；20 多岁 1942억 → 4768억，30 多岁 1조5665억 → 3조7175억 — [链接](https://www.hankyung.com/article/2026081904381)。注意：有英文转载站把单位误译成“41.943 万亿”，那是错的，因为全市场融资余额最高也只有 38.63 万亿
 - 이투데이，《외국인, 코스피 한 달 새 44조 팔았다…월간 순매도 역대 최대》，2026-05-31 — [链接](https://www.etoday.co.kr/news/view/2589244)
 - The Korea Herald，“Margin debt hits record as retail investors pile into Samsung Electronics, SK hynix”（韩国金融投资协会数据；6 月强制卖出纪录）— [链接](https://www.koreaherald.com/article/10782277)
+- 서울경제：[2026-03-24，3 月散户与外资资金流向](https://en.sedaily.com/finance/2026/03/24/retail-investors-buy-26-trillion-won-to-defend-kospi-as)；[2026-09-03，融资余额回升与月度强制卖出](https://en.sedaily.com/finance/2026/09/03/korea-margin-debt-rebounds-to-33-trillion-won-as-young)
+- MTN，2026-08-04，7 月底融资两天骤降 4.7 万亿 — [链接](https://news.mtn.co.kr/news-detail/2026080416155599328)
 - 担保比例 140% 与 반대매매 机制：[뉴스토마토](https://newstomato.com/ReadNews.aspx?no=1185637)、[헤럴드경제](https://www.heraldk.com/article/2026030418575028442)
 
 ## 仍需注意
 
 - **账户曲线是示意**：只有起点（2,000 万）、峰值（约 3 亿）和结局（跌破本金）有报道依据。终点画在约 1,760 万，只是为了表现“跌破本金”，这个具体数字不是报道里的。
 - **“房价 vs 工资”箭头是示意**，没有画具体数据。
+- **KOSPI 走势线是示意**，只有终点（5 月 29 日 8,476 点、年内 +101%）是实际数据。
+- **3 月“前 10 名里 8 只亏损”**：图中用 8 个蓝格表示，具体是哪 8 只没有对应。
 - **配音是 AI 临时配音**（微软 Edge 神经语音），只用来对时间。正式发布建议换成真人配音：把 `vo.wav` 替换掉即可；如果语速不同，改 `narration.json` 后重跑 `build_vo.py`，动画会自动跟着新时间轴走。
 - 第一版的 `vox.html` / `newsroom.html` 仍是按原稿数字做的（包括“倒欠券商”“散户买 40 万亿”“14 年首付”），**以完整版为准**。

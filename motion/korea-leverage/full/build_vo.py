@@ -12,7 +12,7 @@ import edge_tts
 
 HERE = pathlib.Path(__file__).parent
 FF = os.environ.get("FFMPEG", "ffmpeg")
-ZH, KO, RATE = "zh-CN-XiaoxiaoNeural", "ko-KR-SunHiNeural", "+6%"
+ZH, KO, RATE = "zh-CN-XiaoxiaoNeural", "ko-KR-SunHiNeural", "+0%"
 VO = HERE / "vo"; VO.mkdir(exist_ok=True)
 
 async def say(text, voice, out):
@@ -28,13 +28,13 @@ def dur(p):
 async def main():
     lines = json.load(open(HERE / "narration.json"))
     for i, l in enumerate(lines):
-        wav = VO / f"L{i:02d}.wav"
+        wav = VO / f"{l['k']}.wav"
         if wav.exists(): continue
         parts = [p for p in re.split(r"(【ko:.*?】)", l.get("tts", l["t"])) if p]
         clips = []
         for j, p in enumerate(parts):
             m = re.match(r"【ko:(.*?)】", p)
-            out = VO / f"L{i:02d}_{j}.mp3"
+            out = VO / f"{l['k']}_{j}.mp3"
             await say(m.group(1) if m else p, KO if m else ZH, out)
             clips.append(out)
         args = sum([["-i", str(c)] for c in clips], [])
@@ -45,9 +45,9 @@ async def main():
         subprocess.run([FF, "-y", "-loglevel", "error", *args, "-filter_complex", fc, "-map", "[a]", "-ac", "1", str(wav)], check=True)
     t, prev, TL, caps = 0.8, None, [], []
     for i, l in enumerate(lines):
-        if prev and l["s"] != prev: t += 0.7
-        d = dur(VO / f"L{i:02d}.wav")
-        TL.append({"s": l["s"], "t0": round(t, 3), "t1": round(t + d, 3), "text": l["t"]})
+        if prev and l["s"] != prev: t += 0.9
+        d = dur(VO / f"{l['k']}.wav")
+        TL.append({"k": l["k"], "s": l["s"], "t0": round(t, 3), "t1": round(t + d, 3), "text": l["t"]})
         # captions: split at punctuation into chunks of <= 20 chars, timed by length
         chunks, buf = [], ""
         for piece in re.split(r"(?<=[，。：；？！—])", l["t"]):
@@ -58,12 +58,12 @@ async def main():
         for c in chunks:
             a = t + d * acc / total; acc += len(c)
             caps.append({"t0": round(a, 3), "t1": round(t + d * acc / total, 3), "text": c.strip("，—")})
-        t += d + 0.45 + l.get("pad", 0); prev = l["s"]
+        t += d + 0.55 + l.get("pad", 0); prev = l["s"]
     total = round(t + 0.5, 2)
     (HERE / "timeline.js").write_text("window.TL = " + json.dumps({"dur": total, "lines": TL, "caps": caps}, ensure_ascii=False) + ";\n", encoding="utf-8")
     fmt = lambda x: f"{int(x//3600):02d}:{int(x%3600//60):02d}:{int(x%60):02d},{int(round(x%1*1000)) % 1000:03d}"
     (HERE / "captions.srt").write_text("".join(f"{k+1}\n{fmt(c['t0'])} --> {fmt(c['t1'])}\n{c['text']}\n\n" for k, c in enumerate(caps)), encoding="utf-8")
-    args = sum([["-i", str(VO / f"L{i:02d}.wav")] for i in range(len(lines))], [])
+    args = sum([["-i", str(VO / f"{l['k']}.wav")] for l in lines], [])
     fc = "".join(f"[{i}:a]adelay={int(x['t0']*1000)}:all=1[d{i}];" for i, x in enumerate(TL))
     fc += "".join(f"[d{i}]" for i in range(len(TL))) + f"amix=inputs={len(TL)}:normalize=0,apad=whole_dur={total}[a]"
     subprocess.run([FF, "-y", "-loglevel", "error", *args, "-filter_complex", fc, "-map", "[a]", "-ar", "48000", "-ac", "2", str(HERE / "vo.wav")], check=True)
