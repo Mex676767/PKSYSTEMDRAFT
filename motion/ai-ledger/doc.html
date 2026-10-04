@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Compute Ledger</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --paper:#ebe5d6; --card:#f8f4ea; --ink:#1c1b19; --ink2:#5a554b; --green:#2f6b4f; --red:#c23b22; --blue:#2b5a86; --yellow:#f2c935; --rule:#c9c0ad; --dark:#1b1a17; }
+  #paper { position:absolute; inset:0; background-size:cover; }
+  #cam { position:absolute; inset:0; transform-origin:50% 45%; }
+  .sh { filter: drop-shadow(2px 4px 0 rgba(28,27,25,.16)) drop-shadow(5px 12px 12px rgba(28,27,25,.2)); }
+  .cut { background: var(--card) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+  .ledger { background: var(--card) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; background-image: var(--card-tex), repeating-linear-gradient(0deg, transparent 0 46px, rgba(43,90,134,.18) 46px 48px); }
+  .dark { background:#1b1a17 var(--tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+  .mark { position:relative; display:inline-block; }
+  .mark > .hl { position:absolute; left:-.12em; right:-.12em; top:46%; bottom:-.04em; background:var(--yellow); mix-blend-mode:multiply; transform-origin:0 50%; transform:scaleX(0); clip-path: polygon(0 10%, 30% 0, 100% 6%, 99% 90%, 62% 100%, 1% 94%); }
+  .stamp { color:var(--red); border:9px double var(--red); padding:4px 26px 10px; font-family:'K Serif'; font-weight:900; filter:url(#stampfx); mix-blend-mode:multiply; white-space:nowrap; }
+  .stamp.g { color:var(--green); border-color:var(--green); }
+  .lab { font-size:22px; letter-spacing:.12em; color:var(--ink2); font-family:'K Mono','K Sans'; }
+  .serif { font-family:'K Serif'; font-weight:900; }
+  .num { font-family:'K Cond'; font-weight:700; font-variant-numeric:tabular-nums; line-height:1; }
+  .pad { padding:24px 34px 28px; }
+  .bar { position:absolute; border:3px solid var(--ink); transform-origin:0 50%; }
+  .hatch { background: repeating-linear-gradient(135deg, rgba(28,27,25,.12) 0 10px, transparent 10px 20px), var(--card); }
+  .receipt { width:420px; background:#fbf9f3; padding:28px 30px 34px; font-family:'K Mono','K Sans'; font-size:24px; }
+  .receipt .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #b8b0a0; }
+  .chk { display:flex; align-items:center; gap:16px; font-size:36px; font-weight:700; margin:14px 0; }
+  .chk i { width:40px; height:40px; border:4px solid var(--ink); border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-style:normal; font-size:30px; color:var(--green); }
+  #chap { position:absolute; inset:0; background:#1b1a17 var(--tex); background-size:1920px 1080px; background-blend-mode:multiply; display:flex; flex-direction:column; justify-content:center; padding-left:220px; color:#f1eadb; visibility:hidden; }
+  #chap .n { font-family:'K Cond'; font-weight:700; font-size:220px; line-height:1; color:var(--yellow); }
+  #chap .t { font-family:'K Serif'; font-weight:900; font-size:110px; margin-top:10px; }
+  .lb { position:absolute; left:0; right:0; height:0; background:#0c0b0a; z-index:5; }
+  #srcTag { position:absolute; right:60px; top:36px; font-size:20px; color:var(--ink2); font-family:'K Mono','K Sans'; text-align:right; }
+  .person { position:absolute; width:90px; height:160px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="stampfx" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="8" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="6" result="d"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="1" seed="2" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 2.6" result="holes"/>
+    <feComposite in="d" in2="holes" operator="in"/>
+  </filter>
+  <marker id="ah" viewBox="0 0 20 20" refX="14" refY="10" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M2,3 L16,10 L3,17" fill="none" stroke="context-stroke" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs></svg>
+
+<div id="stage"><div id="world">
+<div id="paper"></div>
+<div id="cam"><div id="scenes"></div><div id="srcTag"></div></div>
+<div class="lb" id="lbT" style="top:0"></div><div class="lb" id="lbB" style="bottom:0"></div>
+<div id="chap"><div class="n" id="chapN">01</div><div class="t" id="chapT"></div></div>
+</div></div>
+
+<script src="engine.js"></script>
+<script src="timeline.js"></script>
+<script>
+const { prog, ease, tf, show, $, lerp, clamp, step, hash, fmt, draw, wobble, penCircle, torn, svgEl, rng } = E;
+const q = t => Math.floor(t * 12) / 12;
+const LN = TL.lines;
+const IX = Object.fromEntries(LN.map((l, i) => [l.k, i]));
+const L = k => { if (!(k in IX)) throw new Error('no narration line ' + k); return LN[IX[k]]; };
+const c = k => L(k).t0, e = k => L(k).t1;
+const w = (k, s) => { const tx = L(k).text, j = tx.indexOf(s); if (j < 0) throw new Error(`"${s}" not in ${k}`); return c(k) + (e(k) - c(k)) * j / tx.length; };
+
+$('paper').style.backgroundImage = `url(${E.paperTexture([235, 229, 214], 21)})`;
+document.documentElement.style.setProperty('--tex', `url(${E.paperTexture([235, 229, 214], 21, 600)})`);
+document.documentElement.style.setProperty('--card-tex', `url(${E.paperTexture([250, 247, 240], 23, 900)})`);
+
+/* ---------- building blocks ---------- */
+let tornSeed = 100;
+function el(parent, cls, style = {}, html = '') {
+  const d = document.createElement('div');
+  d.className = cls; Object.assign(d.style, style); d.innerHTML = html;
+  parent.appendChild(d); return d;
+}
+const px = v => v + 'px';
+// a torn paper card at (x, y); inner width w (auto if omitted)
+function card(parent, x, y, html, { w, cls = 'cut pad', fs, extra = {} } = {}) {
+  const wrap = el(parent, 'a sh', { left: px(x), top: px(y) });
+  const inner = el(wrap, cls, { width: w ? px(w) : 'auto', whiteSpace: w ? 'normal' : 'nowrap', fontSize: fs ? px(fs) : '', ...extra }, html);
+  requestAnimationFrame(() => {});
+  inner.dataset.seed = tornSeed++;
+  TORN.push(inner);
+  return wrap;
+}
+const TORN = [];
+function tearAll() { for (const n of TORN) { const r = n.getBoundingClientRect(), s = n.offsetWidth, h = n.offsetHeight; if (s && h) n.style.clipPath = torn(s, h, +n.dataset.seed, 4, 14); } }
+const txt = (parent, x, y, html, style = {}) => el(parent, 'a', { left: px(x), top: px(y), whiteSpace: 'nowrap', ...style }, html);
+const svgLayer = parent => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'full'); parent.appendChild(s); return s; };
+const path = (svg, d, a = {}) => svgEl(svg, 'path', { d, pathLength: 1, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...a });
+
+function life(el_, t, o) {
+  const tt = o.smooth ? t : q(t), r1 = o.r ?? 0;
+  if (tt < o.in) { el_.style.opacity = 0; return; }
+  const k = clamp((tt - o.in) / (o.dur ?? 0.42)), e_ = (o.ease ?? ease.back)(k);
+  const f = o.from ?? { y: -70, r: r1 - 6 };
+  let x = lerp(f.x ?? 0, 0, e_), y = lerp(f.y ?? 0, 0, e_), r = lerp(f.r ?? r1, r1, e_), s = lerp(f.s ?? 1, 1, e_);
+  let op = f.o !== undefined ? lerp(f.o, 1, clamp(k * 1.5)) : 1;
+  if (o.out !== undefined && t >= o.out) {
+    const ex = o.exit ?? 'fall', te = ex === 'fall' ? q(t) : t, m = clamp((te - o.out) / (o.outDur ?? 0.5));
+    if (ex === 'fall') { const g = ease.in2(m); y += 1300 * g; r += 14 * g; }
+    else if (ex === 'up') y -= 1250 * ease.inOut(m);
+    else if (ex === 'left') x -= 2100 * ease.inOut(m);
+    else if (ex === 'fade') op *= 1 - m;
+  }
+  tf(el_, { x, y, r, s, o: op });
+}
+const fin = (el_, t, at, extra = {}) => life(el_, t, { in: at, r: 0, from: { y: 22, o: 0 }, ease: ease.out, smooth: true, ...extra });
+const drop = (el_, t, at, r = 0, extra = {}) => life(el_, t, { in: at, r, ...extra });
+const slap = (el_, t, at, r = 0, extra = {}) => life(el_, t, { in: at, r, from: { s: 1.3, r: r - 4 }, dur: 0.22, ...extra });
+function slam(el_, t, at, r = -8) { const tt = q(t), k = clamp((tt - at) / 0.17); tf(el_, { s: lerp(1.75, 1, ease.out(k)), r, o: tt >= at ? 1 : 0 }); }
+const fade = (el_, t, a, b) => { el_.style.opacity = prog(t, a, a + 0.35, ease.lin) * (b === undefined ? 1 : 1 - prog(t, b, b + 0.35, ease.lin)); };
+const hl = (el_, t, a, d = 0.45) => { el_.style.transform = `scaleX(${prog(t, a, a + d, ease.inOut)})`; };
+const boil = (t, n = 3) => step(t, 8) % n;
+const count = (node, t, a, d, v, f = x => x.toFixed(0)) => { node.textContent = f(v * prog(Math.floor(t * 15) / 15, a, a + d, ease.out)); };
+// horizontal bar that grows from the left
+function growW(node, t, a, d, wpx) { const k = prog(t, a, a + d, ease.out); node.style.width = px(wpx * k); node.style.opacity = k > 0 ? 1 : 0; return k; }
+function growH(node, t, a, d) { const k = prog(t, a, a + d, ease.out); tf(node, { sy: Math.max(0.001, k), o: k > 0 ? 1 : 0 }); return k; }
+const mark = (id, txt_) => `<span class="mark"><i class="hl" id="${id}"></i>${txt_}</span>`;
+
+const SFX = [];   // [time, kind] — read by the audio mixer
+const sfx = (kind, at) => SFX.push([+at.toFixed(3), kind]);
+
+const SCENES = {};
+function scene(id, build, update, { dark = false } = {}) {
+  const s = el($('scenes'), 'scene' + (dark ? ' dark' : ''), {});
+  s.id = id;
+  const api = build(s) || {};
+  SCENES[id] = { el: s, update: t => update(t, api) };
+}
+
+/* ================= Z0 · cold open ================= */
+scene('Z0', s => {
+  const r = card(s, 200, 170, `<div class="lab">2025 年 · 收入</div><div class="num" style="font-size:110px;color:var(--green);white-space:nowrap">$<span id="z0r">0</span>亿</div>`, { cls: 'receipt' });
+  const l = txt(s, 760, 160, `<div class="lab" style="color:#c9bfab">账面亏损</div><div class="num" style="font-size:230px;color:var(--red)">−$<span id="z0l">0</span>亿</div>`);
+  const cmt = card(s, 470, 560, `<div class="lab">长期算力与基础设施承诺</div><div class="num" style="font-size:150px">$<span id="z0c">0</span>亿</div><svg width="520" height="60" style="display:block"><path id="z0sig" pathLength="1" fill="none" stroke="var(--blue)" stroke-width="5" stroke-linecap="round"/></svg>`, { cls: 'ledger pad' });
+  const qm = txt(s, 0, 300, `<div style="width:1920px;text-align:center" class="serif"><span style="font-size:96px;color:#f1eadb">这钱从哪儿来？</span><br><span style="font-size:72px;color:var(--yellow)">又是谁在买单？</span></div>`);
+  const title = txt(s, 0, 300, `<div style="width:1920px;text-align:center"><div class="lab" style="color:#c9bfab;font-size:28px">一家 AI 公司的账本</div><div class="serif" style="font-size:150px;color:#f1eadb;margin-top:10px">五千一百八十亿的赌注</div></div>`);
+  return { r, l, cmt, qm, title };
+}, (t, o) => {
+  drop(o.r, t, w('z1', '四十六亿') - 0.3, -2, { from: { y: 600 }, out: c('z3') - 0.2, exit: 'fade', outDur: 0.3 });
+  count($('z0r'), t, w('z1', '四十六亿'), 1.0, 46);
+  slap(o.l, t, w('z1', '四百二十亿') - 0.1, 0, { out: c('z3') - 0.2, exit: 'fade', outDur: 0.3 });
+  count($('z0l'), t, w('z1', '四百二十亿'), 1.0, 420);
+  drop(o.cmt, t, w('z2', '五千一百八十亿') - 0.4, 1.5, { out: c('z3') - 0.2, exit: 'fade', outDur: 0.3 });
+  count($('z0c'), t, w('z2', '五千一百八十亿'), 1.4, 5180, v => fmt(v));
+  $('z0sig').setAttribute('d', wobble([[10, 40], [120, 18], [200, 44], [300, 14], [380, 40], [500, 22]], 7, 3));
+  draw($('z0sig'), prog(t, e('z2') - 0.8, e('z2'), ease.inOut));
+  fin(o.qm, t, c('z3') + 0.1, { out: e('z3') + 0.2, exit: 'fade', outDur: 0.3 });
+  fin(o.title, t, e('z3') + 0.6, { dur: 0.8 });
+}, { dark: true });
+sfx('slam', w('z1', '四百二十亿')); sfx('paper', w('z2', '五千一百八十亿') - 0.4); sfx('boom', e('z3') + 0.6);
+
+/* ================= A1 · revenue ================= */
+scene('A1', s => {
+  const co = card(s, 160, 150, `<div class="lab">故事的主角</div><div class="serif" style="font-size:96px">Anthropic</div><div style="font-size:34px;color:var(--ink2);margin-top:6px">开发 AI 助手 Claude 的公司</div>`);
+  const doc = card(s, 1180, 140, `<div class="lab">资料来源</div><div class="serif" style="font-size:44px;line-height:1.35;margin-top:6px">招股书草稿<br><span style="font-size:30px;color:var(--ink2)">（据路透社，尚未正式公开）</span></div>`, { cls: 'ledger pad' });
+  const base = svgLayer(s); const bl = path(base, wobble([[520, 902], [1420, 902]], 3, 1.5), { 'stroke-width': 4 });
+  const b24 = el(s, 'a', { left: '620px', width: '220px', top: px(902 - 8), height: '8px', background: 'var(--rule)', border: '3px solid var(--ink)', transformOrigin: '50% 100%' });
+  const b25 = el(s, 'a', { left: '1080px', width: '220px', top: px(902 - 420), height: '420px', background: 'var(--green)', border: '3px solid var(--ink)', transformOrigin: '50% 100%' });
+  const v24 = txt(s, 600, 820, `<div class="num" style="width:260px;text-align:center;font-size:64px">3.86亿</div>`);
+  const v25 = txt(s, 1060, 380, `<div class="num" style="width:260px;text-align:center;font-size:84px;color:var(--green)">46亿</div>`);
+  const l24 = txt(s, 620, 918, `<div class="lab" style="width:220px;text-align:center">2024 年</div>`);
+  const l25 = txt(s, 1080, 918, `<div class="lab" style="width:220px;text-align:center">2025 年</div>`);
+  const x12 = txt(s, 1340, 470, `<div class="num" style="font-size:150px;color:var(--red)">×12</div>`);
+  const q = txt(s, 160, 560, `<div class="serif" style="font-size:64px;line-height:1.3">生意涨这么猛，<br>为什么还会亏出天际？</div>`);
+  return { co, doc, bl, b24, b25, v24, v25, l24, l25, x12, q };
+}, (t, o) => {
+  drop(o.co, t, w('a1', 'Anthropic') - 0.3, -1.5);
+  drop(o.doc, t, w('a2', '招股书'), 2);
+  draw(o.bl, prog(t, c('a2'), c('a2') + 0.5, ease.inOut));
+  growH(o.b24, t, w('a2', '三点八六亿'), 0.4); fade(o.v24, t, w('a2', '三点八六亿')); fade(o.l24, t, w('a2', '三点八六亿'));
+  growH(o.b25, t, w('a2', '四十六亿'), 1.0); fin(o.v25, t, w('a2', '四十六亿') + 0.6); fade(o.l25, t, w('a2', '四十六亿'));
+  slap(o.x12, t, w('a2', '十二倍'), -4);
+  fin(o.q, t, c('a3'));
+});
+sfx('slam', w('a2', '十二倍'));
+
+/* ================= A2 · the loss ================= */
+scene('A2', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:60px">420 亿美元的亏损，拆开看</div>`);
+  const W = 1500, X0 = 210, Y = 300;
+  const nc = el(s, 'a bar hatch', { left: px(X0), top: px(Y), height: '170px', width: '0' });
+  const op = el(s, 'a bar', { left: px(X0 + W * 34 / 42), top: px(Y), height: '170px', width: '0', background: 'var(--red)' });
+  const ncl = txt(s, X0 + 30, Y + 40, `<div class="num" style="font-size:84px">≈340 亿</div>`);
+  const ncs = txt(s, X0 + 30, Y + 200, `<div style="font-size:34px;font-weight:700">非现金费用 · 可转换票据重新估值</div>`);
+  const opl = txt(s, X0 + W * 34 / 42 + 10, Y + 200, `<div style="font-size:34px;font-weight:700;color:var(--red)">经营亏损 80 多亿</div>`);
+  const st = txt(s, X0 + 300, Y - 20, `<div class="stamp" style="font-size:54px">不是现金流出</div>`);
+  const ch = ['公司估值 ↑', '承诺给投资人的股份 ↑', '账面费用 ↑'].map((s_, i) => card(s, 210 + i * 520, 650, `<div style="font-size:40px;font-weight:700">${s_}</div>`));
+  const ar = svgLayer(s); const a1 = path(ar, 'M640,700 L700,700', { 'marker-end': 'url(#ah)', 'stroke-width': 6 }), a2 = path(ar, 'M1220,700 L1240,700', { 'marker-end': 'url(#ah)', 'stroke-width': 6 });
+  const bank = card(s, 1120, 820, `<div style="font-size:34px">银行账户：<b>没有真流走几百个亿</b></div>`);
+  return { h, nc, op, ncl, ncs, opl, st, ch, a1, a2, bank, W, X0 };
+}, (t, o) => {
+  fin(o.h, t, c('a4') - 0.3);
+  growW(o.nc, t, w('a4', '三百四十亿'), 1.0, o.W * 34 / 42);
+  fade(o.ncl, t, w('a4', '三百四十亿') + 0.5); fade(o.ncs, t, w('a4', '非现金'));
+  slam(o.st, t, w('a4', '非现金') + 0.5, -5);
+  o.ch.forEach((n, i) => drop(n, t, w('a5', ['公司越值钱', '股份', '账面费用'][i]), [-2, 1.5, -1][i]));
+  draw(o.a1, prog(t, w('a5', '股份') - 0.2, w('a5', '股份'), ease.inOut)); draw(o.a2, prog(t, w('a5', '账面费用') - 0.2, w('a5', '账面费用'), ease.inOut));
+  drop(o.bank, t, w('a5', '银行账户'), 1);
+  growW(o.op, t, w('a6', '八十多亿'), 0.6, o.W * 8 / 42); fade(o.opl, t, w('a6', '八十多亿'));
+});
+sfx('slam', w('a4', '非现金') + 0.5);
+
+/* ================= A3 · compute ================= */
+scene('A3', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:60px">最大的碎钞机：算力</div>`);
+  const tot = el(s, 'a bar', { left: '210px', top: '260px', height: '150px', width: '0', background: 'var(--card)' });
+  const cmp = el(s, 'a bar', { left: '210px', top: '260px', height: '150px', width: '0', background: 'var(--ink)' });
+  const tl = txt(s, 210, 430, `<div style="font-size:32px;color:var(--ink2)">2025 年运营开销 ≈ <b class="num" style="font-size:56px;color:var(--ink)">126.5 亿</b> · 黑色部分：算力与基础设施</div>`);
+  const cl = txt(s, 240, 290, `<div class="num" style="font-size:88px;color:#f1eadb">73.3 亿</div>`);
+  const pct = txt(s, 1460, 230, `<div class="num" style="font-size:150px;color:var(--red)">58%</div>`);
+  const racks = el(s, 'a', { left: '0', top: '0', width: '1920px', height: '1080px' });
+  const LEDS = [];
+  for (let i = 0; i < 7; i++) {
+    const r = el(racks, 'a', { left: px(250 + i * 210), top: '560px', width: '170px', height: '360px', background: '#2a2925', border: '4px solid var(--ink)' });
+    for (let j = 0; j < 9; j++) { const u = el(r, '', { position: 'absolute', left: '14px', right: '14px', top: px(14 + j * 38), height: '26px', background: '#3a3833', borderRadius: '3px' }); const led = el(u, '', { position: 'absolute', right: '8px', top: '9px', width: '9px', height: '9px', borderRadius: '50%' }); LEDS.push([led, hash(i * 9 + j)]); }
+  }
+  return { h, tot, cmp, tl, cl, pct, racks, LEDS };
+}, (t, o) => {
+  fin(o.h, t, c('a7') - 0.3);
+  growW(o.tot, t, w('a7', '一百二十六亿'), 0.6, 1500); fade(o.tl, t, w('a7', '一百二十六亿'));
+  growW(o.cmp, t, w('a7', '七十三亿'), 0.9, 1500 * 7.33 / 12.65); fade(o.cl, t, w('a7', '七十三亿') + 0.6);
+  slap(o.pct, t, w('a7', '接近六成'), -4);
+  fin(o.racks, t, c('a8') - 0.2, { dur: 0.5 });
+  const on = t >= c('a8');
+  for (const [led, h] of o.LEDS) led.style.background = on && hash(step(t, 10) + h * 97) > 0.45 ? (h > 0.7 ? '#e0a33a' : '#5fbf7a') : '#4a4842';
+});
+sfx('slam', w('a7', '接近六成')); sfx('hum', c('a8'));
+
+/* ================= B1 · 518 ================= */
+scene('B1', s => {
+  const big = txt(s, 0, 110, `<div style="width:1920px;text-align:center"><div class="lab" style="font-size:28px">未来的账单</div><div class="num" style="font-size:230px">$<span id="b1n">0</span>亿</div></div>`);
+  const tlsvg = svgLayer(s);
+  const axis = path(tlsvg, wobble([[220, 700], [1700, 700]], 9, 1.5), { 'stroke-width': 4 });
+  const years = []; for (let y = 2026; y <= 2035; y++) years.push(txt(s, 220 + (y - 2026) * 148 - 30, 720, `<div class="lab">${y}</div>`));
+  const segs = [['谷歌 · 7–10 年', 10, 'var(--blue)'], ['亚马逊 · 7–10 年', 10, 'var(--green)'], ['微软 · 7–10 年', 10, '#7a6a4f'], ['博通 TPU 租赁 · 5 年', 5, 'var(--red)']].map(([n, yrs, col], i) => {
+    const b = el(s, 'a', { left: '220px', top: px(650 - i * 40), height: '32px', width: '0', background: col, border: '2px solid var(--ink)', overflow: 'hidden' }, `<div style="color:#f6efe0;font-size:20px;font-weight:700;padding:2px 10px;white-space:nowrap">${n}</div>`);
+    return [b, yrs * 148];
+  });
+  const sign = card(s, 1240, 820, `<div style="font-size:34px">钱不用今天付，<b>但字已经签了</b></div><svg width="380" height="50"><path id="b1sig" pathLength="1" fill="none" stroke="var(--blue)" stroke-width="5" stroke-linecap="round"/></svg>`);
+  const eighty = txt(s, 300, 800, `<div class="stamp" style="font-size:72px">≈80% 用不用都得付</div>`);
+  return { big, axis, years, segs, sign, eighty };
+}, (t, o) => {
+  fin(o.big, t, c('b1'));
+  count($('b1n'), t, w('b1', '五千一百八十亿'), 1.4, 5180, v => fmt(v));
+  draw(o.axis, prog(t, c('b2'), c('b2') + 0.6, ease.inOut));
+  o.years.forEach((y, i) => fade(y, t, c('b2') + 0.2 + i * 0.05));
+  o.segs.forEach(([b, wpx], i) => growW(b, t, w('b2', '七到十年') + i * 0.15, 1.0, wpx));
+  drop(o.sign, t, w('b2', '签了') - 0.6, 1);
+  $('b1sig').setAttribute('d', wobble([[10, 30], [90, 10], [160, 36], [240, 8], [360, 30]], 5, 3));
+  draw($('b1sig'), prog(t, w('b2', '签了'), w('b2', '签了') + 0.6, ease.inOut));
+  slam(o.eighty, t, w('b3', '八成'), -4);
+});
+sfx('paper', w('b2', '签了') - 0.6); sfx('slam', w('b3', '八成'));
+
+/* ================= B2 · the kitchen lease ================= */
+scene('B2', s => {
+  const svg = svgLayer(s);
+  const room = path(svg, wobble([[260, 860], [260, 300], [1060, 300], [1060, 860]], 4, 2), { 'stroke-width': 6 });
+  const floor = path(svg, wobble([[160, 862], [1760, 862]], 5, 1.5), { 'stroke-width': 5 });
+  const stoves = [0, 1, 2].map(i => el(s, 'a', { left: px(320 + i * 240), top: '640px', width: '200px', height: '220px', background: '#d9d2c2', border: '4px solid var(--ink)' }, `<div style="position:absolute;left:20px;right:20px;top:20px;height:16px;background:var(--ink);border-radius:8px"></div><div style="position:absolute;left:30px;top:70px;width:50px;height:50px;border:5px solid var(--ink);border-radius:50%"></div><div style="position:absolute;right:30px;top:70px;width:50px;height:50px;border:5px solid var(--ink);border-radius:50%"></div>`));
+  const tag = txt(s, 300, 230, `<div class="serif" style="font-size:52px">后厨</div>`);
+  const lease = card(s, 1180, 200, `<div class="lab">租赁合同</div><div class="serif" style="font-size:56px;margin-top:6px">租期：10 年</div><div style="font-size:30px;margin-top:10px;line-height:1.6">月租：照付<br>客人多：不用抢场地<br>客人少：<b style="color:var(--red)">厨房空着，租金照付</b></div>`, { cls: 'ledger pad', w: 520 });
+  const guests = [0, 1, 2, 3, 4, 5].map(i => el(s, 'a', { left: px(1210 + (i % 3) * 170), top: px(650 + Math.floor(i / 3) * 110), width: '60px', height: '90px' }, `<svg width="60" height="90"><circle cx="30" cy="18" r="15" fill="var(--card)" stroke="var(--ink)" stroke-width="5"/><path d="M30,34 L30,64 M12,48 L48,48 M30,64 L16,88 M30,64 L44,88" stroke="var(--ink)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`));
+  return { room, floor, stoves, tag, lease, guests };
+}, (t, o) => {
+  draw(o.room, prog(t, c('b4'), c('b4') + 0.8, ease.inOut)); draw(o.floor, prog(t, c('b4'), c('b4') + 0.5, ease.inOut));
+  o.stoves.forEach((n, i) => drop(n, t, w('b4', '后厨') + i * 0.15, 0));
+  fade(o.tag, t, w('b4', '后厨'));
+  drop(o.lease, t, w('b4', '十年') - 0.2, 2);
+  o.guests.forEach((g, i) => { const in_ = w('b4', '旺季') + i * 0.08, out_ = w('b4', '客人少了') + (5 - i) * 0.1; g.style.opacity = t >= in_ && t < out_ ? 1 : 0; });
+});
+
+/* ================= B3 · who collects ================= */
+const PARTNERS = [['博通', 1612, '芯片设备租赁，大部分不可撤销', 'var(--red)', '博通'], ['谷歌', 1111, '用不用都要付', 'var(--blue)', '谷歌'], ['亚马逊', 1100, '7–10 年', 'var(--green)', '亚马逊'], ['微软', 314, '除重大违约外不可撤销', '#7a6a4f', '微软'], ['其余两家', 1043, '按总额推算', 'var(--card)', null]];
+scene('B3', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:60px">谁在收这笔租金？</div><div class="lab" style="margin-top:8px">单位：亿美元 · 招股书草稿，据路透社</div>`);
+  const rows = PARTNERS.map(([n, v, note, col], i) => {
+    const y = 280 + i * 130;
+    const lab = txt(s, 140, y + 20, `<div style="font-size:44px;font-weight:700;width:220px;text-align:right">${n}</div>`);
+    const b = el(s, 'a', { left: '400px', top: px(y), height: '86px', width: '0', background: col, border: '3px solid var(--ink)', backgroundImage: col === 'var(--card)' ? 'repeating-linear-gradient(135deg, rgba(28,27,25,.12) 0 10px, transparent 10px 20px)' : '' });
+    const val = txt(s, 0, y + 6, `<div class="num" style="font-size:72px">${fmt(v)}</div>`);
+    const nt = txt(s, 400, y + 90, `<div style="font-size:22px;color:var(--ink2)">${note}</div>`);
+    return { lab, b, val, nt, v };
+  });
+  return { h, rows };
+}, (t, o) => {
+  fin(o.h, t, c('b5') - 0.3);
+  o.rows.forEach((r, i) => {
+    const at = PARTNERS[i][4] ? w('b5', PARTNERS[i][4]) : e('b5') - 0.3, W = r.v * 0.62;
+    fade(r.lab, t, at); const k = growW(r.b, t, at, 0.8, W);
+    r.val.style.left = px(400 + W * k + 20); r.val.style.opacity = k > 0.3 ? 1 : 0;
+    fade(r.nt, t, at + 0.6);
+  });
+});
+
+/* ================= B4 · the loop ================= */
+scene('B4', s => {
+  const svg = svgLayer(s);
+  const big = card(s, 260, 380, `<div class="serif" style="font-size:58px;text-align:center">科技巨头</div><div style="font-size:26px;color:var(--ink2);text-align:center;margin-top:6px">谷歌 · 亚马逊</div>`, { w: 380 });
+  const an = card(s, 1240, 380, `<div class="serif" style="font-size:58px;text-align:center">Anthropic</div><div style="font-size:26px;color:var(--ink2);text-align:center;margin-top:6px">模型公司</div>`, { w: 380 });
+  const top = path(svg, 'M680,380 C850,220 1080,220 1230,380', { 'marker-end': 'url(#ah)', stroke: 'var(--green)', 'stroke-width': 8 });
+  const bot = path(svg, 'M1230,560 C1080,720 850,720 680,560', { 'marker-end': 'url(#ah)', stroke: 'var(--blue)', 'stroke-width': 8 });
+  const tl = txt(s, 820, 210, `<div style="font-size:40px;font-weight:700;color:var(--green)">投资（左手出）</div>`);
+  const bl = txt(s, 800, 700, `<div style="font-size:40px;font-weight:700;color:var(--blue)">采购算力（右手进）</div>`);
+  const coin = el(s, 'a', { left: '0', top: '0', width: '44px', height: '44px', borderRadius: '50%', background: 'var(--yellow)', border: '4px solid var(--ink)' });
+  const loan = card(s, 560, 810, `<div class="lab">2026 年 10 月 · 据路透社</div><div style="font-size:42px;font-weight:700;margin-top:6px">博通借给它最多 <span class="num" style="font-size:66px;color:var(--red)">420 亿</span> 美元，用来租博通自己的芯片</div>`, { w: 820 });
+  const bank = txt(s, 1400, 860, `<div class="stamp" style="font-size:50px">卖芯片的成了银行</div>`);
+  const bills = txt(s, 0, 70, `<div style="width:1920px;text-align:center" class="serif"><span style="font-size:60px">没有真实客户买单，</span><span style="font-size:60px;color:var(--red)">就只是互相递账单</span></div>`);
+  return { big, an, top, bot, tl, bl, coin, loan, bank, bills };
+}, (t, o) => {
+  drop(o.big, t, c('b6') - 0.2, -1.5); drop(o.an, t, c('b6') + 0.1, 1.5);
+  draw(o.top, prog(t, w('b6', '投资'), w('b6', '投资') + 0.6, ease.inOut)); fade(o.tl, t, w('b6', '投资'));
+  draw(o.bot, prog(t, w('b6', '卖给它'), w('b6', '卖给它') + 0.6, ease.inOut)); fade(o.bl, t, w('b6', '卖给它'));
+  // coin running the loop once both arrows exist
+  const st = w('b6', '卖给它') + 0.6, ph = ((t - st) / 2.4) % 1;
+  if (t >= st && t < e('b8') + 0.4) {
+    const p = ph < 0.5 ? o.top : o.bot, k = (ph % 0.5) * 2, len = p.getTotalLength(), pt = p.getPointAtLength(len * k);
+    tf(o.coin, { x: pt.x - 22, y: pt.y - 22, o: 1 });
+  } else o.coin.style.opacity = 0;
+  drop(o.loan, t, w('b7', '四百二十亿') - 0.5, -1);
+  slam(o.bank, t, w('b7', '银行'), -6);
+  fin(o.bills, t, w('b8', '递账单') - 1.2);
+});
+sfx('slam', w('b7', '银行')); sfx('coin', w('b6', '卖给它') + 0.6);
+
+/* ================= C1 · IPO calendar ================= */
+scene('C1', s => {
+  const cal = card(s, 160, 150, '', { cls: 'cut', w: 760, extra: { padding: '30px 34px' } });
+  const inner = cal.firstChild;
+  inner.innerHTML = `<div class="serif" style="font-size:56px">2026 年 11 月</div><div id="c1grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:16px"></div>`;
+  const g = inner.querySelector('#c1grid');
+  ['日', '一', '二', '三', '四', '五', '六'].forEach(d => el(g, 'lab', { textAlign: 'center' }, d));
+  const CELLS = {};
+  for (let d = 1; d <= 30; d++) CELLS[d] = el(g, 'num', { fontSize: '40px', textAlign: 'center', padding: '10px 0', border: '2px solid transparent' }, d);
+  const road = txt(s, 980, 210, `<div class="lab">最快：11 月 9 日当周</div><div class="serif" style="font-size:72px">开始路演</div>`);
+  const tg = txt(s, 980, 420, `<div class="lab">目标：11 月 26 日 感恩节前</div><div class="serif" style="font-size:72px">挂牌交易</div>`);
+  const val = card(s, 980, 640, `<div class="lab">潜在投资者给出的估值</div><div class="num" style="font-size:120px;margin-top:4px">1.8–2 <span style="font-size:70px">万亿美元</span></div>`);
+  const oa = txt(s, 200, 860, `<div style="font-size:38px;font-weight:700">对比：OpenAI 的奥特曼——<span style="color:var(--red)">今年不上市</span></div>`);
+  return { cal, CELLS, road, tg, val, oa };
+}, (t, o) => {
+  drop(o.cal, t, c('c1') - 0.2, -1.5);
+  const k9 = t >= w('c2', '十一月九日');
+  for (let d = 8; d <= 14; d++) { o.CELLS[d].style.background = k9 ? 'rgba(242,201,53,.7)' : ''; }
+  o.CELLS[26].style.borderColor = t >= w('c2', '感恩节') ? 'var(--red)' : 'transparent';
+  o.CELLS[26].style.color = t >= w('c2', '感恩节') ? 'var(--red)' : '';
+  fin(o.road, t, w('c2', '十一月九日')); fin(o.tg, t, w('c2', '感恩节'));
+  drop(o.val, t, w('c2', '一点八万亿') - 0.2, 1.5);
+  fin(o.oa, t, w('c3', '今年不上市') - 0.6);
+});
+
+/* ================= C2 · 2T is not 2T ================= */
+scene('C2', s => {
+  const tagc = card(s, 200, 160, `<div class="lab">标价（估值）</div><div class="num" style="font-size:150px">$2 万亿</div>`);
+  const bag = card(s, 1080, 160, `<div class="lab">计划募资</div><div class="num" style="font-size:150px;color:var(--green)">≈$1000 亿</div>`);
+  const ne = txt(s, 820, 230, `<div class="serif" style="font-size:110px;color:var(--red)">≠</div>`);
+  const why = txt(s, 210, 430, `<div style="font-size:38px">卖出多少股份，就只收到那一部分的钱</div>`);
+  const b1 = el(s, 'a bar', { left: '210px', top: '600px', height: '110px', width: '0', background: 'var(--card)', backgroundImage: 'repeating-linear-gradient(135deg, rgba(28,27,25,.12) 0 10px, transparent 10px 20px)' });
+  const b2 = el(s, 'a bar', { left: '210px', top: '600px', height: '110px', width: '0', background: 'var(--green)' });
+  const l1 = txt(s, 210, 730, `<div style="font-size:32px;color:var(--ink2)">长期承诺 5180 亿</div>`);
+  const l2 = txt(s, 230, 625, `<div class="num" style="font-size:60px;color:#f1eadb">1000 亿</div>`);
+  const fifth = txt(s, 1500, 580, `<div class="num" style="font-size:120px;color:var(--red)">&lt; 1/5</div>`);
+  const pay = card(s, 640, 820, `<div style="font-size:36px">好在<b>分期付款</b>：上市换来时间，之后靠客户<span style="color:var(--green);font-weight:700">持续输血</span></div>`);
+  return { tagc, bag, ne, why, b1, b2, l1, l2, fifth, pay };
+}, (t, o) => {
+  drop(o.tagc, t, c('c4') - 0.2, -2); drop(o.bag, t, w('c4', '一千亿'), 2);
+  slap(o.ne, t, w('c4', '不等于'), 0); fin(o.why, t, w('c4', '那一部分') - 0.8);
+  growW(o.b1, t, c('c5'), 0.8, 1500); fade(o.l1, t, c('c5') + 0.4);
+  growW(o.b2, t, c('c5') + 0.6, 0.6, 1500 * 1000 / 5180); fade(o.l2, t, c('c5') + 1.0);
+  slap(o.fifth, t, w('c5', '五分之一'), -3);
+  drop(o.pay, t, w('c5', '分期付款') - 0.3, 1);
+});
+sfx('slam', w('c5', '五分之一'));
+
+/* ================= C3 · the forecast ================= */
+scene('C3', s => {
+  const h = txt(s, 140, 80, `<div class="serif" style="font-size:56px">年收入（亿美元）</div><div class="lab" style="margin-top:6px">2028 年为公司自己的预测（据路透社），红线只连接起点和预测值，不代表中间路径</div>`);
+  const svg = svgLayer(s);
+  const X = { 2024: 300, 2025: 620, 2026: 940, 2027: 1260, 2028: 1580 }, Y0 = 860, yv = v => Y0 - v / 2000 * 640;
+  path(svg, wobble([[220, Y0], [1720, Y0]], 12, 1.5), { 'stroke-width': 4 }).style.strokeDasharray = 'none';
+  Object.entries(X).forEach(([yr, x]) => txt(s, x - 40, Y0 + 18, `<div class="lab">${yr}</div>`));
+  const real = path(svg, `M${X[2024]},${yv(3.86)} L${X[2025]},${yv(46)}`, { 'stroke-width': 7 });
+  const fc = path(svg, `M${X[2025]},${yv(46)} L${X[2028]},${yv(1950)}`, { 'stroke-width': 6, stroke: 'var(--red)' });
+  const band = svgEl(svg, 'rect', { x: X[2028] - 50, y: yv(2000), width: 100, height: yv(1900) - yv(2000), fill: 'rgba(194,59,34,.3)' });
+  const d24 = txt(s, X[2024] - 60, yv(3.86) - 70, `<div class="num" style="font-size:48px">3.86</div>`);
+  const d25 = txt(s, X[2025] - 40, yv(46) - 80, `<div class="num" style="font-size:56px">46</div>`);
+  const d28 = txt(s, X[2028] - 230, yv(2000) - 100, `<div class="num" style="font-size:84px;color:var(--red)">1900–2000</div>`);
+  const pe = card(s, 260, 280, `<div style="font-size:38px;line-height:1.7">2 万亿 ÷ 2000 亿 = <b class="num" style="font-size:64px">10 倍</b> 市销率<br>2 万亿 ÷ 1000 亿 = <b class="num" style="font-size:64px;color:var(--red)">20 倍</b></div>`);
+  const q2 = card(s, 1000, 520, `<div class="lab">2026 年第二季度 · 初步数据（据彭博）</div><div style="font-size:40px;font-weight:700;margin-top:6px">单季收入 &gt; <span class="num" style="font-size:72px;color:var(--green)">115 亿</span></div><div style="font-size:28px;color:var(--ink2)">经调整的经营利润转正</div>`);
+  return { h, real, fc, band, d24, d25, d28, pe, q2 };
+}, (t, o) => {
+  fin(o.h, t, c('c6') - 0.3);
+  draw(o.real, prog(t, c('c6'), c('c6') + 0.7, ease.inOut)); fade(o.d24, t, c('c6')); fade(o.d25, t, c('c6') + 0.6);
+  const k = prog(t, w('c6', '二零二八年'), w('c6', '一千九百亿') + 0.6, ease.inOut);
+  draw(o.fc, k);
+  o.band.style.opacity = prog(t, w('c6', '一千九百亿'), w('c6', '一千九百亿') + 0.4, ease.lin); fade(o.d28, t, w('c6', '一千九百亿'));
+  drop(o.pe, t, c('c7') + 0.2, -1.5, { out: c('c8') - 0.2, exit: 'fade', outDur: 0.3 });
+  drop(o.q2, t, w('c8', '一百一十五亿') - 0.4, 1.5);
+});
+
+/* ================= C4 · two customers ================= */
+scene('C4', s => {
+  const svg = svgLayer(s);
+  const pie = svgEl(svg, 'g', { transform: 'translate(560,540)' });
+  svgEl(pie, 'circle', { r: 280, fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 5 });
+  const slice = svgEl(pie, 'path', { d: 'M0,0 L0,-280 A280,280 0 0 1 280,0 Z', fill: 'var(--red)', stroke: 'var(--ink)', 'stroke-width': 5 });
+  const lab = txt(s, 900, 300, `<div class="num" style="font-size:180px;color:var(--red)">25%</div><div class="serif" style="font-size:56px">的收入，来自两个客户</div><div class="lab" style="margin-top:10px">招股书草稿，据财富杂志</div>`);
+  const bet = txt(s, 900, 720, `<div class="serif" style="font-size:60px">它在赌：<span style="color:var(--green)">钱来得比账单快</span></div>`);
+  return { pie, slice, lab, bet };
+}, (t, o) => {
+  o.pie.style.opacity = prog(t, c('c9') - 0.3, c('c9'), ease.lin);
+  const k = prog(t, w('c9', '四分之一'), w('c9', '四分之一') + 0.8, ease.out), a = k * Math.PI / 2;
+  o.slice.setAttribute('d', `M0,0 L0,-280 A280,280 0 0 1 ${(280 * Math.sin(a)).toFixed(1)},${(-280 * Math.cos(a)).toFixed(1)} Z`);
+  fin(o.lab, t, w('c9', '四分之一') + 0.3); fin(o.bet, t, w('c10', '在赌'));
+});
+
+/* ================= D1 · Dots ================= */
+scene('D1', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:60px">AI 得干出让人愿意掏钱的事</div>`);
+  const svg = svgLayer(s);
+  const cloud = path(svg, 'M520,420 C440,420 420,330 500,310 C500,230 620,210 660,270 C700,200 830,210 840,290 C930,290 940,410 860,420 Z', { 'stroke-width': 6, fill: 'var(--card)' });
+  const lap = el(s, 'a', { left: '560px', top: '330px', width: '220px', height: '130px', background: '#2a2925', border: '5px solid var(--ink)', borderRadius: '10px' }, `<div style="position:absolute;inset:10px;background:#f1eadb;border-radius:4px;font-family:'K Mono';font-size:18px;padding:8px">dot · 运行中</div>`);
+  const dlab = card(s, 160, 520, `<div class="lab">OpenAI · 2026 年 9 月 29 日</div><div class="serif" style="font-size:64px;margin-top:6px">Dots</div><div style="font-size:30px;margin-top:6px">给 AI 一台云端电脑，替你打工</div>`, { w: 620 });
+  const list = card(s, 1060, 240, `<div class="lab">以前：吐出一段文字</div><div class="lab" style="margin-top:12px;color:var(--ink)">现在：</div>${['查资料', '建文档', '盯着任务一直干'].map((x, i) => `<div class="chk"><i id="dk${i}"></i>${x}</div>`).join('')}`, { w: 620 });
+  const price = card(s, 1060, 700, `<div class="lab">每个 Pro 套餐送一个</div><div class="num" style="font-size:72px;margin-top:6px">$100 · $200 · <span style="color:var(--red)">$500</span><span style="font-size:40px"> / 月</span></div>`);
+  return { h, cloud, lap, dlab, list, price };
+}, (t, o) => {
+  fin(o.h, t, c('d1'));
+  draw(o.cloud, prog(t, w('d2', '云端电脑') - 0.4, w('d2', '云端电脑') + 0.4, ease.inOut));
+  fin(o.lap, t, w('d2', '云端电脑'));
+  drop(o.dlab, t, w('d2', 'Dots') - 0.2, -1.5);
+  drop(o.list, t, c('d3'), 1.5);
+  ['查资料', '建文档', '盯着任务'].forEach((s_, i) => { $('dk' + i).textContent = t >= w('d3', s_) + 0.3 ? '✓' : ''; });
+  drop(o.price, t, w('d3', '一百美元') - 0.3, -1);
+});
+sfx('tick', w('d3', '查资料') + 0.3); sfx('tick', w('d3', '建文档') + 0.3); sfx('tick', w('d3', '盯着任务') + 0.3);
+
+/* ================= D2 · Astra paused ================= */
+scene('D2', s => {
+  const mc = card(s, 200, 170, `<div class="lab">原定 10 月发布</div><div class="serif" style="font-size:80px;margin-top:6px">GPT-6.1 Astra</div>`);
+  const stp = txt(s, 520, 300, `<div class="stamp" style="font-size:96px">暂停发布</div>`);
+  const why = card(s, 1060, 150, `<div class="lab">据华尔街日报 · 安全测试发现</div><div style="font-size:36px;line-height:1.6;margin-top:8px">· 更说不清自己做了什么<br>· 不经允许就调用外部工具</div>`, { w: 680 });
+  const tix = card(s, 220, 560, `<div class="lab">打个比方</div><div style="font-size:40px;font-weight:700;margin-top:6px">✈ 查机票 → 直接刷卡</div><div style="font-size:30px;color:var(--red);margin-top:6px">没通知你</div>`, { w: 520 });
+  const cc = el(s, 'a', { left: '820px', top: '600px', width: '300px', height: '190px', borderRadius: '18px', background: 'var(--blue)', border: '4px solid var(--ink)' }, `<div style="position:absolute;left:24px;top:30px;width:56px;height:42px;border-radius:6px;background:var(--yellow)"></div><div class="num" style="position:absolute;left:24px;bottom:24px;color:#f1eadb;font-size:34px">•••• 4821</div>`);
+  const gate = card(s, 1240, 520, `<div class="lab">必须人类点头</div>${['发消息', '付款', '改重要文件'].map((x, i) => `<div class="chk"><i id="g${i}" style="color:var(--red)"></i>${x}</div>`).join('')}`, { w: 480 });
+  return { mc, stp, why, tix, cc, gate };
+}, (t, o) => {
+  drop(o.mc, t, w('d4', 'GPT-6.1 Astra') - 0.3, -1.5);
+  slam(o.stp, t, w('d4', '叫停'), -8);
+  drop(o.why, t, w('d5', '说不清') - 0.4, 1.5);
+  drop(o.tix, t, w('d6', '查机票') - 0.2, -2);
+  life(o.cc, t, { in: w('d6', '刷了你的卡') - 0.2, r: -6, from: { x: 300, r: 20 }, dur: 0.35 });
+  if (t > w('d6', '你敢')) o.cc.style.outline = step(t, 4) % 2 ? '8px solid var(--red)' : 'none';
+  drop(o.gate, t, w('d7', '发消息') - 0.4, 1);
+  ['发消息', '付款', '改重要文件'].forEach((s_, i) => { $('g' + i).textContent = t >= w('d7', s_) + 0.2 ? '!' : ''; });
+});
+sfx('slam', w('d4', '叫停')); sfx('alert', w('d6', '你敢'));
+
+/* ================= D3 · Treasury yield ================= */
+scene('D3', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:60px">华尔街盯的，不只是 AI</div>`);
+  const big = txt(s, 140, 230, `<div class="lab">美国 10 年期国债收益率 · 2026 年 9 月底</div><div class="num" style="font-size:260px;color:var(--red)">≈<span id="d3y">0.00</span>%</div>`);
+  const st = txt(s, 1140, 330, `<div class="stamp" style="font-size:64px">2007 年以来最高</div>`);
+  const qn = card(s, 400, 720, `<div style="font-size:44px">无风险利息这么高，<b>凭什么花天价赌未来？</b></div>`);
+  return { h, big, st, qn };
+}, (t, o) => {
+  fin(o.h, t, c('d8') - 0.3); fin(o.big, t, w('d8', '百分之五点二九') - 0.4);
+  count($('d3y'), t, w('d8', '百分之五点二九'), 1.2, 5.29, v => v.toFixed(2));
+  slam(o.st, t, w('d8', '十九年'), -6); drop(o.qn, t, w('d9', '凭什么') - 0.6, -1);
+});
+sfx('slam', w('d8', '十九年'));
+
+/* ================= E1 · 小陈's inbox ================= */
+scene('E1', s => {
+  const pc = el(s, 'a', { left: '220px', top: '180px', width: '900px', height: '600px', background: '#2a2925', border: '6px solid var(--ink)', borderRadius: '14px' });
+  const scr = el(pc, '', { position: 'absolute', inset: '16px', background: '#f6f2e8', borderRadius: '6px', overflow: 'hidden', padding: '20px' });
+  const MAIL = [];
+  for (let i = 0; i < 11; i++) MAIL.push(el(scr, '', { display: 'flex', gap: '16px', fontSize: '22px', padding: '8px 0', borderBottom: '1px solid #ddd5c4' }, `<b style="width:180px">客户 ${String.fromCharCode(65 + i)}</b><span style="color:#777">订单 #${4100 + i * 7} · ${hash(i) > 0.55 ? '<b style="color:var(--red)">缺资料</b>' : '已确认'}</span>`));
+  const tbl = card(s, 760, 420, `<div class="lab">AI 生成 · 用时 3 秒</div><table style="font-size:24px;margin-top:10px;border-collapse:collapse">${[0, 1, 2, 3].map(i => `<tr><td style="padding:6px 16px 6px 0">客户 ${'ACFH'[i]}</td><td style="padding:6px 16px;color:var(--red)">缺发票</td><td style="padding:6px 0">回复草稿 ✓</td></tr>`).join('')}</table>`, { cls: 'ledger pad' });
+  const name = card(s, 1240, 170, `<div class="serif" style="font-size:72px">小陈</div><div style="font-size:30px;color:var(--ink2)">普通职员 · 虚构人物</div>`);
+  return { pc, MAIL, tbl, name };
+}, (t, o) => {
+  fin(o.pc, t, c('e1') + 0.4, { dur: 0.5 }); drop(o.name, t, w('e1', '小陈') - 0.2, 2);
+  o.MAIL.forEach((m, i) => { m.style.opacity = t >= w('e2', '满屏邮件') + i * 0.08 ? 1 : 0; });
+  drop(o.tbl, t, w('e2', '几秒钟'), -1.5);
+});
+
+/* ================= E2 · the studies ================= */
+scene('E2', s => {
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:56px">有 AI 帮忙，客服每小时多解决多少问题？</div><div class="lab" style="margin-top:6px">Brynjolfsson 等，NBER 工作论文，2023</div>`);
+  const b1 = el(s, 'a', { left: '360px', top: px(820 - 14 * 14), width: '240px', height: px(14 * 14), background: 'var(--blue)', border: '3px solid var(--ink)', transformOrigin: '50% 100%' });
+  const b2 = el(s, 'a', { left: '760px', top: px(820 - 34 * 14), width: '240px', height: px(34 * 14), background: 'var(--green)', border: '3px solid var(--ink)', transformOrigin: '50% 100%' });
+  const v1 = txt(s, 360, 820 - 14 * 14 - 90, `<div class="num" style="width:240px;text-align:center;font-size:80px">+14%</div>`);
+  const v2 = txt(s, 760, 820 - 34 * 14 - 90, `<div class="num" style="width:240px;text-align:center;font-size:80px;color:var(--green)">+34%</div>`);
+  const l1 = txt(s, 360, 840, `<div style="width:240px;text-align:center;font-size:32px">平均</div>`);
+  const l2 = txt(s, 760, 840, `<div style="width:240px;text-align:center;font-size:32px">新人</div>`);
+  const base = svgLayer(s); path(base, wobble([[300, 822], [1060, 822]], 14, 1.5), { 'stroke-width': 4 });
+  const ilo = card(s, 1180, 300, `<div class="lab">国际劳工组织 · 2025</div><div style="font-size:40px;font-weight:700;margin-top:8px">全球 <span class="num" style="font-size:80px;color:var(--red)">1/4</span> 的岗位<br>可能受生成式 AI 影响</div><div id="ppl" style="display:flex;gap:18px;margin-top:20px"></div><div class="serif" style="font-size:44px;margin-top:20px">改造 &gt; 取代</div>`, { w: 560 });
+  const ppl = ilo.querySelector('#ppl');
+  for (let i = 0; i < 4; i++) el(ppl, '', {}, `<svg width="70" height="110"><circle cx="35" cy="22" r="18" fill="${i === 0 ? 'var(--red)' : 'var(--card)'}" stroke="var(--ink)" stroke-width="5"/><path d="M35,42 L35,78 M14,58 L56,58 M35,78 L18,106 M35,78 L52,106" stroke="${i === 0 ? 'var(--red)' : 'var(--ink)'}" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`);
+  return { h, b1, b2, v1, v2, l1, l2, ilo };
+}, (t, o) => {
+  fin(o.h, t, c('e3') - 0.3);
+  growH(o.b1, t, w('e3', '百分之十四'), 0.7); fin(o.v1, t, w('e3', '百分之十四') + 0.5); fade(o.l1, t, w('e3', '百分之十四'));
+  growH(o.b2, t, w('e3', '百分之三十四'), 0.9); fin(o.v2, t, w('e3', '百分之三十四') + 0.6); fade(o.l2, t, w('e3', '百分之三十四'));
+  drop(o.ilo, t, w('e4', '四分之一') - 0.6, 1.5);
+});
+
+/* ================= E3 · the boss ================= */
+scene('E3', s => {
+  const bub = card(s, 220, 170, `<div class="lab">老板</div><div class="serif" style="font-size:60px;margin-top:6px">“那你以后，每天多处理一些单吧。”</div>`);
+  const stack = el(s, 'a', { left: '0', top: '0', width: '1920px', height: '1080px' });
+  const T = []; for (let i = 0; i < 12; i++) T.push(el(stack, 'a', { left: px(1380 + (hash(i) - 0.5) * 30), top: px(860 - i * 34), width: '300px', height: '30px', background: i % 2 ? '#efe6cf' : '#f6efdc', border: '2px solid var(--ink)' }));
+  const moat = card(s, 220, 470, `<div class="lab">真正的护城河</div><div style="font-size:40px;line-height:1.6;margin-top:6px">知道客户到底要什么<br>一眼看出 AI 报表里的${mark('e3hl', '漏洞')}</div>`, { w: 760 });
+  const two = txt(s, 220, 840, `<div class="serif" style="font-size:56px"><span style="color:var(--blue)">AI 负责先做</span>，<span style="color:var(--green)">你负责知道怎样才算做对</span></div>`);
+  return { bub, T, moat, two };
+}, (t, o) => {
+  drop(o.bub, t, w('e5', '老板') - 0.2, -1.5);
+  o.T.forEach((n, i) => drop(n, t, w('e5', '多处理') + i * 0.12, (hash(i) - 0.5) * 4, { from: { y: -600 }, dur: 0.25 }));
+  drop(o.moat, t, w('e6', '护城河') - 0.3, 1);
+  hl($('e3hl'), t, w('e6', '漏洞'));
+  fin(o.two, t, w('e6', 'AI 负责先做'));
+});
+
+/* ================= E4 · the quote sheet ================= */
+scene('E4', s => {
+  const sheet = card(s, 300, 160, `<div class="serif" style="font-size:56px">报价单</div><div class="lab" style="margin-top:4px">AI 生成 · 排版漂亮</div><table style="font-size:34px;margin-top:20px;width:100%;border-collapse:collapse">
+    <tr><td style="padding:12px 0">产品介绍</td><td style="text-align:right">✓ 写得很好</td></tr>
+    <tr><td style="padding:12px 0">单价</td><td style="text-align:right" class="num"><span style="font-size:48px">¥ 1,280</span></td></tr>
+    <tr><td style="padding:12px 0">库存</td><td style="text-align:right">?</td></tr><tr><td style="padding:12px 0">交货日期</td><td style="text-align:right">?</td></tr></table>`, { cls: 'ledger pad', w: 760 });
+  const svg = svgLayer(s); const circ = path(svg, '', { stroke: 'var(--red)', 'stroke-width': 7 });
+  const real = card(s, 1180, 300, `<div class="lab">必须是真数据</div><div style="font-size:42px;font-weight:700;line-height:1.6;margin-top:6px">价格 · 库存 · 交货日期</div>`, { w: 640 });
+  const loss = txt(s, 1160, 620, `<div class="stamp" style="font-size:60px">损失不会一笔勾销</div>`);
+  return { sheet, circ, real, loss };
+}, (t, o) => {
+  drop(o.sheet, t, c('e7') - 0.2, -1.5);
+  o.circ.setAttribute('d', penCircle(960, 465, 170, 56, 300 + boil(t)));
+  draw(o.circ, prog(t, w('e7', '写错了价'), w('e7', '写错了价') + 0.5, ease.inOut));
+  drop(o.real, t, w('e7', '价格') - 0.2, 1.5);
+  slam(o.loss, t, w('e7', '写错了价') + 1.0, -5);
+});
+sfx('slam', w('e7', '写错了价') + 1.0);
+
+/* ================= E5 · subscriptions ================= */
+scene('E5', s => {
+  const R = ['写文案', '做图', '剪视频'].map((n, i) => card(s, 200 + i * 360, 180, `<div class="lab">订阅 · 每月</div><div style="font-size:40px;font-weight:700;margin-top:6px">${n}</div><div class="num" style="font-size:90px;margin-top:6px">$20</div>`, { cls: 'receipt' }));
+  const tot = card(s, 1320, 200, `<div class="lab">一年合计</div><div class="num" style="font-size:150px;color:var(--red)">$720</div><div style="font-size:26px;color:var(--ink2)">20 × 3 × 12</div>`);
+  const ad = card(s, 420, 620, `<div class="lab">AI 导购推荐</div><div style="font-size:40px;font-weight:700;margin-top:6px">★★★★★ 海景酒店 · 今晚特价</div><div style="font-size:30px;margin-top:10px">客观建议？还是<span style="color:var(--red);font-weight:700">买来的流量</span>？</div>`, { w: 820 });
+  const tagAd = txt(s, 1180, 600, `<div class="stamp" style="font-size:52px">广告？</div>`);
+  return { R, tot, ad, tagAd };
+}, (t, o) => {
+  o.R.forEach((r, i) => drop(r, t, w('e8', ['写文案', '做图', '剪视频'][i]) - 0.1, [-2, 1, -1][i]));
+  slap(o.tot, t, w('e8', '七百二十美元') - 0.2, 2);
+  drop(o.ad, t, w('e9', '导购') - 0.3, -1); slam(o.tagAd, t, w('e9', '流量'), -8);
+});
+sfx('cash', w('e8', '七百二十美元') - 0.2);
+
+/* ================= E6 · voice clone + privacy ================= */
+scene('E6', s => {
+  const ph = el(s, 'a', { left: '240px', top: '140px', width: '360px', height: '700px', background: '#1c1b19', borderRadius: '48px', border: '5px solid var(--ink)' }, `<div style="position:absolute;inset:14px;background:#f6f2e8;border-radius:36px;text-align:center;padding-top:90px"><div class="lab">来电</div><div class="serif" style="font-size:60px;margin-top:10px">妈妈</div><svg width="300" height="120" style="margin-top:40px"><path id="wave" fill="none" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/></svg><div style="font-size:30px;color:var(--red);font-weight:700;margin-top:20px">“快转账……”</div></div>`);
+  const weak = card(s, 720, 170, `<div style="font-size:44px;line-height:1.5">“我听得出他的声音”<br>恰恰成了<span style="color:var(--red);font-weight:700">最致命的软肋</span></div>`);
+  const steps = card(s, 720, 470, `<div class="lab">美国联邦贸易委员会的建议</div><div style="font-size:44px;font-weight:700;margin-top:8px">① 先挂断 &nbsp;→&nbsp; ② 用自己存的号码回拨</div>`);
+  const id = card(s, 720, 720, `<div class="lab">喂给 AI 之前</div><div style="font-size:36px;margin-top:8px;font-family:'K Mono','K Sans'">姓名：<span id="red1">陈某某</span> &nbsp; 电话：<span id="red2">138 0000 0000</span><br>证件号：<span id="red3">110101 1990 0101 1234</span></div>`, { w: 980 });
+  return { ph, weak, steps, id };
+}, (t, o) => {
+  fin(o.ph, t, c('e10') - 0.2, { dur: 0.4 });
+  tf(o.ph, { x: t > w('e10', '求救电话') && t < c('e11') ? (hash(step(t, 24)) - 0.5) * 8 : 0, o: prog(t, c('e10') - 0.2, c('e10'), ease.lin) });
+  const k = step(t, 12); $('wave').setAttribute('d', 'M0,60 ' + Array.from({ length: 30 }, (_, i) => `L${i * 10},${60 + (hash(k * 31 + i) - 0.5) * 90}`).join(' '));
+  drop(o.weak, t, w('e10', '软肋') - 1.6, 1.5);
+  drop(o.steps, t, w('e11', '先挂断') - 0.3, -1);
+  drop(o.id, t, c('e12') + 0.2, 1);
+  ['red1', 'red2', 'red3'].forEach((id, i) => { const on = t >= w('e12', i < 2 ? '姓名和电话' : '证件号') + 0.3 + i * 0.1; Object.assign($(id).style, { background: on ? 'var(--ink)' : 'transparent', color: on ? 'var(--ink)' : '' }); });
+});
+sfx('ring', c('e10') + 0.2);
+
+/* ================= F1 · the power bill ================= */
+scene('F1', s => {
+  const svg = svgLayer(s);
+  const P = [];
+  for (let i = 0; i < 4; i++) { const x = 220 + i * 420; P.push(path(svg, `M${x},880 L${x + 60},420 L${x + 120},880 M${x + 18},740 L${x + 102},740 M${x + 34},600 L${x + 86},600 M${x - 10},470 L${x + 130},470`, { 'stroke-width': 6 })); }
+  const wires = path(svg, 'M220,470 Q430,540 640,470 Q850,540 1060,470 Q1270,540 1480,470 Q1690,540 1900,470', { 'stroke-width': 3 });
+  const h = txt(s, 140, 90, `<div class="serif" style="font-size:56px">全球数据中心用电（亿度）</div><div class="lab" style="margin-top:6px">国际能源署《能源与 AI》，2025</div>`);
+  const a = card(s, 260, 230, `<div class="lab">2024 年</div><div class="num" style="font-size:110px">4150</div>`);
+  const b = card(s, 760, 200, `<div class="lab">2030 年（预测）</div><div class="num" style="font-size:150px;color:var(--red)">≈9450</div>`);
+  const x2 = txt(s, 1420, 220, `<div class="num" style="font-size:130px">×2+</div>`);
+  const qs = ['新电厂谁来建？', '电网成本怎么摊？', '会推高民用电价吗？'].map((q_, i) => card(s, 260 + i * 520, 580 + (i % 2) * 40, `<div style="font-size:38px;font-weight:700">${q_}</div>`));
+  return { P, wires, h, a, b, x2, qs };
+}, (t, o) => {
+  o.P.forEach((p, i) => draw(p, prog(t, w('f1', '输电线') - 0.6 + i * 0.12, w('f1', '输电线') + i * 0.12, ease.inOut)));
+  draw(o.wires, prog(t, w('f1', '输电线'), w('f1', '输电线') + 0.8, ease.inOut));
+  fin(o.h, t, c('f2') - 0.2); drop(o.a, t, c('f2') + 0.3, -1.5); slap(o.b, t, w('f2', '九千四百五十亿度') - 0.2, 1.5); fin(o.x2, t, w('f2', '九千四百五十亿度') + 0.5);
+  o.qs.forEach((n, i) => drop(n, t, w('f3', ['新电厂', '电网', '民用电价'][i]) - 0.2, [-2, 1.5, -1][i]));
+});
+
+/* ================= F2 · whose pocket ================= */
+scene('F2', s => {
+  const gains = ['外语邮件 → 秒翻', '海报 → 出草稿', '开小店 → 理清计划'].map((g, i) => card(s, 200 + i * 540, 160, `<div style="font-size:40px;font-weight:700">${g}</div>`));
+  const pk = ['员工', '客户', '大公司'].map((p, i) => el(s, 'a', { left: px(300 + i * 500), top: '600px', width: '300px', height: '260px' }, `<svg width="300" height="260"><path d="M20,40 L280,40 L250,240 L50,240 Z" fill="var(--card)" stroke="var(--ink)" stroke-width="6" stroke-linejoin="round"/></svg><div class="serif" style="position:absolute;left:0;right:0;top:120px;text-align:center;font-size:52px">${p}</div>`));
+  const coins = []; for (let i = 0; i < 9; i++) coins.push(el(s, 'a', { left: '0', top: '0', width: '50px', height: '50px', borderRadius: '50%', background: 'var(--yellow)', border: '4px solid var(--ink)' }));
+  const q = txt(s, 0, 420, `<div style="width:1920px;text-align:center" class="serif"><span style="font-size:60px">时间和利润，流进谁的口袋？</span></div>`);
+  return { gains, pk, coins, q };
+}, (t, o) => {
+  o.gains.forEach((g, i) => drop(g, t, w('f4', ['外语邮件', '海报', '小店'][i]) - 0.2, [-2, 1, -1][i]));
+  fin(o.q, t, c('f5') + 0.1);
+  o.pk.forEach((p, i) => drop(p, t, w('f5', ['员工', '客户', '大公司'][i]) - 0.2, 0, { from: { y: 300 } }));
+  o.coins.forEach((cn, i) => { const tgt = i % 3, at = w('f5', '员工') + 0.4 + i * 0.35, k = clamp((q(t) - at) / 0.5); tf(cn, { x: 420 + tgt * 500 + (hash(i) - 0.5) * 60, y: lerp(260, 640, ease.in2(k)), o: t >= at && k < 1 ? 1 : 0 }); });
+});
+
+/* ================= F3 · two endings ================= */
+scene('F3', s => {
+  const svg = svgLayer(s);
+  const road = path(svg, wobble([[960, 900], [960, 560]], 3, 2), { 'stroke-width': 8 });
+  const L_ = path(svg, 'M960,560 C900,420 700,380 520,360', { 'stroke-width': 8, stroke: 'var(--green)', 'marker-end': 'url(#ah)' });
+  const R_ = path(svg, 'M960,560 C1020,420 1220,380 1400,360', { 'stroke-width': 8, stroke: 'var(--red)', 'marker-end': 'url(#ah)' });
+  const top = card(s, 690, 820, `<div class="num" style="font-size:72px;text-align:center">5180 亿 · 机器不会自己还账</div>`);
+  const lc = card(s, 200, 180, `<div class="lab">客户疯狂涌入</div><div class="serif" style="font-size:72px;color:var(--green)">先机</div>`);
+  const rc = card(s, 1380, 180, `<div class="lab">增长停滞</div><div class="serif" style="font-size:72px;color:var(--red)">绞肉机</div>`);
+  const check = card(s, 640, 260, `<div class="lab">接下来，看三件事</div>${['客户还买不买单', '账单付不付得起', 'AI 办事靠不靠谱'].map((x, i) => `<div class="chk"><i id="f3c${i}"></i>${x}</div>`).join('')}`, { w: 640 });
+  return { road, L_, R_, top, lc, rc, check };
+}, (t, o) => {
+  drop(o.top, t, c('f6') + 0.2, 0, { out: c('f8') - 0.2, exit: 'fade', outDur: 0.3 });
+  draw(o.road, prog(t, c('f7'), c('f7') + 0.5, ease.inOut));
+  draw(o.L_, prog(t, w('f7', '先机') - 0.6, w('f7', '先机'), ease.inOut)); drop(o.lc, t, w('f7', '先机') - 0.2, -2, { out: c('f8') - 0.2, exit: 'fade', outDur: 0.3 });
+  draw(o.R_, prog(t, w('f7', '绞肉机') - 0.8, w('f7', '绞肉机') - 0.2, ease.inOut)); drop(o.rc, t, w('f7', '绞肉机') - 0.2, 2, { out: c('f8') - 0.2, exit: 'fade', outDur: 0.3 });
+  for (const p of [o.road, o.L_, o.R_]) if (t > c('f8') - 0.2) p.style.opacity = 1 - prog(t, c('f8') - 0.2, c('f8') + 0.1, ease.lin);
+  drop(o.check, t, c('f8') + 0.1, -1);
+  ['买不买单', '付不付得起', '靠不靠谱'].forEach((s_, i) => { $('f3c' + i).textContent = t >= w('f8', s_) + 0.3 ? '✓' : ''; });
+});
+sfx('tick', w('f8', '买不买单') + 0.3); sfx('tick', w('f8', '付不付得起') + 0.3); sfx('tick', w('f8', '靠不靠谱') + 0.3);
+
+/* ================= F4 · closing ================= */
+const TYPE = [];
+scene('F4', s => {
+  const l1 = txt(s, 170, 300, '', { fontFamily: "'K Serif'", fontWeight: 900, fontSize: '80px' }); l1.id = 'f4a';
+  const l2 = txt(s, 170, 420, '', { fontFamily: "'K Serif'", fontWeight: 900, fontSize: '80px' }); l2.id = 'f4b';
+  const q = txt(s, 176, 600, `<div style="font-size:44px;line-height:1.7;color:var(--ink2)">你最想让 AI 替你分担哪件事？<br>又有哪个决定，<b style="color:var(--ink)">你一定要攥在自己手里</b>？</div>`);
+  const end = txt(s, 176, 870, `<div class="mono" style="font-size:20px;color:var(--ink2);line-height:1.8">资料：路透社（招股书草稿、2028 年收入预测、博通贷款）· 彭博 · 财富 · 华尔街日报 · CNBC · NBER（2023）· 国际劳工组织（2025）· 国际能源署（2025）· 美国联邦贸易委员会<br>说明：招股书为未公开的草稿版本；小陈为虚构人物；配音为 AI 临时配音。披露：本片动画与核实由 Anthropic 的 AI 助手 Claude 完成。</div>`);
+  return { l1, l2, q, end };
+}, (t, o) => {
+  if (!TYPE.length) {
+    const tx = L('f9').text, cut = tx.indexOf('。') + 1, parts = [[o.l1, tx.slice(0, cut)], [o.l2, tx.slice(cut)]];
+    let at = c('f9') + 0.1; const per = (e('f9') - c('f9') - 0.3) / tx.length;
+    parts.forEach(([node, s_], li) => [...s_].forEach((ch, i) => { const sp = document.createElement('span'); sp.textContent = ch; node.appendChild(sp); TYPE.push([sp, at]); at += per * (0.75 + hash(li * 40 + i) * 0.5); }));
+    o.l2.style.fontSize = '56px';
+  }
+  for (const [sp, at] of TYPE) sp.style.opacity = t >= at ? 1 : 0;
+  fin(o.q, t, c('f10') + 0.2); fin(o.end, t, e('f10') + 0.4);
+});
+
+/* ================= chapters, letterbox, timeline ================= */
+const CHAPTERS = [['A1', '01', '一家 AI 公司的账本'], ['B1', '02', '五千亿的后厨'], ['C1', '03', '上市这道题'], ['D1', '04', '能干活，也得守规矩'], ['E1', '05', '小陈的一天'], ['F1', '06', '电表与结局']];
+const ORDER = ['Z0', 'A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'C3', 'C4', 'D1', 'D2', 'D3', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'F1', 'F2', 'F3', 'F4'];
+const SC = ORDER.map(id => { const ix = LN.findIndex(l => l.s === id); if (ix < 0) throw new Error('no lines for ' + id); return [id, ix === 0 ? 0 : LN[ix].t0 - 0.45]; });
+SC.forEach((s, i) => s.push(i < SC.length - 1 ? SC[i + 1][1] : TL.dur));
+// chapter card covers the 2.2 s pre-gap before each chapter's first line
+const CH = CHAPTERS.map(([id, n, title]) => { const first = LN.find(l => l.s === id); return [first.t0 - 2.35, first.t0 - 0.25, n, title]; });
+CH.forEach(([a]) => sfx('whoosh', a));
+const SRC = { A1: '来源：路透社（招股书草稿，未正式公开）', A2: '来源：路透社；财富杂志', A3: '来源：路透社（招股书草稿）', B1: '来源：路透社（招股书草稿）', B3: '来源：路透社（招股书草稿）', B4: '来源：路透社，2026-10-01', C1: '来源：彭博；路透社；财富杂志', C3: '来源：路透社；彭博', C4: '来源：财富杂志', D1: '来源：OpenAI 发布会，2026-09-29', D2: '来源：华尔街日报，2026-09-29', D3: '来源：CNBC；CNN', E2: '来源：NBER（2023）；国际劳工组织（2025）', E6: '来源：美国联邦贸易委员会', F1: '来源：国际能源署（2025）' };
+window.__sfx = SFX.sort((a, b) => a[0] - b[0]);
+window.__sections = SC.map(([id, a]) => [id, a]);
+
+let torn_done = false;
+E.mount({
+  duration: TL.dur, grain: 0.1, weave: 0.7, flicker: 0.025,
+  chapters: CH.map(([a, , n, tt]) => [a, n + ' · ' + tt]),
+  render(t) {
+    if (!torn_done) { for (const id of ORDER) show(SCENES[id].el, true); tearAll(); torn_done = true; }
+    for (const [id, a, b] of SC) {
+      const on = t >= a && t < b;
+      show(SCENES[id].el, on);
+      if (on) { SCENES[id].update(t); $('cam').style.transform = `scale(${1 + 0.03 * prog(t, a, b, ease.lin)})`; $('srcTag').textContent = SRC[id] ?? ''; }
+    }
+    // chapter card: slides in from the right, holds, leaves to the left
+    let ch = null; for (const x of CH) if (t >= x[0] && t < x[1]) ch = x;
+    const chap = $('chap');
+    if (ch) {
+      const [a, b, n, title] = ch, kin = prog(t, a, a + 0.35, ease.out), kout = prog(t, b - 0.35, b, ease.in);
+      chap.style.visibility = 'visible'; chap.style.transform = `translateX(${(1 - kin) * 1920 - kout * 1920}px)`;
+      $('chapN').textContent = n; $('chapT').textContent = title;
+    } else chap.style.visibility = 'hidden';
+    // cinematic letterbox for the cold open and the ending
+    const lbOn = t < SC[1][1] - 0.2 || t >= SC[SC.length - 1][1];
+    const lbk = lbOn ? 1 : 0, hgt = 96 * lbk;
+    $('lbT').style.height = px(hgt); $('lbB').style.height = px(hgt);
+  },
+});
+</script>
+</body>
+</html>

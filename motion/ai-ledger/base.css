@@ -1,0 +1,30 @@
+/* Stage + player chrome shared by both pieces. Font faces live in fonts.css (generated). */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #111; color: #1d1b18; overflow: hidden; height: 100%; }
+body { font-family: 'K Sans', 'K Kr', sans-serif; -webkit-font-smoothing: antialiased; }
+
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--paper, #ece5d5); }
+#world { position: absolute; inset: 0; }
+body.render #stage { transform: none !important; left: 0 !important; top: 0 !important; }
+
+.scene { position: absolute; inset: 0; visibility: hidden; }
+.a { position: absolute; will-change: transform, opacity; transform-origin: 50% 50%; }
+svg.a, svg.full { overflow: visible; }
+svg.full { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+
+.serif { font-family: 'K Serif', serif; }
+.sans  { font-family: 'K Sans', 'K Kr', sans-serif; }
+.kr    { font-family: 'K Kr', 'K Sans', sans-serif; }
+.cond  { font-family: 'K Cond', 'K Sans', sans-serif; font-variant-numeric: tabular-nums; }
+.mono  { font-family: 'K Mono', 'K Sans', 'K Kr', monospace; }
+
+.fx-grain { position: absolute; inset: 0; width: 1920px; height: 1080px; mix-blend-mode: overlay; pointer-events: none; image-rendering: auto; }
+.fx-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 48%, rgba(0,0,0,0) 60%, rgba(30,20,10,.16) 100%); }
+.fx-flicker { position: absolute; inset: 0; pointer-events: none; background: #1a140c; opacity: 0; }
+.fx-dust { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+
+.player { position: fixed; left: 0; right: 0; bottom: 0; height: 56px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #161616; color: #ddd; font: 13px/1 'K Mono', monospace; }
+.player button { width: 40px; height: 32px; border: 1px solid #444; background: #222; color: #eee; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.player input { flex: 1; accent-color: #e9c03a; }
+.player span { min-width: 260px; text-align: right; white-space: nowrap; }
+body.render .player { display: none; }
