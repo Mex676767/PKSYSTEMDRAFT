@@ -536,7 +536,7 @@ function A2(t) {
   drop($('a2clip'), t, c(4) + 0.1, -1.5, { out: c(5) - 0.3, exit: 'up', outDur: 0.45 });
   const ph = prog(t, c(5) - 0.1, c(5) + 0.5, ease.out);
   tf($('a2phone'), { y: 900 * (1 - ph) + shake(t, w(9, '剧烈'), 0.7, 10), x: shake(t + 0.03, w(9, '剧烈'), 0.7, 16), r: -2.5, o: ph > 0 ? 1 : 0 });
-  const tq = Math.floor(t * 15) / 15, rise0 = c(7) + 0.3, rise1 = e(7) + 0.4, cr0 = w(9, '剧烈'), cr1 = e(10) - 0.6;
+  const tq = Math.floor(t * 15) / 15, rise0 = c(7) + 0.3, rise1 = e(7) + 0.4, cr0 = w(9, '剧烈'), cr1 = w(10, '跌破') + 0.2;
   const f = tq < cr0 ? PEAK * prog(tq, rise0, rise1, ease.inOut) : PEAK + (LAST - PEAK) * prog(tq, cr0, cr1, ease.lin);
   const v = valAt(f), below = v < 20, col = below ? 'var(--kblue)' : 'var(--kred)';
   $('a2val').textContent = '₩' + fmt(v * 1e6); $('a2val').style.color = below ? 'var(--kblue)' : 'var(--ink)';
