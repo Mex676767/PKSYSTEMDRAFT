@@ -1,4 +1,25 @@
-# 韩国年轻人五倍杠杆：两支动画
+# 韩国年轻人五倍杠杆：动画
+
+> **以完整版为准**：`full/` 里是核实后的完整版（约 5 分 48 秒，带旁白和字幕）。
+> 核实记录与来源见 [`full/FACTCHECK.md`](full/FACTCHECK.md)。下面两支早期短片仍按原稿数字制作，其中几处已经证实有误（如“倒欠券商”“散户一月买 40 万亿”“14 年攒首付”）。
+
+## 完整版
+
+| 文件 | 说明 |
+|---|---|
+| `full/out/korea_leverage_full.mp4` | 成片：1080p30，Vox 纸艺风格加数据插图，烧录中文字幕，AI 临时配音 |
+| `full/narration.json` | 逐句旁白（已核实）。改词后运行 `build_vo.py`，配音、时间轴和字幕会一起重算 |
+| `full/captions.srt` | 字幕 |
+| `full/vo.m4a` | 旁白音轨 |
+| `full/full.html` | 动画源文件；所有动作都按旁白里的句子和关键词对齐 |
+
+```bash
+cd full && SSL_CERT_FILE=<CA 证书> FFMPEG=ffmpeg python3 build_vo.py   # 生成配音和时间轴（需要 pip install edge-tts）
+cd .. && NODE_PATH=$(npm root -g) node render.cjs full/full.html full/out/video.mp4 30
+ffmpeg -i full/out/video.mp4 -i full/vo.m4a -c:v copy -c:a aac -shortest full/out/korea_leverage_full.mp4
+```
+
+## 早期短片（未核实版）
 
 | 文件 | 风格 | 时长 |
 |---|---|---|

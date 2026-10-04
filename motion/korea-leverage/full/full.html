@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Five Times Faster</title>
+<link rel="stylesheet" href="../fonts.css">
+<link rel="stylesheet" href="../base.css">
+<style>
+  :root { --paper:#ece5d5; --card:#f8f4ea; --ink:#1d1b18; --ink2:#5b554b; --yellow:#f2c935; --red:#cc3d27; --blue:#2c5884; --kred:#d8322a; --kblue:#2357a8; --felt:#2d4535; --news:#efebe2; }
+  #paper { position:absolute; inset:0; background-size:cover; }
+  #cam { position:absolute; inset:0; transform-origin:50% 45%; }
+  .sh { filter: drop-shadow(2px 4px 0 rgba(29,27,24,.16)) drop-shadow(5px 12px 12px rgba(29,27,24,.2)); }
+  .cut { background: var(--card) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+  .newsp { background: var(--news) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+  .dark { background:#1d1b18 var(--tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+  .mark { position:relative; display:inline-block; }
+  .mark > .hl { position:absolute; left:-.12em; right:-.12em; top:46%; bottom:-.04em; background:var(--yellow); mix-blend-mode:multiply; transform-origin:0 50%; transform:scaleX(0); clip-path: polygon(0 10%, 30% 0, 100% 6%, 99% 90%, 62% 100%, 1% 94%); }
+  .mark.full > .hl { top:4%; }
+  .stamp { color:var(--red); border:9px double var(--red); padding:4px 26px 10px; font-family:'K Serif'; font-weight:900; filter:url(#stampfx); mix-blend-mode:multiply; white-space:nowrap; }
+  .lab { font-size:22px; letter-spacing:.12em; color:var(--ink2); }
+  .slip { padding:6px 40px 18px; font-family:'K Serif'; font-weight:900; line-height:1.15; white-space:nowrap; }
+  .card { padding:22px 34px 26px; font-family:'K Serif'; font-weight:900; font-size:54px; white-space:nowrap; }
+  .serif { font-family:'K Serif'; font-weight:900; }
+
+  .phone { position:absolute; inset:0; background:#1d1b18; border-radius:58px; padding:16px; }
+  .screen { position:relative; height:100%; background:#faf9f5; border-radius:44px; padding:44px 34px; overflow:hidden; }
+  .ph-top { display:flex; justify-content:space-between; font-size:22px; color:#6b665d; font-weight:700; }
+  .ph-label { margin-top:40px; font-size:24px; color:#6b665d; font-weight:500; }
+  .ph-val { font-size:66px; font-weight:700; margin-top:4px; }
+  .ph-chg { font-size:32px; font-weight:500; }
+  .ph-chart { position:absolute; left:34px; top:290px; }
+  .ph-rows { position:absolute; left:34px; right:34px; top:580px; }
+  .ph-row { display:flex; justify-content:space-between; padding:14px 0; border-top:1px solid #e3dfd6; font-size:23px; font-weight:500; }
+  .ktag { font-size:15px; color:#fff; background:var(--kred); border-radius:4px; padding:3px 7px; margin-left:8px; vertical-align:3px; }
+  .toast { position:absolute; left:22px; right:22px; background:var(--kred); color:#fff; border-radius:14px; padding:14px 18px; font-size:24px; font-weight:700; box-shadow:0 6px 14px rgba(0,0,0,.2); }
+  .pbtn { position:absolute; left:50%; top:700px; width:112px; height:112px; margin-left:-56px; border-radius:50%; background:var(--kred); color:#fff; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:700; }
+  .ripple { position:absolute; left:50%; top:756px; width:112px; height:112px; margin:-56px 0 0 -56px; border-radius:50%; border:5px solid var(--kred); }
+
+  .dict { padding:46px 52px 56px; width:700px; height:600px; position:relative; }
+  .dict-n { font-size:22px; color:var(--ink2); letter-spacing:.08em; }
+  .dict-w { font-size:190px; font-weight:900; line-height:1.1; margin-top:12px; }
+  .dict-r { font-size:30px; color:var(--ink2); }
+  .dict-split { font-size:32px; margin-top:28px; color:var(--ink2); }
+  .dict-def { font-size:62px; font-weight:900; margin-top:22px; font-family:'K Serif'; }
+
+  .brick { position:absolute; left:430px; width:300px; height:40px; border:2.5px solid var(--ink); background:#e6d3a8; font-size:17px; display:flex; align-items:center; padding-left:14px; color:#4a4030; }
+  .brick:nth-child(odd) { background:#efdfb9; }
+  .ticket { width:940px; height:400px; background:var(--yellow) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; display:flex; }
+  .stub { width:190px; border-right:4px dashed rgba(29,27,24,.5); display:flex; align-items:center; justify-content:center; }
+  .stub span { transform:rotate(-90deg); white-space:nowrap; font-size:26px; letter-spacing:.2em; }
+  .eq { font-size:104px; font-weight:700; white-space:nowrap; }
+  .seg { position:absolute; height:120px; }
+  .gray { background: repeating-linear-gradient(135deg, #b9b1a2 0 10px, #aaa293 10px 20px); border:3px solid var(--ink); }
+  .lost { border:4px dashed var(--red); background: repeating-linear-gradient(45deg, rgba(204,61,39,.22) 0 8px, transparent 8px 16px); }
+  .domino { position:absolute; top:600px; width:72px; height:220px; border:3px solid var(--ink); transform-origin:100% 100%; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:14px 0; font-size:15px; }
+  .domino i { width:34px; height:58px; border:3px solid var(--ink); border-radius:7px; background:var(--yellow); }
+  .bar { position:absolute; height:100px; border:3px solid var(--ink); }
+  .rsn { width:640px; padding:24px 30px 28px; font-size:36px; font-weight:700; line-height:1.4; }
+  .rsn small { display:block; font-size:22px; font-weight:400; color:var(--ink2); margin-bottom:6px; font-family:'K Mono','K Sans'; }
+
+  #cap { position:absolute; left:0; right:0; top:972px; text-align:center; pointer-events:none; }
+  #cap span { display:inline-block; font-size:40px; font-weight:500; color:#f5efe2; background:rgba(26,24,21,.84); padding:6px 22px 9px; border-radius:3px; letter-spacing:.02em; }
+  #srcTag { position:absolute; right:60px; top:36px; font-size:20px; color:var(--ink2); font-family:'K Mono','K Sans'; text-align:right; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="stampfx" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="8" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="6" result="d"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="1" seed="2" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 2.6" result="holes"/>
+    <feComposite in="d" in2="holes" operator="in"/>
+  </filter>
+  <marker id="ah" viewBox="0 0 20 20" refX="14" refY="10" markerWidth="16" markerHeight="16" orient="auto-start-reverse"><path d="M2,3 L16,10 L3,17" fill="none" stroke="context-stroke" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs></svg>
+
+<div id="stage"><div id="world">
+<div id="paper"></div>
+<div id="cam">
+
+<!-- ===== A1 · hook ===== -->
+<section class="scene" id="A1">
+  <div class="a sh" id="a1t1" style="left:200px;top:170px"><div class="slip cut" style="font-size:96px;clip-path:var(--tn1)">韩国年轻人的</div></div>
+  <div class="a sh" id="a1t2" style="left:190px;top:330px"><div class="slip" style="font-size:180px;background:var(--yellow);clip-path:var(--tn2)">五倍杠杆</div></div>
+  <div class="a sh" id="a1t3" style="left:1000px;top:390px"><div class="slip" style="font-size:180px;background:var(--red);color:#f6efdf;clip-path:var(--tn3)">大豪赌</div></div>
+
+  <div class="a sh" id="a1c1" style="left:150px;top:170px"><div class="card cut" style="clip-path:var(--tn4)">刚大学毕业</div></div>
+  <div class="a sh" id="a1c2" style="left:540px;top:200px"><div class="card cut" style="clip-path:var(--tn4)">刚服完兵役</div></div>
+  <div class="a sh" id="a1c3" style="left:930px;top:166px"><div class="card cut" style="clip-path:var(--tn4)">一小笔积蓄 <span class="cond" style="font-weight:700">₩</span></div></div>
+  <div class="a" id="a1b" style="left:1450px;top:150px;width:300px;height:710px">
+    <div style="position:absolute;inset:0;background:#9fb0bf;border:3px solid var(--ink);background-image:repeating-linear-gradient(90deg,transparent 0 34px,rgba(29,27,24,.55) 34px 54px,transparent 54px 72px),repeating-linear-gradient(0deg,transparent 0 30px,#9fb0bf 30px 52px);background-position:20px 0,0 0"></div>
+    <div style="position:absolute;left:-10px;right:-10px;top:-18px;height:22px;background:var(--ink)"></div>
+  </div>
+  <div class="a sh" id="a1tag" style="left:1250px;top:420px"><div class="card cut" style="font-size:46px;clip-path:var(--tn5)"><span style="font-family:'K Sans';font-size:24px;font-weight:500;display:block;color:var(--ink2)">首尔公寓均价</span>≈ 14 年工资</div></div>
+  <svg class="full" id="a1svg"><path id="a1floor" fill="none" stroke="var(--ink)" stroke-width="5"/><path id="a1circ" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+  <div class="a" id="a1s1" style="left:240px;top:560px"><div style="position:absolute;left:180px;top:90px;width:16px;height:220px;background:#7a5a3a;border:3px solid var(--ink)"></div><div class="card cut" style="position:relative;font-size:52px;clip-path:var(--tn6)">老老实实存钱</div></div>
+  <div class="a" id="a1s2" style="left:760px;top:600px"><div style="position:absolute;left:180px;top:90px;width:16px;height:180px;background:#7a5a3a;border:3px solid var(--ink)"></div><div class="card" style="position:relative;font-size:52px;background:var(--yellow);clip-path:var(--tn6)">心一横，赌一把</div></div>
+</section>
+
+<!-- ===== A2 · the account ===== -->
+<section class="scene" id="A2">
+  <div class="a sh" id="a2clip" style="left:420px;top:230px"><div class="newsp" style="width:1080px;padding:40px 54px 48px;clip-path:var(--tn7)">
+    <div class="mono" style="font-size:22px;letter-spacing:.1em;color:var(--ink2)">2026 年 7 月 20 日 · 据路透社报道（中文译述）</div>
+    <div class="serif" style="font-size:64px;line-height:1.3;margin-top:18px">“我真的喘不过气”：<br>韩国的炒股狂热，暴露融资杠杆风险</div>
+    <div style="height:3px;background:var(--ink);margin-top:26px"></div>
+    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px">
+      <div style="height:14px;background:#cfc8b8"></div><div style="height:14px;background:#cfc8b8"></div><div style="height:14px;background:#cfc8b8"></div>
+      <div style="height:14px;background:#cfc8b8;width:80%"></div><div style="height:14px;background:#cfc8b8"></div><div style="height:14px;background:#cfc8b8;width:60%"></div>
+    </div>
+  </div></div>
+
+  <div class="a sh" id="a2phone" style="left:330px;top:70px;width:470px;height:840px">
+    <div class="phone"><div class="screen">
+      <div class="kr ph-top"><span>주식 잔고</span><span class="mono">05:12</span></div>
+      <div class="kr ph-label">총 평가금액</div>
+      <div class="cond ph-val" id="a2val">₩20,000,000</div>
+      <div class="cond ph-chg" id="a2chg">+0.00%</div>
+      <svg class="ph-chart" width="396" height="280" viewBox="0 0 396 280">
+        <g stroke="#e3dfd6" stroke-width="1.5" stroke-dasharray="4 6"><line x1="0" x2="396" y1="186" y2="186"/><line x1="0" x2="396" y1="108" y2="108"/><line x1="0" x2="396" y1="30" y2="30"/></g>
+        <line id="a2base" x1="0" x2="396" stroke="#9a948a" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <path id="a2line" fill="none" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle id="a2dot" r="7"/>
+      </svg>
+      <div class="kr ph-rows">
+        <div class="ph-row"><span>삼성전자<b class="ktag">신용</b></span><span class="cond">보유</span></div>
+        <div class="ph-row"><span>SK하이닉스<b class="ktag">신용</b></span><span class="cond">보유</span></div>
+      </div>
+      <div class="ripple a" id="a2rip"></div>
+      <div class="pbtn kr a" id="a2btn">5×</div>
+      <div class="toast kr a" id="a2t1" style="top:420px">반대매매 체결 · 1차</div>
+      <div class="toast kr a" id="a2t2" style="top:486px">반대매매 체결 · 2차</div>
+      <div class="toast kr a" id="a2t3" style="top:552px">반대매매 체결 · 3차</div>
+    </div></div>
+  </div>
+
+  <div class="a" id="a2a" style="left:930px;top:110px">
+    <div class="serif" style="font-size:86px;line-height:1.1">李同学，24 岁</div>
+    <div style="font-size:34px;color:var(--ink2);margin-top:12px">首尔 · 大学生 · 刚服完兵役</div>
+  </div>
+  <div class="a sh" id="a2b" style="left:930px;top:320px"><div class="cut" style="padding:24px 34px 28px;clip-path:var(--tn8)">
+    <div class="mono lab">服兵役攒下的本金</div><div class="cond" style="font-size:76px;font-weight:700;line-height:1.1">₩20,000,000</div><div style="font-size:28px;color:var(--ink2)">≈ 10 万元人民币</div>
+  </div></div>
+  <div class="a sh" id="a2c" style="left:1450px;top:330px"><div class="cut" style="padding:22px 36px 26px;clip-path:var(--tn9)">
+    <div class="mono lab">融资</div><div class="cond" style="font-size:120px;font-weight:700;line-height:1"><span class="mark full"><i class="hl" id="a2hlc"></i>5×</span></div>
+  </div></div>
+  <div class="a" id="a2d" style="left:930px;top:580px">
+    <div class="mono lab">韩国股市：半年翻倍</div>
+    <div class="cond" style="font-size:150px;font-weight:700;line-height:1">≈ ₩3亿 <span style="font-size:90px;color:var(--red)">×15</span></div>
+  </div>
+  <div class="a" id="a2e" style="left:930px;top:780px;font-size:40px;font-weight:700;white-space:nowrap">≈ 140 多万元人民币 · <span class="mark"><i class="hl" id="a2hle"></i>首尔买房梦，近在眼前</span></div>
+  <div class="a" id="a2s5" style="left:1180px;top:130px"><div class="stamp" style="font-size:120px;line-height:1.05">5 月</div></div>
+  <div class="a" id="a2s4" style="left:1100px;top:330px"><div class="stamp" style="font-size:210px;line-height:1.05">4 周</div></div>
+  <div class="a" id="a2f" style="left:930px;top:650px">
+    <div class="serif" style="font-size:104px;color:var(--kblue);line-height:1.1">跌破本金</div>
+    <div style="font-size:36px;font-weight:700;margin-top:10px">账户低于最初投入的 ₩2,000 万</div>
+  </div>
+  <div class="a dark" id="a2q" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="serif" id="a2qt" style="position:absolute;left:0;right:0;top:360px;text-align:center;font-size:132px;color:#f3ecdc">“我真的喘不过气。”</div>
+    <div id="a2qa" style="position:absolute;left:0;right:0;top:570px;text-align:center;font-size:32px;color:#b9b0a0">—— 李同学，接受路透社采访</div>
+  </div>
+</section>
+
+<!-- ===== A3 · title ===== -->
+<section class="scene" id="A3">
+  <div class="a serif" id="a3q" style="left:0;right:0;top:300px;text-align:center;font-size:110px">这不就是贪心的赌徒吗？</div>
+  <svg class="full"><path id="a3s" pathLength="1" fill="none" stroke="var(--red)" stroke-width="10" stroke-linecap="round"/></svg>
+  <div class="a sh" id="a3t1" style="left:150px;top:200px"><div class="slip" style="font-size:130px;background:var(--yellow);clip-path:var(--tn2)">24 岁</div></div>
+  <div class="a sh" id="a3t2" style="left:570px;top:262px"><div class="slip cut" style="font-size:130px;clip-path:var(--tn10)">4 周</div></div>
+  <div class="a sh" id="a3t3" style="left:950px;top:186px"><div class="slip" style="font-size:130px;background:var(--red);color:#f6efdf;clip-path:var(--tn23)">近 3 亿韩元</div></div>
+  <div class="a" id="a3sub" style="left:164px;top:640px;font-size:60px;font-weight:700">韩国年轻人借 <span class="mark"><i class="hl" id="a3hl"></i>5 倍杠杆</span>，到底在赌什么？</div>
+</section>
+
+<!-- ===== B1 · two words ===== -->
+<section class="scene" id="B1">
+  <div class="a mono" id="b1k" style="left:0;right:0;top:80px;text-align:center;font-size:28px;letter-spacing:.12em;color:var(--ink2)">—— 韩国网上的两个流行词 ——</div>
+  <div class="a sh" id="b1d1" style="left:190px;top:170px"><div class="cut dict" style="clip-path:var(--tn11)">
+    <div class="mono dict-n">n. · 网络流行语</div><div class="kr dict-w">빚투</div><div class="mono dict-r">[bit-tu]</div>
+    <div class="dict-split"><span class="kr">빚</span> 债 ＋ <span class="kr">투자</span> 投资</div><div class="dict-def">借钱投资</div>
+    <svg class="a" width="420" height="30" style="left:52px;top:538px"><path id="b1u1" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+  </div></div>
+  <div class="a sh" id="b1d2" style="left:1030px;top:196px"><div class="cut dict" style="clip-path:var(--tn12)">
+    <div class="mono dict-n">v. · 网络流行语</div><div class="kr dict-w">영끌</div><div class="mono dict-r">[yeong-kkeul]</div>
+    <div class="dict-split"><span class="kr">영혼까지 끌어모으다</span></div><div class="dict-def">连灵魂都拉上</div>
+    <svg class="a" width="520" height="30" style="left:52px;top:538px"><path id="b1u2" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+  </div></div>
+</section>
+
+<!-- ===== B2 · 14 years ===== -->
+<section class="scene" id="B2">
+  <div class="a" id="b2bld" style="left:1460px;top:150px;width:300px;height:730px">
+    <div style="position:absolute;inset:0;background:#9fb0bf;border:3px solid var(--ink);background-image:repeating-linear-gradient(90deg,transparent 0 34px,rgba(29,27,24,.55) 34px 54px,transparent 54px 72px),repeating-linear-gradient(0deg,transparent 0 30px,#9fb0bf 30px 52px);background-position:20px 0,0 0"></div>
+    <div style="position:absolute;left:-10px;right:-10px;top:-18px;height:22px;background:var(--ink)"></div>
+  </div>
+  <div class="a" id="b2line" style="left:300px;top:0;width:1500px;height:4px;border-top:5px dashed var(--ink)">
+    <div class="serif" style="position:absolute;left:0;top:-70px;font-size:44px;white-space:nowrap">一套公寓的均价</div>
+  </div>
+  <div id="b2bricks"></div>
+  <svg class="full"><path id="b2fl" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/></svg>
+  <div class="a" id="b2cnt" style="left:820px;top:240px;white-space:nowrap"><span class="serif" style="font-size:96px">第 </span><span class="cond" id="b2n" style="font-size:220px;font-weight:700;line-height:1">0</span><span class="serif" style="font-size:96px"> 年</span></div>
+  <div class="a" id="b2cap" style="left:826px;top:500px;font-size:38px;color:var(--ink2)">每块 = 一年全部工资（不吃不喝）</div>
+  <div class="a sh" id="b2w1" style="left:826px;top:580px"><div class="card cut" style="font-size:40px;clip-path:var(--tn13)">＋ 房租</div></div>
+  <div class="a sh" id="b2w2" style="left:1060px;top:592px"><div class="card cut" style="font-size:40px;clip-path:var(--tn13)">＋ 生活费</div></div>
+  <div class="a" id="b2fin" style="left:826px;top:740px;white-space:nowrap"><span style="font-size:40px;font-weight:700">很多年轻人算完账——</span><span class="serif" style="font-size:84px;color:var(--red)">直接绝望</span></div>
+</section>
+
+<!-- ===== B3 · marathon + ticket ===== -->
+<section class="scene" id="B3">
+  <div class="a" id="b3track" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full"><path id="b3l1" fill="none" stroke="var(--ink)" stroke-width="4"/><path id="b3l2" fill="none" stroke="var(--ink)" stroke-width="4"/><path id="b3l3" fill="none" stroke="var(--ink)" stroke-width="4"/><path id="b3st" fill="none" stroke="var(--ink)" stroke-width="10"/></svg>
+    <svg class="a" id="b3run" width="170" height="270" viewBox="0 0 170 270" style="left:300px;top:352px">
+      <circle cx="92" cy="40" r="30" fill="var(--card)" stroke="var(--ink)" stroke-width="7"/>
+      <path id="b3body" fill="none" stroke="var(--ink)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="a" id="b3car" style="left:0;top:600px;width:560px;height:170px">
+      <svg width="560" height="170" viewBox="0 0 560 170" style="overflow:visible">
+        <g stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".7"><line x1="-40" y1="60" x2="-260" y2="60"/><line x1="-20" y1="100" x2="-330" y2="100"/><line x1="-60" y1="132" x2="-210" y2="132"/></g>
+        <path d="M18,128 L30,92 Q60,80 120,76 L190,40 Q260,20 340,26 L420,64 Q500,72 540,92 L548,128 Z" fill="var(--red)" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M210,46 Q262,32 330,36 L380,66 L196,70 Z" fill="#cfd8de" stroke="var(--ink)" stroke-width="4"/>
+        <circle cx="130" cy="132" r="34" fill="var(--ink)"/><circle cx="130" cy="132" r="12" fill="var(--card)"/>
+        <circle cx="448" cy="132" r="34" fill="var(--ink)"/><circle cx="448" cy="132" r="12" fill="var(--card)"/>
+      </svg>
+    </div>
+    <div class="a serif" id="b3c1" style="left:140px;top:100px;font-size:78px">你刚系好鞋带，站上起跑线——</div>
+    <div class="a" id="b3c2" style="left:146px;top:226px;font-size:44px;font-weight:500">别人家的孩子，已经开着跑车呼啸而过。</div>
+  </div>
+  <div class="a sh" id="b3tk" style="left:490px;top:110px"><div class="ticket" style="clip-path:var(--tn14)">
+    <div class="stub"><span class="mono">NO. 0024 · 单程</span></div>
+    <div style="padding:34px 46px;flex:1">
+      <div class="mono" style="font-size:24px;letter-spacing:.16em">LEVERAGE PASS · 五倍加速券</div>
+      <div class="cond" style="font-size:180px;font-weight:700;line-height:1;margin-top:6px">×5</div>
+      <div style="font-size:30px;font-weight:700;margin-top:6px">交易软件里，一个小小的圆形按钮</div>
+      <div class="mono" style="font-size:19px;margin-top:16px;color:#5b4b18">按日计息 · 担保比例不足即强制卖出</div>
+    </div>
+  </div></div>
+  <div class="a cond eq" id="b3e1" style="left:250px;top:580px">股价 +20%</div>
+  <div class="a cond eq" id="b3e2" style="left:800px;top:580px;color:var(--red)">× 5</div>
+  <div class="a cond eq" id="b3e3" style="left:1060px;top:580px">= 本金 <span class="mark full"><i class="hl" id="b3hl"></i>+100%</span></div>
+  <div class="a serif" id="b3q" style="left:0;right:0;top:760px;text-align:center;font-size:86px">你用不用？</div>
+</section>
+
+<!-- ===== B4 · his answer ===== -->
+<section class="scene" id="B4">
+  <div class="a sh" id="b4card" style="left:220px;top:200px"><div class="cut" style="width:1480px;padding:56px 70px 60px;clip-path:var(--tn15)">
+    <div class="mono lab">李同学的答案</div>
+    <div class="serif" style="font-size:78px;line-height:1.35;margin-top:14px">“加上五倍杠杆，我积累财富的速度，<br>就是别人的<span class="mark"><i class="hl" id="b4hl"></i>五倍</span>。”</div>
+    <div style="font-size:28px;color:var(--ink2);margin-top:24px">—— 接受路透社采访时</div>
+  </div></div>
+</section>
+
+<!-- ===== B5 · margin balances ===== -->
+<section class="scene" id="B5">
+  <div id="b5chart" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a serif" id="b5h" style="left:140px;top:84px;font-size:64px">韩国 20–30 岁群体的股票融资余额</div>
+    <div class="a mono" id="b5u" style="left:144px;top:180px;font-size:24px;color:var(--ink2)">单位：万亿韩元</div>
+    <svg class="full"><path id="b5base" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+      <path id="b5arr" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round" marker-end="url(#ah)"/>
+      <path id="b5circ" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round"/></svg>
+    <div class="a" id="b5a" style="left:560px;top:618px;width:240px;height:202px;transform-origin:50% 100%;background:#c9c1b2 var(--card-tex);background-size:1920px 1080px;background-blend-mode:multiply;border:3px solid var(--ink)"></div>
+    <div class="a" id="b5b" style="left:1000px;top:340px;width:240px;height:480px;transform-origin:50% 100%;background:var(--yellow) var(--card-tex);background-size:1920px 1080px;background-blend-mode:multiply;border:3px solid var(--ink)"></div>
+    <div class="a cond" id="b5av" style="left:560px;top:520px;width:240px;text-align:center;font-size:84px;font-weight:700">1.76</div>
+    <div class="a cond" id="b5bv" style="left:1000px;top:230px;width:240px;text-align:center;font-size:104px;font-weight:700">4.19</div>
+    <div class="a" id="b5al" style="left:520px;top:836px;width:320px;text-align:center;font-size:30px;color:var(--ink2)">2024 年底</div>
+    <div class="a" id="b5bl" style="left:960px;top:836px;width:320px;text-align:center;font-size:30px;color:var(--ink2)">2026 年 6 月底</div>
+    <div class="a cond" id="b5x" style="left:1340px;top:250px;font-size:130px;font-weight:700;color:var(--red)">×2.4</div>
+    <div class="a mono" id="b5br" style="left:1340px;top:470px;font-size:24px;color:var(--ink2);line-height:1.8">20 多岁：0.19 → 0.48<br>30 多岁：1.57 → 3.72</div>
+  </div>
+  <div class="a" id="b5big" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="mono" style="position:absolute;left:0;right:0;top:230px;text-align:center;font-size:30px;letter-spacing:.1em;color:var(--ink2)">全市场融资余额 · 2026 年 6 月 24 日</div>
+    <div class="cond" id="b5bn" style="position:absolute;left:0;right:0;top:290px;text-align:center;font-size:300px;font-weight:700;line-height:1">38.63</div>
+    <div style="position:absolute;left:0;right:0;top:610px;text-align:center;font-size:56px;font-weight:700">万亿韩元</div>
+    <div class="a" id="b5st" style="left:1290px;top:560px"><div class="stamp" style="font-size:90px">历史新高</div></div>
+  </div>
+</section>
+
+<!-- ===== C1 · suspense ===== -->
+<section class="scene dark" id="C1">
+  <div class="a" id="c1l1" style="left:0;right:0;top:290px;text-align:center;font-size:56px;font-weight:500;color:#efe7d6">三星、SK 海力士——全球芯片巨头，</div>
+  <div class="a" id="c1l2" style="left:0;right:0;top:386px;text-align:center;font-size:56px;font-weight:500;color:#efe7d6">跌了就拿它三五年，等周期回来，不就解套了？</div>
+  <svg class="full"><path id="c1s1" pathLength="1" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/><path id="c1s2" pathLength="1" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/></svg>
+  <div class="a serif" id="c1no" style="left:0;right:0;top:540px;text-align:center;font-size:96px;color:var(--yellow)">借了钱，市场不给你熬的机会。</div>
+  <div class="a" id="c1table" style="left:0;top:0;width:1920px;height:1080px">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 46% 60% at 50% 58%,rgba(255,236,190,.16),rgba(0,0,0,0) 70%)"></div>
+    <svg class="full">
+      <path d="M880,450 L880,220 Q960,180 1040,220 L1040,450 M860,450 L1060,450 M880,450 L870,540 M1040,450 L1050,540" fill="none" stroke="#efe7d6" stroke-width="5" stroke-dasharray="14 12" opacity=".55"/>
+      <ellipse cx="960" cy="700" rx="660" ry="230" fill="#5a3b25" stroke="#140f0b" stroke-width="5"/>
+      <ellipse cx="960" cy="692" rx="620" ry="202" fill="var(--felt)"/>
+    </svg>
+    <div class="a" style="left:870px;top:760px;width:110px;height:180px;border-radius:20px;background:#111;padding:8px;transform:rotate(9deg)"><div style="height:100%;border-radius:14px;background:#f2ede2;overflow:hidden"><svg width="94" height="164" viewBox="0 0 94 164"><path d="M6,110 L20,92 L32,100 L46,64 L58,74 L70,40 L80,118 L90,140" fill="none" stroke="var(--kblue)" stroke-width="4"/></svg></div></div>
+  </div>
+  <div class="a serif" id="c1q1" style="left:140px;top:90px;font-size:104px;color:#f3ecdc">牌桌对面，</div>
+  <div class="a serif" id="c1q2" style="left:140px;top:216px;font-size:104px;color:#f3ecdc">到底是谁？</div>
+  <div class="a serif" id="c1qm" style="left:870px;top:130px;font-size:300px;color:var(--yellow);line-height:1">?</div>
+  <div class="a" id="c1c" style="left:146px;top:370px;font-size:40px;color:#bdb4a3">华尔街专门设局？</div>
+  <div class="a mono" id="c1t" style="left:1420px;top:880px;font-size:30px;color:var(--yellow)">先卖个关子 ↓</div>
+</section>
+
+<!-- ===== D1 · faceless counterparty ===== -->
+<section class="scene" id="D1">
+  <div class="a sh" id="d1ch" style="left:300px;top:300px"><div class="cut" style="padding:40px 60px 50px;clip-path:var(--tn16)">
+    <div class="slip" style="display:inline-block;font-size:60px;background:var(--yellow);padding:4px 24px 10px">认知差 ①</div>
+    <div class="serif" style="font-size:120px;margin-top:20px">没有面孔的对手</div>
+  </div></div>
+  <div id="d1chart" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a mono" id="d1h" style="left:0;right:0;top:110px;text-align:center;font-size:28px;letter-spacing:.08em;color:var(--ink2)">2026 年 5 月 · 韩国主板市场（KOSPI）· 单月资金流向</div>
+    <svg class="full"><path id="d1ax" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+      <path id="d1br" pathLength="1" fill="none" stroke="var(--ink)" stroke-width="4"/>
+      <path id="d1circ" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round"/></svg>
+    <div class="a bar" id="d1f" style="top:270px;background:var(--blue);transform-origin:100% 50%"></div>
+    <div class="a" id="d1fs" style="top:270px;height:100px;left:0;width:0"></div>
+    <div class="a" id="d1fl" style="left:990px;top:290px;font-size:36px;font-weight:700;white-space:nowrap">外国投资者 · 净卖出</div>
+    <div class="a cond" id="d1fv" style="left:350px;top:186px;font-size:66px;font-weight:700;color:var(--blue);white-space:nowrap">−44.7 万亿₩</div>
+    <div class="a" id="d1rec" style="left:1010px;top:170px"><div class="stamp" style="font-size:56px">单月纪录</div></div>
+    <div class="a" id="d1segl" style="left:0;top:390px;width:1920px;height:80px"></div>
+    <div class="a cond" id="d1pct" style="left:300px;top:470px;font-size:70px;font-weight:700;color:var(--red)">82%</div>
+    <div class="a bar" id="d1r" style="left:960px;top:560px;background:var(--red);transform-origin:0 50%"></div>
+    <div class="a" id="d1rl" style="left:540px;top:582px;width:400px;text-align:right;font-size:36px;font-weight:700">散户 · 净买入</div>
+    <div class="a cond" id="d1rv" style="left:1000px;top:572px;font-size:66px;font-weight:700;color:#fff;white-space:nowrap">+35.1 万亿₩</div>
+    <div class="a serif" id="d1rec2" style="left:1490px;top:578px;font-size:44px;color:var(--red);white-space:nowrap">同样是纪录</div>
+    <div class="a mono" id="d1why" style="left:300px;top:690px;font-size:24px;color:var(--ink2)">当时的市场分析</div>
+    <div class="a sh" id="d1r1" style="left:300px;top:730px"><div class="cut rsn" style="clip-path:var(--tn17)"><small>理由一</small>今年股市涨了一倍多 → 先获利了结</div></div>
+    <div class="a sh" id="d1r2" style="left:1000px;top:744px"><div class="cut rsn" style="clip-path:var(--tn17)"><small>理由二</small>担心芯片景气已经见顶</div></div>
+  </div>
+  <div class="a" id="d1b1" style="left:0;right:0;top:360px;text-align:center;font-size:48px;font-weight:500">他们不是冲着首尔出租屋里的某个大学生来的。</div>
+  <div class="a serif" id="d1b2" style="left:0;right:0;top:470px;text-align:center;font-size:86px">他们在做算术题；散户在<span class="mark"><i class="hl" id="d1hl"></i>押人生</span>。</div>
+</section>
+
+<!-- ===== D2 · leverage math ===== -->
+<section class="scene" id="D2">
+  <div class="a sh" id="d2ch" style="left:200px;top:260px"><div class="cut" style="padding:40px 60px 50px;clip-path:var(--tn18)">
+    <div class="slip" style="display:inline-block;font-size:60px;background:var(--yellow);padding:4px 24px 10px">认知差 ②</div>
+    <div class="serif" style="font-size:84px;margin-top:20px;line-height:1.3">杠杆不惩罚看错的人，<br>它只消灭<span class="mark"><i class="hl" id="d2hl"></i>没有时间的人</span>。</div>
+  </div></div>
+  <div id="d2math" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a" id="d2lY" style="left:335px;top:316px;font-size:30px;font-weight:700;white-space:nowrap">你的本金 1</div>
+    <div class="a" id="d2lG" style="left:585px;top:316px;width:990px;text-align:center;font-size:30px;font-weight:700;color:var(--ink2)">借来的钱 4</div>
+    <div class="seg lost a" id="d2lost" style="left:335px;top:370px;width:240px"></div>
+    <div class="seg a" id="d2y" style="left:335px;top:370px;width:240px;background:var(--yellow);border:3px solid var(--ink)"></div>
+    <div class="seg gray a" id="d2g0" style="left:585px;top:370px;width:240px"></div>
+    <div class="seg gray a" id="d2g1" style="left:835px;top:370px;width:240px"></div>
+    <div class="seg gray a" id="d2g2" style="left:1085px;top:370px;width:240px"></div>
+    <div class="seg gray a" id="d2g3" style="left:1335px;top:370px;width:240px"></div>
+    <div class="a" id="d2debt" style="left:1100px;top:510px;font-size:34px;font-weight:700;color:var(--blue)">欠的钱，一分不少</div>
+    <div class="a" id="d2read" style="left:335px;top:570px;display:flex;align-items:baseline;gap:22px;white-space:nowrap">
+      <span style="font-size:46px;font-weight:700">股价</span><span class="cond" id="d2d" style="font-size:136px;font-weight:700">−0%</span>
+      <span style="font-size:60px;color:var(--ink2)">→</span>
+      <span style="font-size:46px;font-weight:700">本金</span><span class="cond" id="d2e" style="font-size:136px;font-weight:700;color:var(--red)">−0%</span>
+      <span class="serif" id="d2word" style="font-size:56px;color:var(--red);margin-left:12px"></span>
+    </div>
+  </div>
+  <div id="d2gauge" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a serif" style="left:140px;top:160px;font-size:64px">而且，根本等不到归零</div>
+    <div class="a" style="left:144px;top:258px;font-size:32px;color:var(--ink2)">担保比例 = 账户里股票的市值 ÷ 借款</div>
+    <svg class="full" id="d2gs"></svg>
+    <div class="a cond" id="d2gv" style="left:0;top:330px;font-size:72px;font-weight:700"></div>
+  </div>
+  <div class="a sh" id="d2sms" style="left:410px;top:40px"><div class="cut" style="width:1100px;padding:24px 34px;display:flex;gap:26px;border-radius:26px">
+    <div class="kr" style="flex:none;width:84px;height:84px;border-radius:20px;background:var(--kblue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700">증권</div>
+    <div><div class="kr" style="font-size:24px;font-weight:700;color:var(--ink2)">[○○증권] 담보비율 부족 안내</div>
+      <div style="font-size:34px;font-weight:700;line-height:1.4;margin-top:6px">担保比例不足：请追加保证金，否则将于开盘后执行反对卖出（强制卖出）。</div></div>
+  </div></div>
+  <div class="a serif" id="d2bu" style="left:140px;top:640px;font-size:110px">补不上？</div>
+  <svg class="a" id="d2clock" width="300" height="300" viewBox="-160 -160 320 320" style="left:1460px;top:580px">
+    <circle r="146" fill="var(--card)" stroke="var(--ink)" stroke-width="8"/><g id="d2ticks"></g>
+    <line id="d2hh" x1="0" y1="10" x2="0" y2="-74" stroke="var(--ink)" stroke-width="12" stroke-linecap="round"/>
+    <line id="d2mh" x1="0" y1="14" x2="0" y2="-118" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/>
+    <circle r="11" fill="var(--ink)"/>
+  </svg>
+  <div class="a mono" id="d2open" style="left:1480px;top:886px;font-size:26px;width:260px;text-align:center">次日 09:00 开盘</div>
+  <div class="a" id="d2stamp" style="left:560px;top:640px"><div class="stamp" style="font-size:120px;line-height:1.05"><span class="kr" style="font-size:110px">반대매매</span> 反对卖出</div></div>
+</section>
+
+<!-- ===== D3 · cascade ===== -->
+<section class="scene" id="D3">
+  <div id="d3dom" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full"><path id="d3price" pathLength="1" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round" opacity=".22"/></svg>
+    <div class="a serif" id="d3word" style="left:0;right:0;top:130px;text-align:center;font-size:90px"></div>
+    <div class="a mono" id="d3loop" style="left:0;right:0;top:270px;text-align:center;font-size:28px;color:var(--ink2);letter-spacing:.06em">强制卖出 → 股价下跌 → 下一批账户越过红线 → 再被强制卖出</div>
+    <div id="d3doms"></div>
+  </div>
+  <div id="d3rec" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="mono" style="position:absolute;left:0;right:0;top:200px;text-align:center;font-size:30px;letter-spacing:.1em;color:var(--ink2)">2026 年 6 月 9 日 · 单日被强制卖出的金额</div>
+    <div class="cond" id="d3n" style="position:absolute;left:0;right:0;top:260px;text-align:center;font-size:300px;font-weight:700;line-height:1">1,698</div>
+    <div style="position:absolute;left:0;right:0;top:580px;text-align:center;font-size:56px;font-weight:700">亿韩元</div>
+    <div class="a" id="d3st" style="left:1330px;top:520px"><div class="stamp" style="font-size:96px">单日纪录</div></div>
+    <div class="mono" style="position:absolute;left:0;right:0;top:720px;text-align:center;font-size:24px;color:var(--ink2)">6 月 1–9 日累计超过 5,500 亿韩元</div>
+  </div>
+  <div class="a sh" id="d3post" style="left:330px;top:200px"><div class="cut" style="width:1260px;padding:40px 56px 50px;clip-path:var(--tn19)">
+    <div class="mono" style="font-size:22px;color:var(--ink2)">股票论坛 · 匿名用户</div>
+    <div class="serif" style="font-size:60px;line-height:1.4;margin-top:14px">我明明看对了芯片的大方向，<br>为什么还是被清了场？</div>
+    <div style="margin-top:30px;display:flex;flex-direction:column;gap:14px"><div style="height:14px;width:70%;background:#d8d1c2"></div><div style="height:14px;width:52%;background:#d8d1c2"></div><div style="height:14px;width:61%;background:#d8d1c2"></div></div>
+  </div></div>
+  <div id="d3ans" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a sh" style="left:260px;top:240px;opacity:.55"><div class="cut" style="width:560px;padding:36px 40px;clip-path:var(--tn20);text-align:center">
+      <div class="mono" style="font-size:24px;color:var(--ink2)">三年后</div><div class="serif" style="font-size:72px;margin-top:10px">你对不对？</div></div></div>
+    <div class="a sh" style="left:1080px;top:220px"><div style="width:600px;padding:36px 40px;background:var(--yellow);clip-path:var(--tn20);text-align:center">
+      <div class="mono" style="font-size:24px">今天</div><div class="serif" style="font-size:72px;margin-top:10px">账上有没有钱？</div></div></div>
+    <svg class="full"><path id="d3x" pathLength="1" fill="none" stroke="var(--red)" stroke-width="10" stroke-linecap="round"/><path id="d3c" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+    <div class="a" id="d3t" style="left:0;right:0;top:620px;text-align:center;font-size:46px;font-weight:700">风控系统只看后者。</div>
+  </div>
+</section>
+
+<!-- ===== E1 · after ===== -->
+<section class="scene" id="E1">
+  <div id="e1city" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full" id="e1sky"></svg>
+    <div class="a cond" style="left:140px;top:90px;font-size:210px;font-weight:700;line-height:1">09:00</div>
+    <div class="a mono" style="left:146px;top:320px;font-size:28px;letter-spacing:.1em;color:var(--ink2)">汝矣岛 · 交易所照常开门</div>
+    <svg class="a" id="e1gear" width="300" height="300" viewBox="-150 -150 300 300" style="left:1470px;top:110px"><path id="e1gp" fill="var(--card)" stroke="var(--ink)" stroke-width="7" stroke-linejoin="round"/><circle r="36" fill="var(--paper)" stroke="var(--ink)" stroke-width="7"/></svg>
+  </div>
+  <div class="a sh" id="e1clip" style="left:380px;top:200px"><div class="newsp" style="width:1160px;padding:40px 56px 50px;clip-path:var(--tn21)">
+    <div class="mono" style="font-size:22px;letter-spacing:.1em;color:var(--ink2)">2026 年 7 月 · 韩国金融监管</div>
+    <div class="serif" style="font-size:68px;line-height:1.3;margin-top:16px">叫停单只股票杠杆 ETF 新上市</div>
+    <div style="font-size:34px;margin-top:16px;color:var(--ink2)">距离批准它上市，只过了<span class="mark"><i class="hl" id="e1hl"></i>两个月</span></div>
+    <div style="height:3px;background:var(--ink);margin-top:26px"></div>
+  </div></div>
+  <div id="e1lee" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full" id="e1chips"></svg>
+    <div class="a sh" id="e1q1" style="left:200px;top:160px"><div class="cut" style="padding:34px 48px 40px;clip-path:var(--tn22)">
+      <div class="mono lab">李同学</div><div class="serif" style="font-size:66px;margin-top:10px">“等攒够了钱，我还会再借。”</div></div></div>
+    <div class="a sh" id="e1q2" style="left:520px;top:420px"><div class="cut" style="padding:34px 48px 40px;clip-path:var(--tn22)">
+      <div class="mono lab">但他也承认</div><div class="serif" style="font-size:66px;margin-top:10px">“每一把都梭哈，<span style="color:var(--red)">迟早会输</span>。”</div></div></div>
+  </div>
+</section>
+
+<!-- ===== E2 · empathy ===== -->
+<section class="scene" id="E2">
+  <div class="a serif" id="e2q" style="left:0;right:0;top:120px;text-align:center;font-size:96px">“谁让他贪心？”</div>
+  <svg class="full" id="e2svg">
+    <path id="e2h" pathLength="1" fill="none" stroke="var(--red)" stroke-width="14" stroke-linecap="round" marker-end="url(#ah)"/>
+    <path id="e2w" pathLength="1" fill="none" stroke="var(--ink)" stroke-width="14" stroke-linecap="round" marker-end="url(#ah)"/>
+  </svg>
+  <div class="a serif" id="e2hl" style="left:200px;top:500px;font-size:56px;color:var(--red)">房价</div>
+  <div class="a serif" id="e2wl" style="left:200px;top:650px;font-size:56px">工资</div>
+  <div class="a mono" id="e2n" style="left:206px;top:790px;font-size:22px;color:var(--ink2)">示意</div>
+  <div class="a sh" id="e2ph" style="left:1360px;top:300px;width:300px;height:560px">
+    <div class="phone" style="border-radius:40px;padding:12px"><div class="screen" style="border-radius:30px;padding:24px 20px" id="e2scr"></div></div>
+  </div>
+</section>
+
+<!-- ===== E3 · the line ===== -->
+<section class="scene" id="E3">
+  <div class="serif" id="e3t1" style="position:absolute;left:170px;top:300px;font-size:84px"></div>
+  <div class="serif" id="e3t2" style="position:absolute;left:170px;top:420px;font-size:84px"></div>
+  <div class="a" id="e3l1" style="left:176px;top:620px;font-size:42px;color:var(--ink2)">也许我们最该算明白的账，不是怎样跑得更快，</div>
+  <div class="a" id="e3l2" style="left:176px;top:690px;font-size:42px;color:var(--ink2)">而是警报拉响时，手里还有没有<b style="color:var(--ink)">决定何时离场的自由</b>。</div>
+</section>
+
+<!-- ===== E4 · end card ===== -->
+<section class="scene" id="E4">
+  <div class="a serif" id="e4q" style="left:170px;top:280px;font-size:84px">你身边，有没有加过杠杆的朋友？</div>
+  <div class="a" id="e4c" style="left:176px;top:410px;font-size:40px;color:var(--ink2)">欢迎在评论区聊聊。</div>
+  <div class="a mono" id="e4s" style="left:176px;top:600px;font-size:22px;color:var(--ink2);line-height:1.9">
+    资料：路透社，2026-07-20（李同学个案、首尔房价约合 14 年工资、杠杆 ETF 叫停）<br>
+    한국경제，2026-08-19（二三十岁融资余额：1조7607억 → 4조1943억韩元）<br>
+    韩国金融投资协会 / The Korea Herald（全市场融资余额、6 月 9 日强制卖出纪录）<br>
+    이투데이，2026-05-31（5 月外资净卖出 44.7 万亿、散户净买入 35.1 万亿韩元）<br>
+    说明：账户曲线与“房价 vs 工资”为示意；汇率按约 1 美元 ≈ 7.1 元人民币换算；配音为 AI 临时配音
+  </div>
+</section>
+
+<div id="srcTag"></div>
+</div><!-- cam -->
+<div id="cap"><span></span></div>
+</div></div>
+
+<script src="../engine.js"></script>
+<script src="timeline.js"></script>
+<script>
+const { prog, ease, tf, show, $, lerp, clamp, step, hash, fmt, draw, wobble, penCircle, torn, svgEl, rng } = E;
+const q = t => Math.floor(t * 12) / 12;
+const LN = TL.lines;
+const c = i => LN[i].t0, e = i => LN[i].t1;
+// the moment line i reaches substring s (TTS reads at a near-constant rate)
+const w = (i, s) => { const j = LN[i].text.indexOf(s); return j < 0 ? c(i) : c(i) + (e(i) - c(i)) * j / LN[i].text.length; };
+
+$('paper').style.backgroundImage = `url(${E.paperTexture([236, 229, 213], 7)})`;
+document.documentElement.style.setProperty('--tex', `url(${E.paperTexture([236, 229, 213], 7, 600)})`);
+document.documentElement.style.setProperty('--card-tex', `url(${E.paperTexture([250, 247, 240], 11, 900)})`);
+const TN = { 1: [760, 150], 2: [700, 240], 3: [620, 240], 4: [380, 110], 5: [330, 140], 6: [460, 110], 7: [1080, 420], 8: [460, 190], 9: [250, 190], 10: [360, 210], 11: [700, 600], 12: [700, 600], 13: [240, 100], 14: [940, 400], 15: [1480, 440], 16: [960, 330], 17: [640, 140], 18: [1300, 380], 19: [1260, 420], 20: [600, 200], 21: [1160, 330], 22: [960, 190], 23: [820, 200] };
+for (const k in TN) document.documentElement.style.setProperty(`--tn${k}`, torn(...TN[k], k * 17, 4, 14));
+
+function life(el, t, o) {
+  const tt = o.smooth ? t : q(t), r1 = o.r ?? 0;
+  if (tt < o.in || (o.gone !== undefined && t >= o.gone)) { el.style.opacity = 0; return; }
+  const k = clamp((tt - o.in) / (o.dur ?? 0.42)), e_ = (o.ease ?? ease.back)(k);
+  const f = o.from ?? { y: -70, r: r1 - 6 };
+  let x = lerp(f.x ?? 0, 0, e_), y = lerp(f.y ?? 0, 0, e_), r = lerp(f.r ?? r1, r1, e_), s = lerp(f.s ?? 1, 1, e_);
+  let op = f.o !== undefined ? lerp(f.o, 1, clamp(k * 1.5)) : 1;
+  if (o.out !== undefined && t >= o.out) {
+    const ex = o.exit ?? 'fall', te = ex === 'fall' ? q(t) : t, m = clamp((te - o.out) / (o.outDur ?? 0.5));
+    if (ex === 'fall') { const g = ease.in2(m); y += 1300 * g; r += (o.spin ?? 14) * g; }
+    else if (ex === 'up') y -= 1250 * ease.inOut(m);
+    else if (ex === 'left') x -= 2100 * ease.inOut(m);
+    else if (ex === 'fade') op *= 1 - m;
+  }
+  tf(el, { x, y, r, s, o: op });
+}
+const fin = (el, t, at, extra = {}) => life(el, t, { in: at, r: 0, from: { y: 22, o: 0 }, ease: ease.out, smooth: true, ...extra });
+const drop = (el, t, at, r = 0, extra = {}) => life(el, t, { in: at, r, ...extra });
+const slap = (el, t, at, r = 0, extra = {}) => life(el, t, { in: at, r, from: { s: 1.3, r: r - 4 }, dur: 0.22, ...extra });
+const hl = (id, t, a, d = 0.45) => { $(id).style.transform = `scaleX(${prog(t, a, a + d, ease.inOut)})`; };
+function slam(el, t, at, r = -8) { const tt = q(t), k = clamp((tt - at) / 0.17); tf(el, { s: lerp(1.75, 1, ease.out(k)), r, o: tt >= at ? 1 : 0 }); }
+const shake = (t, a, d = 0.45, amp = 12) => (t >= a && t < a + d ? (hash(step(t, 24)) - 0.5) * amp * (1 - (t - a) / d) : 0);
+const boil = (t, n = 3) => step(t, 8) % n;
+const fade = (el, t, a, b) => { el.style.opacity = prog(t, a, a + 0.35, ease.lin) * (b === undefined ? 1 : 1 - prog(t, b, b + 0.35, ease.lin)); };
+
+/* ---------- A1 ---------- */
+$('a1floor').setAttribute('d', wobble([[80, 870], [1840, 872]], 3, 2));
+function A1(t) {
+  slap($('a1t1'), t, c(0) + 0.2, -2, { out: c(1) - 0.3, exit: 'up' });
+  slap($('a1t2'), t, w(0, '五倍'), 1.5, { out: c(1) - 0.25, exit: 'up' });
+  slap($('a1t3'), t, w(0, '豪赌'), -2.5, { out: c(1) - 0.2, exit: 'up' });
+  drop($('a1c1'), t, w(1, '刚大学'), -2);
+  drop($('a1c2'), t, w(1, '刚服完'), 2);
+  drop($('a1c3'), t, w(1, '一小笔'), -1);
+  const bk = prog(t, c(2) + 0.2, c(2) + 1.2, ease.out);
+  tf($('a1b'), { y: 760 * (1 - bk), o: bk > 0 ? 1 : 0 });
+  $('a1floor').style.opacity = prog(t, c(2), c(2) + 0.3, ease.lin);
+  drop($('a1tag'), t, w(2, '相当于'), 4);
+  drop($('a1s1'), t, w(3, '老老实实'), -3, { from: { y: 600 } });
+  drop($('a1s2'), t, w(3, '心一横'), 3, { from: { y: 600 } });
+  $('a1circ').setAttribute('d', penCircle(1000, 640, 290, 72, 30 + boil(t)));
+  draw($('a1circ'), prog(t, w(3, '赌一把'), w(3, '赌一把') + 0.5, ease.inOut));
+}
+
+/* ---------- A2 ---------- */
+const SER = (() => { const r = rng(24), s = []; for (let i = 0; i <= 60; i++) { const g = 278 * Math.pow(i / 60, 2.25); s.push(20 + (i > 2 && i < 60 ? g * (1 + (r() - 0.5) * 0.3) : g)); } s[60] = 298; return s.concat([268, 236, 251, 196, 158, 171, 118, 84, 61, 44, 31, 24, 27, 19.4, 21.2, 17.6]); })();
+const PEAK = 60, LAST = SER.length - 1;
+const cxp = i => 6 + i * (384 / LAST), cyp = v => 250 - (v / 320) * 236;
+const valAt = f => { const n = Math.min(Math.floor(f), LAST - 1); return lerp(SER[n], SER[n + 1], f - n); };
+const chartPath = f => { const n = Math.floor(f); let d = ''; for (let i = 0; i <= n; i++) d += (i ? 'L' : 'M') + cxp(i).toFixed(1) + ',' + cyp(SER[i]).toFixed(1); if (n < LAST && f > n) d += 'L' + lerp(cxp(n), cxp(n + 1), f - n).toFixed(1) + ',' + cyp(valAt(f)).toFixed(1); return d; };
+$('a2base').setAttribute('y1', cyp(20)); $('a2base').setAttribute('y2', cyp(20));
+function A2(t) {
+  drop($('a2clip'), t, c(4) + 0.1, -1.5, { out: c(5) - 0.3, exit: 'up', outDur: 0.45 });
+  const ph = prog(t, c(5) - 0.1, c(5) + 0.5, ease.out);
+  tf($('a2phone'), { y: 900 * (1 - ph) + shake(t, w(9, '剧烈'), 0.7, 10), x: shake(t + 0.03, w(9, '剧烈'), 0.7, 16), r: -2.5, o: ph > 0 ? 1 : 0 });
+  const tq = Math.floor(t * 15) / 15, rise0 = c(7) + 0.3, rise1 = e(7) + 0.4, cr0 = w(9, '剧烈'), cr1 = e(10) - 0.6;
+  const f = tq < cr0 ? PEAK * prog(tq, rise0, rise1, ease.inOut) : PEAK + (LAST - PEAK) * prog(tq, cr0, cr1, ease.lin);
+  const v = valAt(f), below = v < 20, col = below ? 'var(--kblue)' : 'var(--kred)';
+  $('a2val').textContent = '₩' + fmt(v * 1e6); $('a2val').style.color = below ? 'var(--kblue)' : 'var(--ink)';
+  const pct = (v - 20) / 20 * 100;
+  $('a2chg').textContent = (pct >= 0 ? '+' : '−') + Math.abs(pct).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  $('a2chg').style.color = col;
+  $('a2line').setAttribute('d', chartPath(f)); $('a2line').style.stroke = col;
+  $('a2dot').setAttribute('cx', lerp(cxp(Math.floor(f)), cxp(Math.min(LAST, Math.floor(f) + 1)), f % 1)); $('a2dot').setAttribute('cy', cyp(v)); $('a2dot').style.fill = col;
+  // the "tiny circle button"
+  const tap = w(6, '点了') + 0.6;
+  $('a2btn').style.opacity = t >= w(6, '小小的') && t < c(7) ? 1 : 0;
+  tf($('a2btn'), { s: t >= tap && t < tap + 0.15 ? 0.88 : 1 + 0.04 * Math.sin(t * 6), o: t >= w(6, '小小的') && t < c(7) ? 1 : 0 });
+  const rk = prog(t, tap, tap + 0.7, ease.out);
+  tf($('a2rip'), { s: 1 + rk * 1.6, o: t >= tap && t < c(7) ? (1 - rk) : 0 });
+  ['a2t1', 'a2t2', 'a2t3'].forEach((id, i) => life($(id), t, { in: w(9, '一轮') + i * 0.6, r: 0, from: { y: 30, o: 0 }, ease: ease.out, dur: 0.25, smooth: true, out: c(10) + 1.6, exit: 'fade' }));
+
+  const crash = w(9, '剧烈') + 0.2;
+  fin($('a2a'), t, c(5) + 0.6, { out: crash, exit: 'fall' });
+  drop($('a2b'), t, w(5, '两千万'), -1.5, { out: crash + 0.1 });
+  drop($('a2c'), t, w(6, '五倍'), 3, { out: crash + 0.2, spin: -20 });
+  hl('a2hlc', t, w(6, '五倍') + 0.5);
+  fin($('a2d'), t, w(7, '接近'), { out: crash + 0.3, exit: 'fall' });
+  fin($('a2e'), t, c(8) + 0.3, { out: crash + 0.35, exit: 'fall' });
+  hl('a2hle', t, w(8, '首尔买房'), 0.6);
+  slam($('a2s5'), t, w(9, '五月'), -6);
+  slam($('a2s4'), t, w(10, '四个星期'), -9);
+  if (t > w(10, '跌破')) $('a2s4').style.opacity = 0.25;
+  fin($('a2f'), t, w(10, '跌破'));
+  $('a2q').style.opacity = prog(t, c(11) - 0.3, c(11), ease.lin);
+  $('a2qt').style.opacity = prog(t, w(11, '真的'), w(11, '真的') + 0.4, ease.lin);
+  $('a2qa').style.opacity = prog(t, e(11) - 0.4, e(11), ease.lin);
+}
+
+/* ---------- A3 ---------- */
+function A3(t) {
+  fin($('a3q'), t, c(12) + 0.3, { out: c(13) + 1.5, exit: 'fade', outDur: 0.3 });
+  $('a3s').setAttribute('d', wobble([[300, 380], [1620, 366]], 7 + boil(t), 5));
+  draw($('a3s'), prog(t, w(13, '别急') , w(13, '别急') + 0.4, ease.inOut));
+  $('a3s').style.opacity = 1 - prog(t, c(13) + 1.5, c(13) + 1.8, ease.lin);
+  slap($('a3t1'), t, w(13, '算账'), -3);
+  slap($('a3t2'), t, w(13, '算账') + 0.5, 2);
+  slap($('a3t3'), t, w(13, '算账') + 1.0, -1.5);
+  fin($('a3sub'), t, w(13, '底牌'));
+  hl('a3hl', t, w(13, '底牌') + 0.6);
+}
+
+/* ---------- B1 ---------- */
+$('b1u1').setAttribute('d', wobble([[4, 14], [260, 18]], 5, 3));
+$('b1u2').setAttribute('d', wobble([[4, 16], [370, 12]], 6, 3));
+function B1(t) {
+  fin($('b1k'), t, w(14, '两个'));
+  drop($('b1d1'), t, c(15) - 0.2, -2, { from: { y: 1100, r: 6 }, dur: 0.5 });
+  drop($('b1d2'), t, c(16) - 0.2, 1.5, { from: { y: 1100, r: -6 }, dur: 0.5 });
+  draw($('b1u1'), prog(t, w(15, '借钱'), w(15, '借钱') + 0.5, ease.inOut));
+  draw($('b1u2'), prog(t, w(16, '连灵魂'), w(16, '连灵魂') + 0.5, ease.inOut));
+}
+
+/* ---------- B2 ---------- */
+const BR = [];
+for (let i = 0; i < 14; i++) { const b = document.createElement('div'); b.className = 'brick mono a'; b.style.top = `${880 - (i + 1) * 40}px`; b.textContent = `第 ${i + 1} 年 · 全年工资`; $('b2bricks').appendChild(b); BR.push(b); }
+$('b2fl').setAttribute('d', wobble([[120, 882], [1800, 882]], 31, 2));
+function B2(t) {
+  const b0 = w(17, '一套公寓');
+  let landed = 0;
+  BR.forEach((b, i) => {
+    const at = b0 + i * 0.27, tt = q(t);
+    if (tt < at) { b.style.opacity = 0; return; }
+    const k = clamp((tt - at) / 0.2); if (k >= 1) landed++;
+    tf(b, { y: lerp(-620, 0, ease.in2(k)), r: (hash(i) - 0.5) * 2.4, sy: k >= 1 && tt < at + 0.17 ? 0.9 : 1, o: 1 });
+  });
+  $('b2n').textContent = landed;
+  fade($('b2cnt'), t, b0 - 0.3);
+  fin($('b2cap'), t, c(18) + 0.1);
+  const rise = prog(t, w(18, '再扣掉') + 0.8, w(18, '算完账'), ease.inOut);
+  tf($('b2line'), { y: lerp(318, -90, rise), o: prog(t, c(17), c(17) + 0.4, ease.lin) });
+  const bTop = lerp(150, -560, rise); $('b2bld').style.top = bTop + 'px'; $('b2bld').style.height = (880 - bTop) + 'px';
+  drop($('b2w1'), t, w(18, '房租'), -4, { from: { y: -900, r: 8 }, dur: 0.35 });
+  drop($('b2w2'), t, w(18, '生活费'), 3, { from: { y: -900, r: -8 }, dur: 0.35 });
+  fin($('b2fin'), t, w(18, '算完账'));
+}
+
+/* ---------- B3 ---------- */
+[['b3l1', 620], ['b3l2', 770], ['b3l3', 920]].forEach(([id, y], i) => $(id).setAttribute('d', wobble([[-20, y], [1940, y + 4]], 50 + i, 2.5)));
+$('b3st').setAttribute('d', wobble([[470, 620], [474, 920]], 59, 2));
+const POSE = [wobble([[92, 70], [82, 150]], 66, 1) + wobble([[88, 92], [120, 130], [138, 112]], 67, 1) + wobble([[88, 92], [60, 126], [56, 158]], 68, 1) + wobble([[82, 150], [100, 204], [118, 258]], 69, 1) + wobble([[82, 150], [62, 206], [48, 258]], 70, 1),
+  wobble([[92, 70], [80, 150]], 61, 1) + wobble([[86, 92], [130, 124], [150, 98]], 62, 1) + wobble([[86, 92], [52, 120], [36, 150]], 63, 1) + wobble([[80, 150], [112, 196], [96, 258]], 64, 1) + wobble([[80, 150], [52, 202], [20, 230]], 65, 1)];
+function B3(t) {
+  const swap = c(20) - 0.2;
+  tf($('b3track'), { x: -2100 * prog(t, swap, swap + 0.5, ease.inOut) });
+  const pass = w(19, '呼啸') - 0.4;
+  $('b3body').setAttribute('d', POSE[t > pass + 0.3 && t < pass + 1.1 ? 1 : 0]);
+  const knock = prog(t, pass + 0.4, pass + 0.6, ease.out) * (1 - prog(t, pass + 0.9, pass + 1.5, ease.inOut));
+  tf($('b3run'), { r: -10 * knock, x: -14 * knock });
+  tf($('b3car'), { x: lerp(-700, 2300, prog(q(t), pass, pass + 0.8, ease.lin)), o: t >= pass && t < pass + 0.9 ? 1 : 0 });
+  fin($('b3c1'), t, c(19) + 0.6);
+  fin($('b3c2'), t, w(19, '别人家'));
+  drop($('b3tk'), t, w(20, '塞给你'), -2.5, { from: { x: 1500, r: 9 }, dur: 0.6 });
+  slap($('b3e1'), t, c(21) + 0.1);
+  slap($('b3e2'), t, w(21, '乘以'), -3);
+  slap($('b3e3'), t, w(21, '本金'));
+  hl('b3hl', t, w(21, '翻一倍'));
+  fin($('b3q'), t, w(21, '你用不用'));
+}
+
+/* ---------- B4 ---------- */
+function B4(t) { drop($('b4card'), t, c(22) - 0.1, -1, { from: { y: 1100, r: 4 }, dur: 0.5 }); hl('b4hl', t, w(22, '别人的五倍') + 0.6, 0.5); }
+
+/* ---------- B5 ---------- */
+$('b5base').setAttribute('d', wobble([[380, 822], [1500, 822]], 71, 2));
+$('b5arr').setAttribute('d', 'M780,500 C820,360 880,300 975,318');
+function B5(t) {
+  const up_ = prog(t, c(25) - 0.3, c(25) + 0.2, ease.inOut);
+  tf($('b5chart'), { y: -1250 * up_ });
+  fin($('b5h'), t, c(23) - 0.3); fin($('b5u'), t, c(23));
+  const ka = prog(t, w(24, '二零二四'), w(24, '二零二四') + 0.8, ease.out), kb = prog(t, w(24, '涨到'), w(24, '涨到') + 2.0, ease.inOut);
+  tf($('b5a'), { sy: Math.max(0.001, ka), o: ka > 0 ? 1 : 0 }); tf($('b5b'), { sy: Math.max(0.001, kb), o: kb > 0 ? 1 : 0 });
+  $('b5av').textContent = (1.76 * ka).toFixed(2); tf($('b5av'), { y: 202 * (1 - ka), o: ka > 0.02 ? 1 : 0 });
+  $('b5bv').textContent = (4.19 * kb).toFixed(2); tf($('b5bv'), { y: 480 * (1 - kb), o: kb > 0.02 ? 1 : 0 });
+  fade($('b5al'), t, w(24, '二零二四')); fade($('b5bl'), t, w(24, '今年六月'));
+  draw($('b5arr'), prog(t, w(24, '二点四'), w(24, '二点四') + 0.6, ease.inOut));
+  slap($('b5x'), t, w(24, '二点四') + 0.4, -4);
+  $('b5circ').setAttribute('d', penCircle(1440, 330, 150, 92, 500 + boil(t)));
+  draw($('b5circ'), prog(t, w(24, '二点四') + 0.8, w(24, '二点四') + 1.3, ease.inOut));
+  fin($('b5br'), t, e(24) - 0.6);
+  tf($('b5big'), { y: 1250 * (1 - up_), o: up_ > 0 ? 1 : 0 });
+  const kn = prog(Math.floor(t * 15) / 15, w(25, '冲到'), w(25, '冲到') + 1.6, ease.out);
+  $('b5bn').textContent = (38.63 * kn).toFixed(2);
+  slam($('b5st'), t, w(25, '历史新高'), -8);
+}
+
+/* ---------- C1 ---------- */
+function C1(t) {
+  const clear = prog(t, c(29) - 0.4, c(29) - 0.1, ease.lin);
+  fin($('c1l1'), t, c(26) + 0.6); fin($('c1l2'), t, c(27));
+  $('c1s1').setAttribute('d', wobble([[520, 336], [1400, 324]], 81 + boil(t), 4));
+  $('c1s2').setAttribute('d', wobble([[380, 432], [1540, 420]], 85 + boil(t), 4));
+  draw($('c1s1'), prog(t, w(28, '问题'), w(28, '问题') + 0.3, ease.inOut));
+  draw($('c1s2'), prog(t, w(28, '问题') + 0.2, w(28, '问题') + 0.55, ease.inOut));
+  slap($('c1no'), t, w(28, '借了钱'), -1.5);
+  for (const id of ['c1l1', 'c1l2', 'c1s1', 'c1s2', 'c1no']) if (clear > 0) $(id).style.opacity = 1 - clear;
+  fin($('c1table'), t, c(29) - 0.1, { dur: 0.6 });
+  fin($('c1q1'), t, c(29) + 0.1); fin($('c1q2'), t, w(29, '到底'));
+  if (q(t) >= w(29, '谁')) tf($('c1qm'), { r: (hash(boil(t, 4)) - 0.5) * 7, s: lerp(1.5, 1, prog(q(t), w(29, '谁'), w(29, '谁') + 0.2)), o: 1 }); else $('c1qm').style.opacity = 0;
+  fin($('c1c'), t, w(29, '华尔街'));
+  $('c1t').style.opacity = prog(t, c(30), c(30) + 0.3, ease.lin) * (step(t, 2) % 2 ? 1 : 0.55);
+}
+
+/* ---------- D1 ---------- */
+const AX = 960, PXT = 14;
+$('d1ax').setAttribute('d', wobble([[AX, 230], [AX, 690]], 91, 1.5));
+function D1(t) {
+  drop($('d1ch'), t, c(31) - 0.1, -1.5, { out: c(32) - 0.2, exit: 'up', outDur: 0.4 });
+  const outB = c(36) - 0.2;
+  tf($('d1chart'), { y: -1250 * prog(t, outB, outB + 0.5, ease.inOut) });
+  fin($('d1h'), t, c(32) + 0.1);
+  $('d1ax').style.opacity = prog(t, c(32), c(32) + 0.3, ease.lin);
+  const kf = prog(Math.floor(t * 15) / 15, w(32, '净卖出'), w(32, '净卖出') + 1.4, ease.out), fw = 44.7 * PXT * kf;
+  Object.assign($('d1f').style, { left: `${AX - fw}px`, width: `${fw}px`, opacity: kf > 0 ? 1 : 0 });
+  fade($('d1fl'), t, w(32, '外国投资者'));
+  $('d1fv').textContent = `−${(44.7 * kf).toFixed(1)} 万亿₩`; $('d1fv').style.left = `${AX - fw}px`; $('d1fv').style.opacity = kf > 0.4 ? 1 : 0;
+  slam($('d1rec'), t, w(32, '单月纪录'), -7);
+  // segments: SK hynix 20.7, Samsung 16.0 of the 44.7
+  const ks = prog(t, c(33) + 0.4, c(33) + 1.0, ease.out);
+  const seg = $('d1segl');
+  if (!seg.dataset.on) {
+    seg.dataset.on = 1;
+    seg.innerHTML = `<div style="position:absolute;left:${AX - 20.7 * PXT}px;width:${20.7 * PXT}px;top:0;text-align:center;font-size:28px;font-weight:700">SK 海力士 20.7</div><div style="position:absolute;left:${AX - 36.7 * PXT}px;width:${16 * PXT}px;top:0;text-align:center;font-size:28px;font-weight:700">三星电子 16.0</div>`;
+    $('d1fs').innerHTML = `<div style="position:absolute;left:${AX - 20.7 * PXT}px;width:3px;top:0;height:100px;background:#fff"></div><div style="position:absolute;left:${AX - 36.7 * PXT}px;width:3px;top:0;height:100px;background:#fff"></div><div style="position:absolute;left:${AX - 44.7 * PXT}px;width:${8 * PXT}px;top:3px;height:94px;background:rgba(255,255,255,.35)"></div>`;
+  }
+  seg.style.opacity = ks; $('d1fs').style.opacity = ks;
+  $('d1br').setAttribute('d', `M${AX - 36.7 * PXT},440 L${AX - 36.7 * PXT},452 L${AX},452 L${AX},440`);
+  draw($('d1br'), prog(t, w(33, '八成'), w(33, '八成') + 0.4, ease.inOut));
+  fin($('d1pct'), t, w(33, '八成') + 0.3);
+  $('d1pct').style.left = `${AX - 18.35 * PXT - 50}px`;
+  $('d1circ').setAttribute('d', penCircle(AX - 18.35 * PXT + 6, 516, 92, 56, 600 + boil(t)));
+  draw($('d1circ'), prog(t, w(33, '八成') + 0.7, w(33, '八成') + 1.2, ease.inOut));
+  const kr = prog(Math.floor(t * 15) / 15, w(34, '净买入'), w(34, '净买入') + 1.4, ease.out), rw = 35.1 * PXT * kr;
+  Object.assign($('d1r').style, { width: `${rw}px`, opacity: kr > 0 ? 1 : 0 });
+  fade($('d1rl'), t, w(34, '散户'));
+  $('d1rv').textContent = `+${(35.1 * kr).toFixed(1)} 万亿₩`; $('d1rv').style.opacity = kr > 0.5 ? 1 : 0;
+  fin($('d1rec2'), t, w(34, '同样是纪录'));
+  fin($('d1why'), t, w(35, '当时的分析'));
+  drop($('d1r1'), t, w(35, '涨了一倍'), -1.5);
+  drop($('d1r2'), t, w(35, '芯片景气'), 1.5);
+  fin($('d1b1'), t, c(36) + 0.2);
+  fin($('d1b2'), t, w(36, '他们在做'));
+  hl('d1hl', t, w(36, '押人生'));
+}
+
+/* ---------- D2 ---------- */
+(() => { const g = $('d2ticks'); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; svgEl(g, 'line', { x1: Math.sin(a) * 118, y1: -Math.cos(a) * 118, x2: Math.sin(a) * 134, y2: -Math.cos(a) * 134, stroke: 'var(--ink)', 'stroke-width': i % 3 ? 4 : 8 }); } })();
+// collateral-ratio gauge: 100%–200%, red zone below 140%
+const GX0 = 240, GX1 = 1680, GY = 560, gx = r => GX0 + (r - 100) / 100 * (GX1 - GX0);
+(() => {
+  const s = $('d2gs');
+  svgEl(s, 'rect', { x: gx(100), y: GY - 40, width: gx(140) - gx(100), height: 80, fill: 'rgba(204,61,39,.18)' });
+  svgEl(s, 'path', { d: wobble([[GX0, GY + 40], [GX1, GY + 40]], 11, 1.5), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 4 });
+  for (let r = 100; r <= 200; r += 20) { svgEl(s, 'line', { x1: gx(r), x2: gx(r), y1: GY + 40, y2: GY + 56, stroke: 'var(--ink)', 'stroke-width': 3 }); const tx = svgEl(s, 'text', { x: gx(r), y: GY + 92, 'text-anchor': 'middle', style: "font:500 28px 'K Cond';fill:var(--ink2)" }); tx.textContent = r + '%'; }
+  svgEl(s, 'line', { x1: gx(140), x2: gx(140), y1: GY - 70, y2: GY + 40, stroke: 'var(--red)', 'stroke-width': 5, 'stroke-dasharray': '10 8' });
+  const lab = svgEl(s, 'text', { x: gx(140) - 16, y: GY - 84, 'text-anchor': 'end', style: "font:700 32px 'K Sans';fill:var(--red)" }); lab.textContent = '140%：追加保证金线（常见设定）';
+  svgEl(s, 'path', { id: 'd2needle', d: 'M0,-46 L0,40', stroke: 'var(--ink)', 'stroke-width': 8, 'stroke-linecap': 'round' });
+  svgEl(s, 'path', { id: 'd2tri', d: 'M-16,-62 L16,-62 L0,-40 Z', fill: 'var(--ink)' });
+})();
+const DROPS = [[w(38, '跌百分之十'), 0.10, '亏掉一半'], [w(38, '跌百分之十五'), 0.15, '亏掉四分之三'], [w(38, '跌百分之二十'), 0.20, '直接归零']];
+function D2(t) {
+  drop($('d2ch'), t, c(37) - 0.1, -1, { out: c(38) - 0.2, exit: 'up', outDur: 0.4 });
+  hl('d2hl', t, w(37, '没有时间'));
+  const m0 = c(38) - 0.1, gOn = c(39) - 0.2;
+  tf($('d2math'), { y: -1250 * prog(t, gOn, gOn + 0.5, ease.inOut), o: t >= m0 ? 1 : 0 });
+  const by = prog(t, m0, m0 + 0.4, ease.out);
+  ['d2lY', 'd2lG'].forEach(id => $(id).style.opacity = by);
+  ['d2g0', 'd2g1', 'd2g2', 'd2g3'].forEach((id, i) => life($(id), t, { in: m0 + 0.3 + i * 0.12, r: 0, from: { y: -40, s: 1.15 }, dur: 0.2 }));
+  let d = 0, word = '';
+  DROPS.forEach(([a, v, wd], i) => { d += (v - (i ? DROPS[i - 1][1] : 0)) * prog(t, a + 0.3, a + 0.8, ease.inOut); if (t >= a + 0.8) word = wd; });
+  const eq = Math.max(0, 1 - 5 * d);
+  $('d2y').style.width = `${240 * eq}px`; $('d2y').style.opacity = by * (eq > 0.002 ? 1 : 0);
+  $('d2lost').style.left = `${335 + 240 * eq}px`; $('d2lost').style.width = `${240 * (1 - eq)}px`; $('d2lost').style.opacity = d > 0.001 ? 1 : 0;
+  fin($('d2debt'), t, DROPS[1][0]);
+  const dp = Math.round(d * 100);
+  $('d2d').textContent = `−${dp}%`; $('d2e').textContent = `−${Math.min(100, dp * 5)}%`; $('d2word').textContent = word;
+  $('d2read').style.opacity = prog(t, DROPS[0][0], DROPS[0][0] + 0.3, ease.lin);
+  // gauge: ratio drifts down from 185% through 140%
+  tf($('d2gauge'), { y: 1250 * (1 - prog(t, gOn, gOn + 0.5, ease.inOut)), o: t >= gOn ? 1 - 0.85 * prog(t, c(40) - 0.2, c(40) + 0.2, ease.lin) : 0 });
+  const r = 185 - 50 * prog(t, w(39, '通常'), w(39, '追加'), ease.inOut) + (t > w(39, '追加') ? Math.sin(t * 9) * 0.6 : 0);
+  const nx = gx(r);
+  $('d2needle').setAttribute('transform', `translate(${nx},${GY})`); $('d2tri').setAttribute('transform', `translate(${nx},${GY})`);
+  $('d2needle').style.stroke = r < 140 ? 'var(--red)' : 'var(--ink)';
+  $('d2gv').textContent = `${Math.round(r)}%`; $('d2gv').style.left = `${nx - 60}px`; $('d2gv').style.color = r < 140 ? 'var(--red)' : 'var(--ink)';
+  life($('d2sms'), t, { in: w(39, '追加保证金') + 0.2, r: 0, from: { y: -300 }, ease: ease.out, dur: 0.5, smooth: true });
+  fin($('d2bu'), t, c(40));
+  life($('d2clock'), t, { in: c(40) + 0.2, r: 4, from: { y: 600, r: -10 }, dur: 0.5 });
+  const mins = 50 + Math.floor(10 * prog(t, c(40) + 0.6, w(40, '一开盘') + 0.4, ease.lin) * 2) / 2;
+  $('d2mh').setAttribute('transform', `rotate(${mins * 6})`); $('d2hh').setAttribute('transform', `rotate(${(8 + mins / 60) * 30})`);
+  fin($('d2open'), t, w(40, '一开盘'));
+  slam($('d2stamp'), t, w(40, '韩国人管'), -6);
+}
+
+/* ---------- D3 ---------- */
+const DOMS = [];
+for (let i = 0; i < 11; i++) { const d = document.createElement('div'); d.className = 'domino cut a'; d.style.left = `${190 + i * 140}px`; d.innerHTML = `<i></i><span class="mono">#${String(Math.floor(hash(i + 3) * 9000 + 1000))}</span>`; $('d3doms').appendChild(d); DOMS.push(d); }
+$('d3price').setAttribute('d', (() => { const r = rng(5), p = [[80, 360]]; for (let i = 1; i <= 40; i++) p.push([80 + i * 44, 360 + i * 4.5 + (r() - 0.5) * 40]); return 'M' + p.map(a => a.map(v => v.toFixed(0)).join(',')).join('L'); })());
+$('d3x').setAttribute('d', wobble([[300, 270], [800, 420]], 3, 3) + wobble([[790, 260], [310, 430]], 4, 3));
+function D3(t) {
+  const W1 = [[w(41, '强制卖出'), '强制卖出'], [w(41, '压低'), '压低股价'], [w(41, '下一批'), '下一批账户'], [w(41, '红线'), '越过红线']];
+  const out1 = c(42) - 0.2;
+  tf($('d3dom'), { y: -1250 * prog(t, out1, out1 + 0.5, ease.inOut) });
+  draw($('d3price'), prog(t, c(41), e(41), ease.lin));
+  DOMS.forEach((d, i) => { const at = c(41) + 0.6 + i * 0.5, k = clamp((q(t) - at) / 0.3); tf(d, { r: (i === DOMS.length - 1 ? 90 : 64) * ease.in2(k), o: 1 }); });
+  let wd = ''; for (const [a, s] of W1) if (t >= a) wd = s; $('d3word').textContent = wd;
+  $('d3loop').style.opacity = prog(t, c(41) + 1.0, c(41) + 1.4, ease.lin);
+  const in2 = c(42) - 0.2, out2 = c(43) - 0.2;
+  tf($('d3rec'), { y: 1250 * (1 - prog(t, in2, in2 + 0.5, ease.inOut)) - 1250 * prog(t, out2, out2 + 0.5, ease.inOut), o: t >= in2 ? 1 : 0 });
+  $('d3n').textContent = fmt(1698 * prog(Math.floor(t * 15) / 15, w(42, '达到'), w(42, '达到') + 1.4, ease.out));
+  slam($('d3st'), t, w(42, '单日纪录'), -8);
+  drop($('d3post'), t, c(43) - 0.1, -1, { from: { y: 1100, r: 4 }, dur: 0.5, out: c(44) - 0.1, exit: 'left', outDur: 0.45 });
+  tf($('d3ans'), { x: 2100 * (1 - prog(t, c(44) - 0.1, c(44) + 0.4, ease.inOut)), o: t >= c(44) - 0.1 ? 1 : 0 });
+  draw($('d3x'), prog(t, w(44, '三年后') + 0.5, w(44, '三年后') + 1.0, ease.inOut));
+  $('d3c').setAttribute('d', penCircle(1380, 320, 360, 130, 900 + boil(t)));
+  draw($('d3c'), prog(t, w(44, '今天'), w(44, '今天') + 0.6, ease.inOut));
+  fin($('d3t'), t, e(44) - 0.8);
+}
+
+/* ---------- E1 ---------- */
+(() => {
+  const sky = $('e1sky'), r = rng(9), cols = ['#8fa3b5', '#a7b6c2', '#7e93a6', '#b6c1c9'];
+  let x = 0;
+  while (x < 1920) { const wd = 90 + r() * 170, h = 170 + r() * 190, cl = cols[Math.floor(r() * cols.length)]; svgEl(sky, 'rect', { x, y: 1080 - h, width: wd, height: h, fill: cl, stroke: '#1d1b18', 'stroke-width': 4 }); for (let wy = 1080 - h + 24; wy < 1060; wy += 34) svgEl(sky, 'line', { x1: x + 16, x2: x + wd - 16, y1: wy, y2: wy, stroke: 'rgba(29,27,24,.25)', 'stroke-width': 3, 'stroke-dasharray': '10 10' }); x += wd + 8 + r() * 30; }
+  const teeth = 12, d = []; for (let i = 0; i < teeth * 4; i++) { const a = i / (teeth * 4) * Math.PI * 2, rr = i % 4 < 2 ? 128 : 100; d.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+  $('e1gp').setAttribute('d', 'M' + d.map(p => p.map(v => v.toFixed(1)).join(',')).join('L') + 'Z');
+  const ch = $('e1chips');
+  for (let s = 0; s < 3; s++) for (let i = 0; i < 6 + s * 2; i++) { const cx = 1500 + s * 120, cy = 860 - i * 16; svgEl(ch, 'ellipse', { cx, cy, rx: 52, ry: 16, fill: s === 1 ? 'var(--red)' : s ? 'var(--card)' : 'var(--ink)', stroke: 'var(--ink)', 'stroke-width': 3 }); }
+})();
+function E1(t) {
+  fade($('e1city'), t, c(45) - 0.6, c(46) - 0.5);
+  $('e1gear').style.transform = `rotate(${step(t, 12) * 2.5}deg)`;
+  drop($('e1clip'), t, c(46) - 0.1, -1.2, { from: { y: 1100, r: 3 }, dur: 0.5, out: c(47) - 0.2, exit: 'up', outDur: 0.45 });
+  hl('e1hl', t, w(46, '两个月'));
+  $('e1lee').style.opacity = t >= c(47) - 0.2 ? 1 : 0;
+  drop($('e1q1'), t, c(47) + 0.2, -1.5);
+  drop($('e1q2'), t, w(47, '只是他也承认'), 1.5);
+  $('e1chips').style.opacity = prog(t, w(47, '梭哈'), w(47, '梭哈') + 0.3, ease.lin);
+}
+
+/* ---------- E2 ---------- */
+$('e2h').setAttribute('d', wobble([[340, 560], [1200, 380]], 21, 3));
+$('e2w').setAttribute('d', wobble([[340, 710], [760, 690]], 22, 3));
+function E2(t) {
+  fin($('e2q'), t, c(48) + 0.3, { out: c(49) - 0.1, exit: 'fade', outDur: 0.3 });
+  draw($('e2h'), prog(t, w(49, '房价'), w(49, '房价') + 1.2, ease.out));
+  draw($('e2w'), prog(t, w(49, '工资'), w(49, '工资') + 1.2, ease.out));
+  fade($('e2hl'), t, w(49, '房价')); fade($('e2wl'), t, w(49, '工资')); fade($('e2n'), t, w(49, '工资') + 0.4);
+  drop($('e2ph'), t, w(49, '手机'), 3, { from: { y: 900, r: -6 }, dur: 0.45 });
+  // red/blue numbers jumping on the screen
+  const k = step(t, 6), rows = [];
+  for (let i = 0; i < 9; i++) { const h = hash(k * 13 + i), up = h > 0.5; rows.push(`<div class="cond" style="display:flex;justify-content:space-between;font-size:30px;font-weight:700;padding:6px 0;color:${up ? 'var(--kred)' : 'var(--kblue)'}"><span class="kr" style="font-size:20px;color:#6b665d">${['삼성전자', 'SK하이닉스', 'KOSPI', '신용잔고', 'KOSDAQ', '한미반도체', '현대차', 'LG엔솔', 'NAVER'][i]}</span>${up ? '+' : '−'}${(h * 9).toFixed(2)}%</div>`); }
+  $('e2scr').innerHTML = rows.join('');
+}
+
+/* ---------- E3 ---------- */
+const TYPE = [];
+(() => {
+  let at = c(50) + 0.1;
+  const tx = LN[50].text, cut = tx.indexOf('，但') + 1, parts = [['e3t1', tx.slice(0, cut)], ['e3t2', tx.slice(cut)]], per = (e(50) - c(50) - 0.3) / tx.length;
+  parts.forEach(([id, s], li) => [...s].forEach((ch, i) => { const sp = document.createElement('span'); sp.textContent = ch; $(id).appendChild(sp); TYPE.push([sp, at, li, i]); at += per * (0.75 + hash(li * 40 + i) * 0.5); }));
+})();
+function E3(t) {
+  for (const [sp, at] of TYPE) sp.style.opacity = t >= at ? 1 : 0;
+  const k = prog(t, e(50) - 0.3, e(50) + 0.3, ease.inOut), line2 = TYPE.filter(x => x[2] === 1);
+  const hs = line2.findIndex(x => x[0].textContent === '一');
+  line2.forEach(([sp], i) => { sp.style.boxShadow = i >= hs && i < hs + 6 && k > 0 ? `inset 0 -${Math.round(42 * clamp(k * 6 - (i - hs)))}px 0 rgba(242,201,53,.85)` : 'none'; });
+  fin($('e3l1'), t, c(51) + 0.1); fin($('e3l2'), t, w(51, '而是'));
+}
+
+/* ---------- E4 ---------- */
+function E4(t) { fin($('e4q'), t, c(52) + 0.1); fin($('e4c'), t, w(52, '欢迎')); fin($('e4s'), t, e(52) - 0.6); }
+
+/* ---------- timeline ---------- */
+const ORDER = [['A1', A1], ['A2', A2], ['A3', A3], ['B1', B1], ['B2', B2], ['B3', B3], ['B4', B4], ['B5', B5], ['C1', C1], ['D1', D1], ['D2', D2], ['D3', D3], ['E1', E1], ['E2', E2], ['E3', E3], ['E4', E4]];
+const SC = ORDER.map(([id, fn]) => { const ix = LN.findIndex(l => l.s === id); return [id, fn, ix === 0 ? 0 : c(ix) - 0.45]; });
+SC.forEach((s, i) => s.push(i < SC.length - 1 ? SC[i + 1][2] : TL.dur));
+const SRC = { A2: '来源：路透社，2026-07-20', B2: '来源：路透社（首尔公寓均价 ≈ 14 年工资）', B4: '来源：路透社', B5: '来源：한국경제，2026-08-19（国会议员公开的金融监管数据）；韩国金融投资协会', D1: '来源：이투데이，2026-05-31（韩国交易所数据）', D3: '来源：韩国金融投资协会 / The Korea Herald', E1: '来源：路透社，2026-07-20' };
+const capEl = $('cap').firstChild;
+E.mount({
+  duration: TL.dur, grain: 0.1, weave: 0.7, flicker: 0.025,
+  chapters: [[0, '1 · 破壁'], [SC[3][2], '2 · 降维'], [SC[8][2], '3 · 悬念'], [SC[9][2], '4 · 认知差'], [SC[12][2], '5 · 升华']],
+  render(t) {
+    for (const [id, fn, a, b] of SC) {
+      const on = t >= a && t < b;
+      show($(id), on);
+      if (on) { fn(t); $('cam').style.transform = `scale(${1 + 0.025 * prog(t, a, b, ease.lin)})`; $('srcTag').textContent = SRC[id] ?? ''; }
+    }
+    let cap = ''; for (const k of TL.caps) if (t >= k.t0 - 0.05 && t < k.t1 + 0.25) cap = k.text;
+    capEl.textContent = cap; capEl.style.visibility = cap ? 'visible' : 'hidden';
+  },
+});
+</script>
+</body>
+</html>

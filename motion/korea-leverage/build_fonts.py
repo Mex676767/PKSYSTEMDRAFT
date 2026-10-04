@@ -19,7 +19,7 @@ FACES = [
 ]
 
 text = "".join(chr(c) for c in range(0x20, 0x7F)) + "₩×−–—≈→←↓↑“”‘’·…，。：；？！、（）《》【】＋"
-for f in ["vox.html", "newsroom.html", "engine.js"]:
+for f in ["vox.html", "newsroom.html", "engine.js", "full/full.html", "full/timeline.js", "full/narration.json"]:
     p = HERE / f
     if p.exists():
         text += p.read_text(encoding="utf-8")
