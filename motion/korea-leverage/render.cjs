@@ -19,14 +19,17 @@ const path = require('path');
   const from = fromArg ? +fromArg : 0, to = toArg ? +toArg : duration;
   const total = Math.round((to - from) * fps);
 
+  // CRF / MAXRATE env vars override the web-sized defaults; MAXRATE=0 removes the cap (master quality)
+  const crf = process.env.CRF || '21', maxrate = process.env.MAXRATE ?? '4M';
+  const rate = maxrate === '0' ? [] : ['-maxrate', maxrate, '-bufsize', `${parseFloat(maxrate) * 2}M`];
   const ff = spawn(process.env.FFMPEG || 'ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-maxrate', '4M', '-bufsize', '8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, ...rate, '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
 
   const t0 = Date.now();
   for (let i = 0; i < total; i++) {
     const t = from + i / fps;
     await page.evaluate(t => window.__seek(t), t);
-    const buf = await page.screenshot({ type: 'jpeg', quality: 95, clip: { x: 0, y: 0, width: 1920, height: 1080 } });
+    const buf = await page.screenshot({ type: 'jpeg', quality: +(process.env.JPEG_Q || 95), clip: { x: 0, y: 0, width: 1920, height: 1080 } });
     if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
     if (i % (fps * 10) === 0) console.log(`${path.basename(out)}  ${t.toFixed(1)}s / ${to}s  (${((Date.now() - t0) / 1000).toFixed(0)}s elapsed)`);
   }
