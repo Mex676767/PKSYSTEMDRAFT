@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Five Times Leverage</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --paper:#ece5d5; --card:#f8f4ea; --ink:#1d1b18; --ink2:#5b554b; --yellow:#f2c935; --red:#cc3d27; --blue:#2c5884; --kred:#d8322a; --kblue:#2357a8; --felt:#2d4535; }
+  #paper { position:absolute; inset:0; background-size:cover; }
+  #cam { position:absolute; inset:0; transform-origin:50% 50%; }
+
+  .sh { filter: drop-shadow(2px 4px 0 rgba(29,27,24,.16)) drop-shadow(5px 12px 12px rgba(29,27,24,.2)); }
+  .cut { background: var(--card) var(--card-tex); background-size: 1920px 1080px; background-blend-mode: multiply; }
+  .mark { position:relative; display:inline-block; }
+  .mark > .hl { position:absolute; left:-.12em; right:-.12em; top:46%; bottom:-.04em; background:var(--yellow); mix-blend-mode:multiply; transform-origin:0 50%; transform:scaleX(0); clip-path: polygon(0 10%, 30% 0, 100% 6%, 99% 90%, 62% 100%, 1% 94%); }
+  .mark.full > .hl { top:4%; }
+  .stamp { color:var(--red); border:9px double var(--red); padding:4px 26px 10px; font-family:'K Serif'; font-weight:900; filter:url(#stampfx); mix-blend-mode:multiply; white-space:nowrap; }
+  .lab { font-size:22px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; }
+
+  /* phone */
+  .phone { position:absolute; inset:0; background:#1d1b18; border-radius:58px; padding:16px; }
+  .screen { position:relative; height:100%; background:#faf9f5; border-radius:44px; padding:44px 34px; overflow:hidden; }
+  .ph-top { display:flex; justify-content:space-between; font-size:22px; color:#6b665d; font-weight:700; }
+  .ph-label { margin-top:46px; font-size:24px; color:#6b665d; font-weight:500; }
+  .ph-val { font-size:66px; font-weight:700; margin-top:4px; }
+  .ph-chg { font-size:32px; font-weight:500; }
+  .ph-chart { position:absolute; left:34px; top:300px; }
+  .ph-rows { position:absolute; left:34px; right:34px; top:636px; }
+  .ph-row { display:flex; justify-content:space-between; padding:18px 0; border-top:1px solid #e3dfd6; font-size:24px; font-weight:500; }
+  .ktag { font-size:15px; color:#fff; background:var(--kred); border-radius:4px; padding:3px 7px; margin-left:8px; vertical-align:3px; }
+  .toast { position:absolute; left:22px; right:22px; top:520px; background:var(--kred); color:#fff; border-radius:14px; padding:18px 20px; font-size:26px; font-weight:700; }
+
+  /* S2 */
+  .slip { padding:6px 40px 18px; font-family:'K Serif'; font-weight:900; font-size:160px; line-height:1.15; }
+  .dict { padding:46px 52px 56px; width:700px; height:600px; position:relative; }
+  .dict-n { font-size:22px; color:var(--ink2); letter-spacing:.08em; }
+  .dict-w { font-size:190px; font-weight:900; line-height:1.1; margin-top:12px; }
+  .dict-r { font-size:30px; color:var(--ink2); }
+  .dict-split { font-size:32px; margin-top:28px; color:var(--ink2); }
+  .dict-def { font-size:62px; font-weight:900; margin-top:22px; }
+
+  /* S3 */
+  .brick { position:absolute; left:430px; width:300px; height:40px; border:2.5px solid var(--ink); background:#e6d3a8; font-size:17px; display:flex; align-items:center; padding-left:14px; color:#4a4030; }
+  .brick:nth-child(odd) { background:#efdfb9; }
+  .weight { font-size:40px; font-weight:700; padding:12px 26px 16px; }
+
+  /* S4 */
+  .ticket { width:940px; height:400px; background:var(--yellow) var(--card-tex); background-size:1920px 1080px; background-blend-mode:multiply; display:flex; }
+  .stub { width:190px; border-right:4px dashed rgba(29,27,24,.5); display:flex; align-items:center; justify-content:center; }
+  .stub span { transform:rotate(-90deg); white-space:nowrap; font-size:26px; letter-spacing:.2em; }
+  .tk-main { padding:34px 46px; flex:1; position:relative; }
+  .eq { font-size:104px; font-weight:700; white-space:nowrap; }
+
+  /* S7 */
+  .ph-icon { position:absolute; width:46px; height:80px; border:4px solid var(--ink); border-radius:10px; background:var(--yellow); }
+  .ph-icon::after { content:''; position:absolute; left:12px; right:12px; bottom:4px; height:3px; background:var(--ink); border-radius:2px; }
+  .sheet { width:720px; padding:22px 30px; font-size:19px; }
+  .sheet table { border-collapse:collapse; width:100%; }
+  .sheet td { border-bottom:1px solid #d6cfbf; padding:6px 6px; text-align:right; white-space:nowrap; }
+  .sheet td:first-child { text-align:left; }
+  .sheet tr.hot td { background:rgba(242,201,53,.0); }
+
+  /* S8 */
+  .seg { position:absolute; top:430px; height:130px; }
+  .gray { background: repeating-linear-gradient(135deg, #b9b1a2 0 10px, #aaa293 10px 20px); border:3px solid var(--ink); }
+  .lost { border:4px dashed var(--red); background: repeating-linear-gradient(45deg, rgba(204,61,39,.22) 0 8px, transparent 8px 16px); }
+  .sms { width:1100px; padding:26px 34px; display:flex; gap:26px; border-radius:26px; }
+  .sms-ic { flex:none; width:84px; height:84px; border-radius:20px; background:var(--kblue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; }
+  .domino { position:absolute; top:680px; width:72px; height:220px; border:3px solid var(--ink); transform-origin:100% 100%; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:14px 0; font-size:15px; }
+  .domino i { width:34px; height:58px; border:3px solid var(--ink); border-radius:7px; background:var(--yellow); }
+
+  .dark { background:#1d1b18 var(--tex); background-size:1920px 1080px; background-blend-mode:multiply; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="stampfx" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="8" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="6" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="1" seed="2" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 2.6" result="holes"/>
+      <feComposite in="d" in2="holes" operator="in"/>
+    </filter>
+    <marker id="ah" viewBox="0 0 20 20" refX="14" refY="10" markerWidth="16" markerHeight="16" orient="auto-start-reverse"><path d="M2,3 L16,10 L3,17" fill="none" stroke="context-stroke" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+</svg>
+
+<div id="stage"><div id="world">
+<div id="paper"></div>
+<div id="cam">
+
+<!-- ============ S1 · cold open: the account ============ -->
+<section class="scene" id="s1">
+  <div class="a sh" id="s1phone" style="left:330px;top:84px;width:470px;height:920px">
+    <div class="phone"><div class="screen">
+      <div class="kr ph-top"><span>주식 잔고</span><span class="mono">05:12</span></div>
+      <div class="kr ph-label">총 평가금액</div>
+      <div class="cond ph-val" id="s1val">₩20,000,000</div>
+      <div class="cond ph-chg" id="s1chg">+0.00%</div>
+      <svg class="ph-chart" width="396" height="300" viewBox="0 0 396 300">
+        <g stroke="#e3dfd6" stroke-width="1.5" stroke-dasharray="4 6"><line x1="0" x2="396" y1="198" y2="198"/><line x1="0" x2="396" y1="116" y2="116"/><line x1="0" x2="396" y1="34" y2="34"/></g>
+        <line id="s1base" x1="0" x2="396" y1="264" y2="264" stroke="#9a948a" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <path id="s1line" fill="none" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle id="s1dot" r="7"/>
+      </svg>
+      <div class="kr ph-rows">
+        <div class="ph-row"><span>삼성전자<b class="ktag">신용</b></span><span class="cond">1,240주</span></div>
+        <div class="ph-row"><span>SK하이닉스<b class="ktag">신용</b></span><span class="cond">610주</span></div>
+      </div>
+      <div class="kr toast a" id="s1toast">반대매매 체결 · 신용 잔고 정리</div>
+    </div></div>
+  </div>
+
+  <div class="a" id="s1a" style="left:930px;top:150px">
+    <div class="serif" style="font-size:86px;font-weight:900;line-height:1.1">李同学，24 岁</div>
+    <div style="font-size:34px;color:var(--ink2);margin-top:14px">刚服完兵役的韩国大学生</div>
+  </div>
+  <div class="a sh" id="s1b" style="left:930px;top:360px"><div class="cut" style="padding:26px 34px 30px;clip-path:var(--torn1)">
+    <div class="mono lab">本金</div><div class="cond" style="font-size:76px;font-weight:700;line-height:1.1">₩20,000,000</div><div style="font-size:28px;color:var(--ink2)">≈ 10 万元人民币</div>
+  </div></div>
+  <div class="a sh" id="s1c" style="left:1440px;top:372px"><div class="cut" style="padding:22px 40px 26px;clip-path:var(--torn2)">
+    <div class="mono lab">杠杆</div><div class="cond" style="font-size:120px;font-weight:700;line-height:1"><span class="mark full"><i class="hl" id="s1hlc"></i>5×</span></div>
+  </div></div>
+  <div class="a" id="s1d" style="left:930px;top:650px">
+    <div class="mono lab">几个月后</div>
+    <div class="cond" style="font-size:150px;font-weight:700;line-height:1">≈ ₩3亿</div>
+    <div style="font-size:40px;font-weight:700;margin-top:8px"><span class="mark"><i class="hl" id="s1hld"></i>首尔公寓的首付，眼看就要到手</span></div>
+  </div>
+  <div class="a" id="s1stamp" style="left:1120px;top:200px"><div class="stamp" style="font-size:210px;line-height:1.05">4 周</div></div>
+  <div class="a" id="s1e" style="left:930px;top:650px">
+    <div class="serif" style="font-size:112px;font-weight:900;color:var(--red);line-height:1.1">强制平仓</div>
+    <div style="font-size:40px;font-weight:700;margin-top:10px">赚来的全吐回去，本金清零，还倒欠券商</div>
+  </div>
+  <div class="a dark" id="s1q" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="serif" id="s1qt" style="position:absolute;left:0;right:0;top:390px;text-align:center;font-size:132px;font-weight:900;color:#f3ecdc">“几乎喘不过气。”</div>
+    <div id="s1qa" style="position:absolute;left:0;right:0;top:600px;text-align:center;font-size:32px;color:#b9b0a0">—— 李同学回忆那四周 · 据路透社报道</div>
+  </div>
+</section>
+
+<!-- ============ S2 · title + two words ============ -->
+<section class="scene" id="s2">
+  <div class="a mono" id="s2k" style="left:178px;top:120px;font-size:26px;letter-spacing:.14em;color:var(--ink2)">一个真实的案例</div>
+  <div class="a sh" id="s2t1" style="left:160px;top:190px"><div class="slip" style="background:var(--yellow);clip-path:var(--torn3)">24 岁</div></div>
+  <div class="a sh" id="s2t2" style="left:650px;top:256px"><div class="slip cut" style="clip-path:var(--torn4)">4 周</div></div>
+  <div class="a sh" id="s2t3" style="left:1060px;top:180px"><div class="slip" style="background:var(--red);color:#f6efdf;clip-path:var(--torn5)">3 亿韩元</div></div>
+  <div class="a" id="s2sub" style="left:172px;top:650px;font-size:62px;font-weight:700">韩国年轻人借 <span class="mark"><i class="hl" id="s2hl"></i>5 倍杠杆</span>，到底在赌什么？</div>
+
+  <div class="a sh" id="s2d1" style="left:190px;top:150px"><div class="cut dict" style="clip-path:var(--torn6)">
+    <div class="mono dict-n">n. · 韩国网络流行语</div>
+    <div class="kr dict-w">빚투</div>
+    <div class="mono dict-r">[bit-tu]</div>
+    <div class="dict-split"><span class="kr">빚</span> 债 ＋ <span class="kr">투자</span> 投资</div>
+    <div class="serif dict-def">借钱去投资</div>
+    <svg class="a" width="420" height="30" style="left:52px;top:538px"><path id="s2u1" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+  </div></div>
+  <div class="a sh" id="s2d2" style="left:1030px;top:178px"><div class="cut dict" style="clip-path:var(--torn7)">
+    <div class="mono dict-n">v. · 韩国网络流行语</div>
+    <div class="kr dict-w">영끌</div>
+    <div class="mono dict-r">[yeong-kkeul]</div>
+    <div class="dict-split"><span class="kr">영혼까지 끌어모으다</span> 连灵魂都押上</div>
+    <div class="serif dict-def">拉上灵魂去梭哈</div>
+    <svg class="a" width="520" height="30" style="left:52px;top:538px"><path id="s2u2" pathLength="1" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/></svg>
+  </div></div>
+  <div class="a mono" id="s2cap" style="left:0;right:0;top:900px;text-align:center;font-size:28px;letter-spacing:.1em;color:var(--ink2)">—— 首尔年轻人嘴边的两个词 ——</div>
+</section>
+
+<!-- ============ S3 · the gap: 14 years ============ -->
+<section class="scene" id="s3">
+  <div class="a" id="s3bld" style="left:1460px;top:140px;width:300px;height:760px">
+    <div style="position:absolute;inset:0;background:#9fb0bf;border:3px solid var(--ink);background-image:repeating-linear-gradient(90deg,transparent 0 34px,rgba(29,27,24,.55) 34px 54px,transparent 54px 72px),repeating-linear-gradient(0deg,transparent 0 30px,#9fb0bf 30px 52px);background-position:20px 0,0 0"></div>
+    <div style="position:absolute;left:-10px;right:-10px;top:-18px;height:22px;background:var(--ink)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:-58px;text-align:center;font-size:30px;font-weight:700">汉江边的公寓</div>
+  </div>
+  <div class="a" id="s3line" style="left:300px;top:0;width:1500px;height:4px;border-top:5px dashed var(--ink)">
+    <div class="serif" style="position:absolute;left:0;top:-70px;font-size:48px;font-weight:900">首付线</div>
+  </div>
+  <div id="s3bricks"></div>
+  <svg class="full" id="s3floor"><path id="s3fl" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/></svg>
+  <div class="a" id="s3cnt" style="left:820px;top:300px;white-space:nowrap"><span class="serif" style="font-size:96px;font-weight:900">第 </span><span class="cond" id="s3n" style="font-size:220px;font-weight:700;line-height:1">0</span><span class="serif" style="font-size:96px;font-weight:900"> 年</span></div>
+  <div class="a" id="s3cap" style="left:826px;top:560px;font-size:40px;color:var(--ink2)">名校毕业生 · 不吃不喝</div>
+  <div class="a sh" id="s3w1" style="left:826px;top:640px"><div class="cut weight" style="clip-path:var(--torn8)">＋ 房租</div></div>
+  <div class="a sh" id="s3w2" style="left:1010px;top:650px"><div class="cut weight" style="clip-path:var(--torn9)">＋ 物价</div></div>
+  <div class="a sh" id="s3w3" style="left:1194px;top:636px"><div class="cut weight" style="clip-path:var(--torn10)">＋ 谈恋爱</div></div>
+  <div class="a" id="s3fin" style="left:826px;top:796px;font-size:40px;font-weight:700;white-space:nowrap">靠工资攒出首付的概率</div>
+  <div class="a cond" id="s3zero" style="left:1250px;top:740px;font-size:130px;font-weight:700;color:var(--red);line-height:1">≈ 0</div>
+  <svg class="full"><path id="s3circ" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round"/></svg>
+</section>
+
+<!-- ============ S4 · the "boost ticket" ============ -->
+<section class="scene" id="s4">
+  <div class="a" id="s4track" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full"><path id="s4l1" fill="none" stroke="var(--ink)" stroke-width="4"/><path id="s4l2" fill="none" stroke="var(--ink)" stroke-width="4"/><path id="s4l3" fill="none" stroke="var(--ink)" stroke-width="4"/>
+      <path id="s4start" fill="none" stroke="var(--ink)" stroke-width="10"/></svg>
+    <svg class="a" id="s4runner" width="170" height="270" viewBox="0 0 170 270" style="left:300px;top:430px">
+      <circle cx="92" cy="40" r="30" fill="var(--card)" stroke="var(--ink)" stroke-width="7"/>
+      <path id="s4body" fill="none" stroke="var(--ink)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="a" id="s4car" style="left:0;top:690px;width:560px;height:170px">
+      <svg width="560" height="170" viewBox="0 0 560 170" style="overflow:visible">
+        <g stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".7"><line x1="-40" y1="60" x2="-260" y2="60"/><line x1="-20" y1="100" x2="-330" y2="100"/><line x1="-60" y1="132" x2="-210" y2="132"/></g>
+        <path d="M18,128 L30,92 Q60,80 120,76 L190,40 Q260,20 340,26 L420,64 Q500,72 540,92 L548,128 Z" fill="var(--red)" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M210,46 Q262,32 330,36 L380,66 L196,70 Z" fill="#cfd8de" stroke="var(--ink)" stroke-width="4"/>
+        <circle cx="130" cy="132" r="34" fill="var(--ink)"/><circle cx="130" cy="132" r="12" fill="var(--card)"/>
+        <circle cx="448" cy="132" r="34" fill="var(--ink)"/><circle cx="448" cy="132" r="12" fill="var(--card)"/>
+      </svg>
+    </div>
+    <div class="a serif" id="s4c1" style="left:140px;top:110px;font-size:78px;font-weight:900">你刚系好鞋带，站上起跑线——</div>
+    <div class="a" id="s4c2" style="left:146px;top:236px;font-size:44px;font-weight:500">别人家的孩子，开着超跑从你身边呼啸而过。</div>
+  </div>
+
+  <div class="a sh" id="s4ticket" style="left:490px;top:150px"><div class="ticket" style="clip-path:var(--torn11)">
+    <div class="stub"><span class="mono">NO. 0024 · 单程</span></div>
+    <div class="tk-main">
+      <div class="mono" style="font-size:24px;letter-spacing:.16em">LEVERAGE PASS · 杠杆加速券</div>
+      <div class="cond" style="font-size:180px;font-weight:700;line-height:1;margin-top:6px">×5</div>
+      <div style="font-size:30px;font-weight:700;margin-top:6px">适用：三星电子 · SK 海力士 · AI 数据中心</div>
+      <div class="mono" style="font-size:19px;margin-top:16px;color:#5b4b18">本券由券商提供 · 按日计息 · 跌破担保比例自动作废</div>
+    </div>
+  </div></div>
+  <div class="a cond eq" id="s4e1" style="left:250px;top:630px">股价 +20%</div>
+  <div class="a cond eq" id="s4e2" style="left:800px;top:630px;color:var(--red)">× 5</div>
+  <div class="a cond eq" id="s4e3" style="left:1060px;top:630px">= 本金 <span class="mark full"><i class="hl" id="s4hl"></i>+100%</span></div>
+  <div class="a" id="s4c3" style="left:256px;top:850px;font-size:40px;font-weight:500">论坛里天天有人晒翻倍截图。规规矩矩存钱，反倒像被时代甩下了车。</div>
+</section>
+
+<!-- ============ S5 · the margin balance ============ -->
+<section class="scene" id="s5">
+  <div class="a serif" id="s5h" style="left:140px;top:100px;font-size:68px;font-weight:900">20–30 岁韩国人的股票融资余额</div>
+  <div class="a mono" id="s5u" style="left:144px;top:200px;font-size:26px;color:var(--ink2)">单位：万亿韩元</div>
+  <svg class="full"><path id="s5base" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+    <path id="s5arr" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round" marker-end="url(#ah)"/>
+    <path id="s5circ" pathLength="1" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round"/></svg>
+  <div class="a" id="s5a" style="left:560px;top:633px;width:260px;height:267px;transform-origin:50% 100%;background:#c9c1b2 var(--card-tex);background-size:1920px 1080px;background-blend-mode:multiply;border:3px solid var(--ink);border-top:5px dashed var(--ink)"></div>
+  <div class="a" id="s5b" style="left:1000px;top:340px;width:260px;height:560px;transform-origin:50% 100%;background:var(--yellow) var(--card-tex);background-size:1920px 1080px;background-blend-mode:multiply;border:3px solid var(--ink)"></div>
+  <div class="a cond" id="s5av" style="left:560px;top:540px;width:260px;text-align:center;font-size:80px;font-weight:700">不到 2</div>
+  <div class="a cond" id="s5bv" style="left:1000px;top:226px;width:260px;text-align:center;font-size:104px;font-weight:700">4.19</div>
+  <div class="a" id="s5al" style="left:560px;top:920px;width:260px;text-align:center;font-size:32px;color:var(--ink2)">一年多以前</div>
+  <div class="a" id="s5bl" style="left:1000px;top:920px;width:260px;text-align:center;font-size:32px;color:var(--ink2)">最近</div>
+  <div class="a cond" id="s5x" style="left:1330px;top:250px;font-size:130px;font-weight:700;color:var(--red)">×2.4</div>
+  <div class="a sh" id="s5bub" style="left:150px;top:290px"><div class="cut" style="width:600px;padding:28px 34px;border-radius:6px;clip-path:var(--torn12)">
+    <div class="serif" style="font-size:36px;font-weight:600;line-height:1.5">“再不赌，<br>就真的连上桌的资格都没有了。”</div>
+    <div style="font-size:24px;color:var(--ink2);margin-top:12px">—— 不少韩国年轻散户的心态</div>
+  </div></div>
+  <div class="a mono" id="s5src" style="left:144px;top:1000px;font-size:22px;color:var(--ink2)">来源：路透社报道（据原稿引用）</div>
+</section>
+
+<!-- ============ S6 · suspense, dark ============ -->
+<section class="scene dark" id="s6">
+  <div class="a" id="s6l1" style="left:0;right:0;top:300px;text-align:center;font-size:56px;font-weight:500;color:#efe7d6">三星、海力士，基本面够硬吧——</div>
+  <div class="a" id="s6l2" style="left:0;right:0;top:396px;text-align:center;font-size:56px;font-weight:500;color:#efe7d6">跌了就拿它三五年，等周期回来不就解套了？</div>
+  <svg class="full"><path id="s6s1" pathLength="1" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/><path id="s6s2" pathLength="1" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/></svg>
+  <div class="a serif" id="s6no" style="left:0;right:0;top:560px;text-align:center;font-size:104px;font-weight:900;color:var(--yellow)">市场没给这个机会。</div>
+
+  <div class="a" id="s6table" style="left:0;top:0;width:1920px;height:1080px">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 46% 60% at 50% 58%,rgba(255,236,190,.16),rgba(0,0,0,0) 70%)"></div>
+    <svg class="full">
+      <path id="s6chair" fill="none" stroke="#efe7d6" stroke-width="5" stroke-dasharray="14 12" opacity=".55"/>
+      <ellipse cx="960" cy="720" rx="660" ry="236" fill="#5a3b25" stroke="#140f0b" stroke-width="5"/>
+      <ellipse cx="960" cy="712" rx="620" ry="208" fill="var(--felt)"/>
+    </svg>
+    <div class="a" style="left:870px;top:800px;width:110px;height:196px;border-radius:20px;background:#111;padding:8px;transform:rotate(9deg)"><div style="height:100%;border-radius:14px;background:#f2ede2;position:relative;overflow:hidden"><svg width="94" height="180" viewBox="0 0 94 180"><path d="M6,120 L20,100 L32,108 L46,70 L58,80 L70,44 L80,128 L90,150" fill="none" stroke="var(--kblue)" stroke-width="4"/></svg></div></div>
+  </div>
+  <div class="a serif" id="s6q1" style="left:140px;top:100px;font-size:104px;font-weight:900;color:#f3ecdc">牌桌对面，</div>
+  <div class="a serif" id="s6q2" style="left:140px;top:226px;font-size:104px;font-weight:900;color:#f3ecdc">到底是谁？</div>
+  <div class="a serif" id="s6qm" style="left:870px;top:150px;font-size:300px;font-weight:900;color:var(--yellow);line-height:1">?</div>
+  <div class="a" id="s6c" style="left:146px;top:380px;font-size:40px;color:#bdb4a3">华尔街大鳄专门设局，针对他们？</div>
+  <div class="a mono" id="s6teaser" style="left:1400px;top:980px;font-size:28px;color:var(--yellow)">先卖个关子 ↓</div>
+</section>
+
+<!-- ============ S7 · faceless counterparty ============ -->
+<section class="scene" id="s7">
+  <div class="a mono" id="s7tag" style="left:0;right:0;top:96px;text-align:center;font-size:28px;letter-spacing:.14em;color:var(--ink2)">同一个月 · 韩国股市（KOSPI）</div>
+  <div class="a serif" id="s7l" style="left:150px;top:170px;font-size:72px;font-weight:900">散户</div>
+  <div class="a serif" id="s7r" style="left:1080px;top:170px;font-size:72px;font-weight:900">海外机构</div>
+  <div id="s7icons"></div>
+  <svg class="full"><path id="s7div" fill="none" stroke="var(--ink)" stroke-width="4" stroke-dasharray="2 14" stroke-linecap="round"/>
+    <path id="s7arr" pathLength="1" fill="none" stroke="var(--blue)" stroke-width="10" stroke-linecap="round" marker-end="url(#ah)"/></svg>
+  <div class="a cond" id="s7buy" style="left:150px;top:790px;font-size:84px;font-weight:700;white-space:nowrap">买入 <span id="s7n">0</span> 万亿₩+</div>
+  <div class="a sh" id="s7sheet" style="left:1080px;top:290px"><div class="cut sheet mono" style="clip-path:var(--torn13)">
+    <div style="font-size:20px;color:var(--ink2);margin-bottom:12px;letter-spacing:.06em">GLOBAL ALLOCATION MODEL · 周度再平衡</div>
+    <table id="s7tab"></table>
+  </div></div>
+  <div class="a cond" id="s7sell" style="left:1080px;top:790px;font-size:84px;font-weight:700;color:var(--blue);white-space:nowrap">净卖出</div>
+  <div class="a serif" id="s7ban" style="left:0;right:0;top:930px;text-align:center;font-size:66px;font-weight:900">他们在做算术题；你在<span class="mark"><i class="hl" id="s7hl"></i>押人生</span>。</div>
+</section>
+
+<!-- ============ S8 · the leverage math ============ -->
+<section class="scene" id="s8">
+  <div class="a serif" id="s8h1" style="left:140px;top:96px;font-size:70px;font-weight:900">杠杆不惩罚看错的人，</div>
+  <div class="a serif" id="s8h2" style="left:140px;top:196px;font-size:70px;font-weight:900">它只消灭<span class="mark"><i class="hl" id="s8hl"></i>没有时间的人</span>。</div>
+  <div id="s8bar">
+    <div class="a" id="s8labY" style="left:335px;top:376px;font-size:30px;font-weight:700;white-space:nowrap">你的本金 1</div>
+    <div class="a" id="s8labG" style="left:585px;top:376px;width:990px;text-align:center;font-size:30px;font-weight:700;color:var(--ink2)">借来的钱 4</div>
+    <div class="seg lost a" id="s8lost" style="left:335px;width:240px"></div>
+    <div class="seg a" id="s8y" style="left:335px;width:240px;background:var(--yellow);border:3px solid var(--ink);transform-origin:0 50%"></div>
+    <div class="seg gray a" id="s8g0" style="left:585px;width:240px"></div>
+    <div class="seg gray a" id="s8g1" style="left:835px;width:240px"></div>
+    <div class="seg gray a" id="s8g2" style="left:1085px;width:240px"></div>
+    <div class="seg gray a" id="s8g3" style="left:1335px;width:240px"></div>
+    <div class="a" id="s8debt" style="left:1100px;top:584px;font-size:34px;font-weight:700;color:var(--blue)">欠的钱，一分不少</div>
+  </div>
+  <div class="a" id="s8read" style="left:335px;top:640px;display:flex;align-items:baseline;gap:22px;white-space:nowrap">
+    <span style="font-size:46px;font-weight:700">股价</span><span class="cond" id="s8d" style="font-size:136px;font-weight:700">−0%</span>
+    <span style="font-size:60px;color:var(--ink2)">→</span>
+    <span style="font-size:46px;font-weight:700">本金</span><span class="cond" id="s8e" style="font-size:136px;font-weight:700;color:var(--red)">−0%</span>
+  </div>
+  <div class="a sh" id="s8sms" style="left:410px;top:40px"><div class="cut sms">
+    <div class="sms-ic kr">증권</div>
+    <div><div class="kr" style="font-size:24px;font-weight:700;color:var(--ink2)">[○○증권] 담보비율 부족 안내</div>
+      <div style="font-size:34px;font-weight:700;line-height:1.4;margin-top:6px">担保比例不足：请于今日补足保证金，否则明早 08:30 起执行反对卖出（强制平仓）。</div></div>
+  </div></div>
+  <svg class="a" id="s8clock" width="320" height="320" viewBox="-160 -160 320 320" style="left:1460px;top:620px">
+    <circle r="146" fill="var(--card)" stroke="var(--ink)" stroke-width="8"/>
+    <g id="s8ticks"></g>
+    <line id="s8hh" x1="0" y1="10" x2="0" y2="-74" stroke="var(--ink)" stroke-width="12" stroke-linecap="round"/>
+    <line id="s8mh" x1="0" y1="14" x2="0" y2="-118" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/>
+    <circle r="11" fill="var(--ink)"/>
+  </svg>
+  <div class="a" id="s8stamp" style="left:560px;top:360px"><div class="stamp" style="font-size:150px;line-height:1.05">强平 <span class="kr" style="font-size:70px">반대매매</span></div></div>
+
+  <div id="s8dom" class="a" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full"><path id="s8price" pathLength="1" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round" opacity=".22"/></svg>
+    <div class="a serif" id="s8word" style="left:0;right:0;top:170px;text-align:center;font-size:86px;font-weight:900"></div>
+    <div class="a mono" id="s8loop" style="left:0;right:0;top:300px;text-align:center;font-size:28px;color:var(--ink2);letter-spacing:.06em">强制卖出 → 股价再跌 → 更多账户触线 → 再被强平</div>
+    <div id="s8doms"></div>
+  </div>
+</section>
+
+<!-- ============ S9 · ending ============ -->
+<section class="scene" id="s9">
+  <div class="a" id="s9city" style="left:0;top:0;width:1920px;height:1080px">
+    <svg class="full" id="s9sky"></svg>
+    <div class="a cond" style="left:140px;top:90px;font-size:210px;font-weight:700;line-height:1">09:00</div>
+    <div class="a mono" style="left:146px;top:320px;font-size:28px;letter-spacing:.1em;color:var(--ink2)">汝矣岛 · 交易所照常开门</div>
+    <svg class="a" id="s9gear" width="300" height="300" viewBox="-150 -150 300 300" style="left:1470px;top:110px"><path id="s9gp" fill="var(--card)" stroke="var(--ink)" stroke-width="7" stroke-linejoin="round"/><circle r="36" fill="var(--paper)" stroke="var(--ink)" stroke-width="7"/></svg>
+    <div class="a" id="s9c1" style="left:146px;top:420px;font-size:44px;font-weight:500">芯片巨头熬过周期，业绩照样再创新高；</div>
+    <div class="a" id="s9c2" style="left:146px;top:494px;font-size:44px;font-weight:500">基金经理换个市场，年终奖一分不少。</div>
+  </div>
+
+  <div class="a" id="s9lock" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="a sh" id="s9phone" style="left:330px;top:110px;width:470px;height:880px">
+      <div class="phone"><div class="screen" style="text-align:center">
+        <div class="kr ph-top"><span>알림</span><span class="mono">08:30</span></div>
+        <div class="cond" style="font-size:150px;font-weight:700;margin-top:70px;line-height:1">08:30</div>
+        <div class="kr" style="font-size:30px;font-weight:700;color:var(--kred);margin-top:40px">반대매매 체결</div>
+        <div class="cond" style="font-size:110px;font-weight:700;color:var(--kblue);margin-top:60px">₩0</div>
+        <div class="kr" style="font-size:22px;color:#6b665d;margin-top:10px">신용 잔고 정리 완료</div>
+      </div></div>
+    </div>
+    <div class="a serif" id="s9l1" style="left:940px;top:380px;font-size:66px;font-weight:900">而他最宝贵的二十几岁，</div>
+    <div class="a serif" id="s9l2" style="left:940px;top:480px;font-size:66px;font-weight:900">被锁在了那个</div>
+    <div class="a serif" id="s9l3" style="left:940px;top:580px;font-size:66px;font-weight:900">被强平的凌晨。</div>
+  </div>
+
+  <div class="a" id="s9q" style="left:0;top:0;width:1920px;height:1080px">
+    <div class="serif" id="s9t1" style="position:absolute;left:170px;top:360px;font-size:84px;font-weight:900"></div>
+    <div class="serif" id="s9t2" style="position:absolute;left:170px;top:490px;font-size:84px;font-weight:900"></div>
+    <div class="a mono" id="s9end" style="left:176px;top:980px;font-size:22px;color:var(--ink2)">资料：路透社报道（据原稿引用）· 账户曲线等图形为示意</div>
+  </div>
+</section>
+
+</div><!-- cam -->
+</div></div><!-- world, stage -->
+
+<script src="engine.js"></script>
+<script>
+const { prog, ease, tf, show, $, lerp, clamp, step, hash, fmt, draw, wobble, penCircle, torn, svgEl, rng } = E;
+const q = t => Math.floor(t * 12) / 12;   // cut-out motion runs on twos
+
+/* surfaces + torn edges */
+$('paper').style.backgroundImage = `url(${E.paperTexture([236, 229, 213], 7)})`;
+document.documentElement.style.setProperty('--tex', `url(${E.paperTexture([236, 229, 213], 7, 600)})`);
+document.documentElement.style.setProperty('--card-tex', `url(${E.paperTexture([250, 247, 240], 11, 900)})`);
+const tornSizes = { 1: [520, 200], 2: [260, 190], 3: [520, 230], 4: [400, 230], 5: [720, 230], 6: [700, 600], 7: [700, 600], 8: [200, 80], 9: [200, 80], 10: [240, 80], 11: [940, 400], 12: [600, 210], 13: [720, 470] };
+for (const k in tornSizes) document.documentElement.style.setProperty(`--torn${k}`, torn(...tornSizes[k], k * 13, 4, 14));
+
+/* one card's life: drops in (stepped), rests, leaves */
+function life(el, t, o) {
+  const tt = o.smooth ? t : q(t), r1 = o.r ?? 0;
+  if (tt < o.in || (o.gone !== undefined && t >= o.gone)) { el.style.opacity = 0; return; }
+  const k = clamp((tt - o.in) / (o.dur ?? 0.42)), e = (o.ease ?? ease.back)(k);
+  const f = o.from ?? { y: -70, r: r1 - 6 };
+  let x = lerp(f.x ?? 0, 0, e), y = lerp(f.y ?? 0, 0, e), r = lerp(f.r ?? r1, r1, e), s = lerp(f.s ?? 1, 1, e);
+  let op = f.o !== undefined ? lerp(f.o, 1, clamp(k * 1.5)) : 1;
+  if (o.out !== undefined && t >= o.out) {
+    const ex = o.exit ?? 'fall', te = ex === 'fall' ? q(t) : t, m = clamp((te - o.out) / (o.outDur ?? 0.5));
+    if (ex === 'fall') { const g = ease.in2(m); y += 1300 * g; r += (o.spin ?? 14) * g; }
+    else if (ex === 'up') y -= 1250 * ease.inOut(m);
+    else if (ex === 'left') x -= 2100 * ease.inOut(m);
+    else if (ex === 'fade') op *= 1 - m;
+  }
+  tf(el, { x, y, r, s, o: op });
+}
+const hl = (id, t, a, d = 0.45) => { $(id).style.transform = `scaleX(${prog(t, a, a + d, ease.inOut)})`; };
+function slam(el, t, at, r = -8) {
+  const tt = q(t), k = clamp((tt - at) / 0.17);
+  tf(el, { s: lerp(1.75, 1, ease.out(k)), r, o: tt >= at ? 1 : 0 });
+}
+const shake = (t, a, d = 0.45, amp = 12) => (t >= a && t < a + d ? (hash(step(t, 24)) - 0.5) * amp * (1 - (t - a) / d) : 0);
+// boil: a hand-drawn mark redrawn with a new wobble every 1/8 s, cycling 3 variants
+const boil = (t, n = 3) => step(t, 8) % n;
+
+/* ---------- S1 data: one account, illustrative path ---------- */
+const SER = (() => {
+  const r = rng(24), s = [];
+  for (let i = 0; i <= 60; i++) { let v = 20 + 278 * Math.pow(i / 60, 2.25); if (i > 2 && i < 60) v *= 1 + (r() - 0.5) * 0.16; s.push(v); }
+  s[60] = 298;
+  return s.concat([268, 236, 251, 196, 158, 171, 118, 74, 88, 41, 12, 0]);
+})();
+const PEAK = 60, LAST = SER.length - 1;
+const cxp = i => 6 + i * (384 / LAST), cyp = v => 264 - (v / 320) * 250;
+const valAt = f => { const n = Math.min(Math.floor(f), LAST - 1); return lerp(SER[n], SER[n + 1], f - n); };
+function chartPath(f) {
+  const n = Math.floor(f); let d = '';
+  for (let i = 0; i <= n; i++) d += (i ? 'L' : 'M') + cxp(i).toFixed(1) + ',' + cyp(SER[i]).toFixed(1);
+  if (n < LAST && f > n) d += 'L' + lerp(cxp(n), cxp(n + 1), f - n).toFixed(1) + ',' + cyp(valAt(f)).toFixed(1);
+  return d;
+}
+$('s1base').setAttribute('y1', cyp(20)); $('s1base').setAttribute('y2', cyp(20));
+
+function s1(t) {
+  const tq = Math.floor(t * 15) / 15;  // counters tick at 15 fps, like a real app refresh
+  const f = tq < 8.2 ? PEAK * prog(tq, 0.8, 7.6, ease.inOut) : PEAK + (LAST - PEAK) * prog(tq, 8.2, 10.4, ease.lin);
+  const v = valAt(f), below = v < 20, col = below ? 'var(--kblue)' : 'var(--kred)';
+  $('s1val').textContent = '₩' + fmt(v * 1e6);
+  const pct = (v - 20) / 20 * 100;
+  $('s1chg').textContent = (pct >= 0 ? '+' : '−') + Math.abs(pct).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  $('s1chg').style.color = col;
+  $('s1val').style.color = below ? 'var(--kblue)' : 'var(--ink)';
+  $('s1line').setAttribute('d', chartPath(f)); $('s1line').style.stroke = col;
+  $('s1dot').setAttribute('cx', lerp(cxp(Math.floor(f)), cxp(Math.min(LAST, Math.floor(f) + 1)), f % 1));
+  $('s1dot').setAttribute('cy', cyp(v)); $('s1dot').style.fill = col;
+  life($('s1toast'), t, { in: 10.6, from: { y: 40, o: 0 }, ease: ease.out, dur: 0.3 });
+
+  tf($('s1phone'), { x: shake(t, 8.2, 0.7, 16), y: shake(t + 0.02, 8.2, 0.7, 10), r: -2.5 });
+  life($('s1a'), t, { in: 1.0, r: 0, from: { y: 30, o: 0 }, ease: ease.out, out: 8.3 });
+  life($('s1b'), t, { in: 2.3, r: -1.5, out: 8.4 });
+  life($('s1c'), t, { in: 3.7, r: 3, out: 8.5, spin: -20 });
+  hl('s1hlc', t, 4.3);
+  life($('s1d'), t, { in: 6.4, r: 0, from: { y: 40, o: 0 }, ease: ease.out, out: 8.6 });
+  hl('s1hld', t, 7.0, 0.6);
+  slam($('s1stamp'), t, 9.2, -9);
+  if (t > 10.2) $('s1stamp').style.opacity = 1 - prog(t, 10.2, 10.4, ease.lin) * 0.85;
+  life($('s1e'), t, { in: 10.5, r: 0, from: { y: 30, o: 0 }, ease: ease.out });
+  $('s1q').style.opacity = prog(t, 11.4, 11.8, ease.lin);
+  $('s1qt').style.opacity = prog(t, 11.7, 12.1, ease.lin);
+  $('s1qa').style.opacity = prog(t, 12.5, 12.9, ease.lin);
+}
+
+/* ---------- S2 ---------- */
+$('s2u1').setAttribute('d', wobble([[4, 14], [300, 18]], 5, 3));
+$('s2u2').setAttribute('d', wobble([[4, 16], [410, 12]], 6, 3));
+function s2(t) {
+  life($('s2k'), t, { in: 14.1, r: 0, from: { o: 0 }, ease: ease.out, out: 18.4, exit: 'up' });
+  life($('s2t1'), t, { in: 14.3, r: -3, from: { s: 1.25, r: -8 }, dur: 0.25, out: 18.4, exit: 'up' });
+  life($('s2t2'), t, { in: 14.9, r: 2, from: { s: 1.25, r: 6 }, dur: 0.25, out: 18.45, exit: 'up' });
+  life($('s2t3'), t, { in: 15.5, r: -1.5, from: { s: 1.25, r: -6 }, dur: 0.25, out: 18.5, exit: 'up' });
+  life($('s2sub'), t, { in: 16.2, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true, out: 18.5, exit: 'up' });
+  hl('s2hl', t, 16.9);
+  life($('s2d1'), t, { in: 19.0, r: -2, from: { y: 1100, r: 6 }, dur: 0.5 });
+  life($('s2d2'), t, { in: 20.2, r: 1.5, from: { y: 1100, r: -6 }, dur: 0.5 });
+  draw($('s2u1'), prog(t, 22.4, 22.9, ease.inOut));
+  draw($('s2u2'), prog(t, 23.6, 24.1, ease.inOut));
+  life($('s2cap'), t, { in: 24.8, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+}
+
+/* ---------- S3 ---------- */
+const BR = [];
+for (let i = 0; i < 14; i++) {
+  const b = document.createElement('div');
+  b.className = 'brick mono a';
+  b.style.top = `${900 - (i + 1) * 40}px`;
+  b.textContent = `第 ${i + 1} 年 · 全年工资`;
+  $('s3bricks').appendChild(b); BR.push(b);
+}
+$('s3fl').setAttribute('d', wobble([[120, 902], [1800, 902]], 31, 2));
+function s3(t) {
+  let landed = 0;
+  BR.forEach((b, i) => {
+    const at = 29.0 + i * 0.46, tt = q(t);
+    if (tt < at) { b.style.opacity = 0; return; }
+    const k = clamp((tt - at) / 0.25);
+    if (k >= 1) landed++;
+    const sq = k >= 1 && tt < at + 0.17 ? 0.9 : 1;
+    tf(b, { y: lerp(-620, 0, ease.in2(k)), r: (hash(i) - 0.5) * 2.4, sy: sq, o: 1 });
+  });
+  $('s3n').textContent = landed;
+  life($('s3cnt'), t, { in: 28.6, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  life($('s3cap'), t, { in: 29.4, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true, out: 39.6, exit: 'fade' });
+  const rise = prog(t, 37.2, 39.6, ease.inOut);
+  const lineY = lerp(338, -90, rise);
+  tf($('s3line'), { y: lineY, o: prog(t, 28.3, 28.7, ease.lin) });
+  const bTop = lerp(140, -560, rise);
+  $('s3bld').style.top = bTop + 'px'; $('s3bld').style.height = (900 - bTop) + 'px';
+  life($('s3w1'), t, { in: 36.4, r: -4, from: { y: -900, r: 8 }, dur: 0.35 });
+  life($('s3w2'), t, { in: 36.9, r: 3, from: { y: -900, r: -8 }, dur: 0.35 });
+  life($('s3w3'), t, { in: 37.4, r: -2, from: { y: -900, r: 6 }, dur: 0.35 });
+  life($('s3fin'), t, { in: 40.2, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  life($('s3zero'), t, { in: 40.8, r: -3, from: { s: 1.4 }, dur: 0.2 });
+  $('s3circ').setAttribute('d', penCircle(1322, 812, 118, 84, 400 + boil(t)));
+  draw($('s3circ'), prog(t, 41.3, 41.9, ease.inOut));
+}
+
+/* ---------- S4 ---------- */
+[['s4l1', 700], ['s4l2', 860], ['s4l3', 1020]].forEach(([id, y], i) => $(id).setAttribute('d', wobble([[-20, y], [1940, y + 4]], 50 + i, 2.5)));
+$('s4start').setAttribute('d', wobble([[470, 700], [474, 1020]], 59, 2));
+const runnerPose = k => k % 2
+  ? wobble([[92, 70], [80, 150]], 61, 1) + wobble([[86, 92], [130, 124], [150, 98]], 62, 1) + wobble([[86, 92], [52, 120], [36, 150]], 63, 1) + wobble([[80, 150], [112, 196], [96, 258]], 64, 1) + wobble([[80, 150], [52, 202], [20, 230]], 65, 1)
+  : wobble([[92, 70], [82, 150]], 66, 1) + wobble([[88, 92], [120, 130], [138, 112]], 67, 1) + wobble([[88, 92], [60, 126], [56, 158]], 68, 1) + wobble([[82, 150], [100, 204], [118, 258]], 69, 1) + wobble([[82, 150], [62, 206], [48, 258]], 70, 1);
+function s4(t) {
+  const out = prog(t, 48.0, 48.5, ease.inOut);
+  tf($('s4track'), { x: -2100 * out });
+  $('s4body').setAttribute('d', runnerPose(t > 45.6 && t < 46.4 ? 1 : boil(t, 2) * 0));
+  const knock = prog(t, 45.7, 45.9, ease.out) * (1 - prog(t, 46.2, 46.8, ease.inOut));
+  tf($('s4runner'), { r: -10 * knock, x: -14 * knock });
+  const cx = lerp(-700, 2300, prog(q(t), 45.3, 46.1, ease.lin));
+  tf($('s4car'), { x: cx, o: t >= 45.3 && t < 46.2 ? 1 : 0 });
+  life($('s4c1'), t, { in: 44.3, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  life($('s4c2'), t, { in: 46.1, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  life($('s4ticket'), t, { in: 48.1, r: -2.5, from: { x: 1500, r: 9 }, dur: 0.6 });
+  life($('s4e1'), t, { in: 50.4, r: 0, from: { s: 1.3 }, dur: 0.2 });
+  life($('s4e2'), t, { in: 51.1, r: -3, from: { s: 1.3 }, dur: 0.2 });
+  life($('s4e3'), t, { in: 51.9, r: 0, from: { s: 1.3 }, dur: 0.2 });
+  hl('s4hl', t, 52.5);
+  life($('s4c3'), t, { in: 53.5, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+}
+
+/* ---------- S5 ---------- */
+$('s5base').setAttribute('d', wobble([[380, 902], [1500, 902]], 71, 2));
+$('s5arr').setAttribute('d', 'M800,520 C840,360 900,300 975,318');
+function s5(t) {
+  life($('s5h'), t, { in: 56.1, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  life($('s5u'), t, { in: 56.4, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  const ka = prog(t, 57.0, 57.8, ease.out), kb = prog(t, 58.6, 60.4, ease.inOut);
+  tf($('s5a'), { sy: Math.max(0.001, ka), o: ka > 0 ? 1 : 0 });
+  tf($('s5b'), { sy: Math.max(0.001, kb), o: kb > 0 ? 1 : 0 });
+  tf($('s5av'), { y: 267 * (1 - ka), o: prog(t, 57.4, 57.7, ease.lin) });
+  $('s5bv').textContent = (4.19 * kb).toFixed(2);
+  tf($('s5bv'), { y: 560 * (1 - kb), o: kb > 0.02 ? 1 : 0 });
+  $('s5al').style.opacity = prog(t, 57.2, 57.5, ease.lin);
+  $('s5bl').style.opacity = prog(t, 58.8, 59.1, ease.lin);
+  draw($('s5arr'), prog(t, 60.6, 61.2, ease.inOut));
+  life($('s5x'), t, { in: 61.2, r: -4, from: { s: 1.4 }, dur: 0.2 });
+  $('s5circ').setAttribute('d', penCircle(1440, 330, 150, 92, 500 + boil(t)));
+  draw($('s5circ'), prog(t, 61.6, 62.1, ease.inOut));
+  life($('s5bub'), t, { in: 62.6, r: 2, dur: 0.4 });
+  $('s5src').style.opacity = prog(t, 57.0, 57.4, ease.lin);
+}
+
+/* ---------- S6 ---------- */
+$('s6chair').setAttribute('d', 'M880,470 L880,240 Q960,200 1040,240 L1040,470 M860,470 L1060,470 M880,470 L870,560 M1040,470 L1050,560');
+function s6(t) {
+  const clear = prog(t, 69.2, 69.5, ease.lin);
+  life($('s6l1'), t, { in: 66.1, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  life($('s6l2'), t, { in: 66.8, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  $('s6s1').setAttribute('d', wobble([[560, 346], [1360, 334]], 81 + boil(t), 4));
+  $('s6s2').setAttribute('d', wobble([[400, 444], [1520, 432]], 85 + boil(t), 4));
+  draw($('s6s1'), prog(t, 67.8, 68.1, ease.inOut));
+  draw($('s6s2'), prog(t, 68.0, 68.35, ease.inOut));
+  life($('s6no'), t, { in: 68.4, r: -1.5, from: { s: 1.3 }, dur: 0.2 });
+  for (const id of ['s6l1', 's6l2', 's6s1', 's6s2', 's6no']) if (clear > 0) $(id).style.opacity = 1 - clear;
+  life($('s6table'), t, { in: 69.5, r: 0, from: { y: 60, o: 0 }, ease: ease.out, dur: 0.6, smooth: true });
+  life($('s6q1'), t, { in: 70.0, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  life($('s6q2'), t, { in: 70.6, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  if (q(t) >= 71.5) tf($('s6qm'), { r: (hash(boil(t, 4)) - 0.5) * 7, s: lerp(1.5, 1, prog(q(t), 71.5, 71.7)), o: 1 });
+  else $('s6qm').style.opacity = 0;
+  life($('s6c'), t, { in: 72.8, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  $('s6teaser').style.opacity = prog(t, 74.0, 74.3, ease.lin) * (step(t, 2) % 2 ? 1 : 0.55);
+}
+
+/* ---------- S7 ---------- */
+const ICONS = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 9; c++) {
+  const d = document.createElement('div');
+  d.className = 'ph-icon a';
+  d.style.left = `${150 + c * 72}px`; d.style.top = `${300 + r * 96}px`;
+  $('s7icons').appendChild(d); ICONS.push([d, hash(r * 9 + c + 0.5)]);
+}
+(() => {
+  const r = rng(77), rows = [['资产类别', '当前', '目标', '调整'], ['美国国债', '31.0%', '32.5%', '+1.5'], ['美股大盘', '24.0%', '24.5%', '+0.5'], ['欧洲股票', '9.0%', '9.0%', '0.0'], ['日本股票', '6.0%', '6.5%', '+0.5'], ['AI / 半导体', '18.0%', '15.0%', '−3.0'], ['新兴市场其他', '7.0%', '7.5%', '+0.5'], ['现金', '5.0%', '5.0%', '0.0']];
+  $('s7tab').innerHTML = rows.map((row, i) => `<tr${i === 5 ? ' class="hot" id="s7hot"' : ''}>${row.map(c => `<td${i === 0 ? ' style="color:#7a7366"' : ''}>${c}</td>`).join('')}</tr>`).join('')
+    + `<tr><td colspan="4" style="text-align:left;color:#7a7366;border:0;padding-top:16px">触发条件：美债 10 年期收益率 +0.10pp</td></tr>`;
+})();
+$('s7div').setAttribute('d', 'M960,200 L960,860');
+$('s7arr').setAttribute('d', wobble([[1360, 838], [1760, 830]], 91, 3));
+function s7(t) {
+  life($('s7tag'), t, { in: 76.2, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  life($('s7l'), t, { in: 76.4, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  life($('s7r'), t, { in: 76.4, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  for (const [d, h] of ICONS) life(d, t, { in: 76.6 + h * 1.4, r: (h - 0.5) * 16, from: { y: -40, s: 1.2 }, dur: 0.2 });
+  life($('s7buy'), t, { in: 78.0, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  $('s7n').textContent = Math.round(40 * prog(Math.floor(t * 15) / 15, 78.0, 79.6, ease.out));
+  life($('s7sheet'), t, { in: 78.6, r: 1.2, dur: 0.4 });
+  $('s7hot').querySelectorAll('td').forEach(td => { td.style.background = `rgba(242,201,53,${0.85 * prog(t, 80.0, 80.3, ease.lin)})`; });
+  life($('s7sell'), t, { in: 81.3, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  draw($('s7arr'), prog(t, 81.5, 82.1, ease.inOut));
+  life($('s7ban'), t, { in: 84.0, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true });
+  hl('s7hl', t, 84.8);
+}
+
+/* ---------- S8 ---------- */
+(() => { const g = $('s8ticks'); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; svgEl(g, 'line', { x1: Math.sin(a) * 118, y1: -Math.cos(a) * 118, x2: Math.sin(a) * 134, y2: -Math.cos(a) * 134, stroke: 'var(--ink)', 'stroke-width': i % 3 ? 4 : 8 }); } })();
+const DOMS = [];
+for (let i = 0; i < 11; i++) {
+  const d = document.createElement('div');
+  d.className = 'domino cut a';
+  d.style.left = `${190 + i * 140}px`;
+  d.innerHTML = `<i></i><span class="mono">#${String(Math.floor(hash(i + 3) * 9000 + 1000))}</span>`;
+  $('s8doms').appendChild(d); DOMS.push(d);
+}
+$('s8price').setAttribute('d', (() => { const r = rng(5), p = [[80, 390]]; for (let i = 1; i <= 40; i++) p.push([80 + i * 44, 390 + i * 5.5 + (r() - 0.5) * 44]); return 'M' + p.map(a => a.map(v => v.toFixed(0)).join(',')).join('L'); })());
+const WORDS = [[101.2, '强制卖出'], [102.1, '股价再跌'], [103.0, '更多账户触线'], [103.9, '再被强平'], [104.8, '……']];
+function s8(t) {
+  const up = prog(t, 100.6, 101.0, ease.inOut);
+  const head = { y: -1250 * up };
+  life($('s8h1'), t, { in: 88.2, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true, out: 100.6, exit: 'up', outDur: 0.4 });
+  life($('s8h2'), t, { in: 88.9, r: 0, from: { y: 24, o: 0 }, ease: ease.out, smooth: true, out: 100.6, exit: 'up', outDur: 0.4 });
+  hl('s8hl', t, 89.6);
+  const by = prog(t, 90.0, 90.4, ease.out);
+  $('s8bar').style.transform = `translateY(${head.y}px)`;
+  $('s8read').style.transform = `translateY(${head.y}px)`;
+  tf($('s8labY'), { o: by }); tf($('s8labG'), { o: prog(t, 90.6, 90.9, ease.lin) });
+  // price drop steps 0 → 10% → 15% → 20%
+  const d = 0.10 * prog(t, 91.4, 92.0, ease.inOut) + 0.05 * prog(t, 93.3, 93.8, ease.inOut) + 0.05 * prog(t, 94.9, 95.4, ease.inOut);
+  const eq = Math.max(0, 1 - 5 * d);
+  $('s8y').style.width = `${240 * eq}px`;
+  $('s8y').style.opacity = by * (eq > 0.002 ? 1 : 0);
+  $('s8lost').style.left = `${335 + 240 * eq}px`; $('s8lost').style.width = `${240 * (1 - eq)}px`;
+  $('s8lost').style.opacity = d > 0.001 ? 1 : 0;
+  ['s8g0', 's8g1', 's8g2', 's8g3'].forEach((id, i) => life($(id), t, { in: 90.5 + i * 0.12, r: 0, from: { y: -40, s: 1.15 }, dur: 0.2 }));
+  life($('s8debt'), t, { in: 94.5, r: -1.5, from: { o: 0, y: 10 }, ease: ease.out, smooth: true });
+  const dp = Math.round(d * 100);
+  $('s8d').textContent = '−' + dp + '%';
+  $('s8e').textContent = '−' + Math.min(100, dp * 5) + '%';
+  $('s8read').style.opacity = prog(t, 91.2, 91.4, ease.lin) * (1 - 0.7 * prog(t, 96.2, 96.5, ease.lin));
+  life($('s8sms'), t, { in: 96.2, r: 0, from: { y: -300 }, ease: ease.out, dur: 0.5, smooth: true, out: 100.6, exit: 'up', outDur: 0.4 });
+  // clock: 08:20 → 08:30, minute hand ticks
+  const mins = 20 + Math.floor(10 * prog(t, 97.0, 99.0, ease.lin) * 2) / 2;
+  $('s8mh').setAttribute('transform', `rotate(${mins * 6})`);
+  $('s8hh').setAttribute('transform', `rotate(${(8 + mins / 60) * 30})`);
+  life($('s8clock'), t, { in: 96.6, r: 4, from: { y: 600, r: -10 }, dur: 0.5, out: 100.6, exit: 'up', outDur: 0.4 });
+  slam($('s8stamp'), t, 99.1, -9);
+  if (t >= 100.6) $('s8stamp').style.transform += ` translateY(${-1250 * up}px)`;
+  // dominoes
+  tf($('s8dom'), { y: 1250 * (1 - up), o: t >= 100.6 ? 1 : 0 });
+  draw($('s8price'), prog(t, 101.0, 105.6, ease.lin));
+  DOMS.forEach((d, i) => {
+    const at = 101.3 + i * 0.3, k = clamp((q(t) - at) / 0.3);
+    tf(d, { r: (i === DOMS.length - 1 ? 90 : 64) * ease.in2(k), o: 1 });
+  });
+  let w = ''; for (const [a, s] of WORDS) if (t >= a) w = s;
+  $('s8word').textContent = w;
+  $('s8loop').style.opacity = prog(t, 101.6, 102.0, ease.lin);
+}
+
+/* ---------- S9 ---------- */
+(() => {
+  const sky = $('s9sky'), r = rng(9);
+  const cols = ['#8fa3b5', '#a7b6c2', '#7e93a6', '#b6c1c9'];
+  let x = 0;
+  while (x < 1920) {
+    const w = 90 + r() * 170, h = 170 + r() * 190, c = cols[Math.floor(r() * cols.length)];
+    svgEl(sky, 'rect', { x, y: 1080 - h, width: w, height: h, fill: c, stroke: '#1d1b18', 'stroke-width': 4 });
+    for (let wy = 1080 - h + 24; wy < 1060; wy += 34) svgEl(sky, 'line', { x1: x + 16, x2: x + w - 16, y1: wy, y2: wy, stroke: 'rgba(29,27,24,.25)', 'stroke-width': 3, 'stroke-dasharray': '10 10' });
+    x += w + 8 + r() * 30;
+  }
+  const teeth = 12, d = [];
+  for (let i = 0; i < teeth * 4; i++) { const a = i / (teeth * 4) * Math.PI * 2, rr = i % 4 < 2 ? 128 : 100; d.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+  $('s9gp').setAttribute('d', 'M' + d.map(p => p.map(v => v.toFixed(1)).join(',')).join('L') + 'Z');
+})();
+const LINES = [['s9t1', '杠杆能借给你翻倍的幻觉，'], ['s9t2', '但它从不借给你哪怕一秒钟的时间。']];
+const TYPE = [];
+(() => {
+  let at = 114.8;
+  LINES.forEach(([id, s], li) => {
+    const host = $(id);
+    [...s].forEach((ch, i) => {
+      const sp = document.createElement('span');
+      sp.textContent = ch;
+            host.appendChild(sp); TYPE.push([sp, at]);
+      at += 0.075 + hash(li * 40 + i) * 0.07 + ('，。'.includes(ch) ? 0.45 : 0);
+    });
+    at += 0.3;
+  });
+})();
+function s9(t) {
+  life($('s9city'), t, { in: 106.0, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true, out: 110.2, exit: 'fade', outDur: 0.25 });
+  $('s9gear').style.transform = `rotate(${step(t, 12) * 2.5}deg)`;
+  life($('s9c1'), t, { in: 107.2, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  life($('s9c2'), t, { in: 108.4, r: 0, from: { y: 20, o: 0 }, ease: ease.out, smooth: true });
+  life($('s9lock'), t, { in: 110.4, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true, out: 114.2, exit: 'fade', outDur: 0.4 });
+  tf($('s9phone'), { r: 3, s: 1 + 0.03 * prog(t, 110.4, 114.2, ease.lin) });
+  life($('s9l1'), t, { in: 111.0, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  life($('s9l2'), t, { in: 111.9, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  life($('s9l3'), t, { in: 112.6, r: 0, from: { o: 0 }, ease: ease.lin, smooth: true });
+  $('s9q').style.opacity = t >= 114.6 ? 1 : 0;
+  for (const [sp, at] of TYPE) sp.style.visibility = t >= at ? 'visible' : 'hidden';
+  // highlight "一秒钟的时间" once typed
+  const k = prog(t, 119.4, 119.9, ease.inOut);
+  TYPE.slice(LINES[0][1].length).forEach(([sp], i) => { if (i >= 9 && i <= 14) sp.style.boxShadow = k > 0 ? `inset 0 -${Math.round(0.5 * 84 * clamp(k * 6 - (i - 9)))}px 0 rgba(242,201,53,.85)` : 'none'; });
+  $('s9end').style.opacity = prog(t, 120.4, 120.9, ease.lin);
+}
+
+/* ---------- timeline ---------- */
+const SCENES = [['s1', 0, 14, s1], ['s2', 14, 28, s2], ['s3', 28, 44, s3], ['s4', 44, 56, s4], ['s5', 56, 66, s5], ['s6', 66, 76, s6], ['s7', 76, 88, s7], ['s8', 88, 106, s8], ['s9', 106, 123, s9]];
+E.mount({
+  duration: 123,
+  grain: 0.11, weave: 0.8, flicker: 0.03,
+  chapters: [[0, '1 · 破壁'], [28, '2 · 降维'], [66, '3 · 悬念'], [76, '4 · 认知差'], [106, '5 · 升华']],
+  render(t) {
+    for (const [id, a, b, fn] of SCENES) {
+      const on = t >= a && t < b;
+      show($(id), on);
+      if (on) {
+        fn(t);
+        $('cam').style.transform = `scale(${1 + 0.028 * prog(t, a, b, ease.lin)})`;
+      }
+    }
+  },
+});
+</script>
+</body>
+</html>

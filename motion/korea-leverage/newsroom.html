@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Margin Call, Seoul</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --paper:#f4f2ec; --ink:#151515; --ink2:#5d5b56; --ink3:#8d8a83; --rule:#cdc8bd; --grid:#e0dcd2; --red:#bf2f1f; --blue:#2b5a9a; --shade:#ebe5d8; }
+  #bg { position:absolute; inset:0; background-size:cover; }
+  .kick { position:absolute; left:140px; top:92px; font-size:24px; font-weight:700; color:var(--red); letter-spacing:.1em; }
+  .head { position:absolute; left:140px; top:128px; font-family:'K Serif'; font-weight:900; font-size:60px; line-height:1.2; color:var(--ink); }
+  .deck { position:absolute; left:142px; top:218px; font-size:30px; color:var(--ink2); }
+  .note { position:absolute; left:142px; top:912px; font-size:20px; color:var(--ink3); font-family:'K Mono','K Sans'; }
+  .src  { position:absolute; left:142px; top:982px; font-size:20px; color:var(--ink2); font-family:'K Mono','K Sans'; }
+  .pg   { position:absolute; right:140px; top:982px; font-size:20px; color:var(--ink2); font-family:'K Mono'; }
+  .lbl  { position:absolute; font-size:26px; color:var(--ink); white-space:nowrap; }
+  .lbl b { font-weight:700; }
+  .lbl small { display:block; font-size:21px; color:var(--ink2); margin-top:4px; }
+  svg text { font-family:'K Mono','K Sans'; font-size:20px; fill:var(--ink2); }
+  svg text.big { font-family:'K Cond'; font-weight:700; }
+  .unit { position:absolute; width:88px; height:88px; border:2px solid var(--ink); }
+  .pill { display:inline-block; border:2px solid var(--ink2); border-radius:30px; padding:4px 20px 6px; font-size:26px; color:var(--ink2); margin-right:12px; }
+  .node { position:absolute; width:300px; padding:16px 20px; background:var(--paper); border:2px solid var(--ink); font-size:26px; font-weight:700; text-align:center; line-height:1.35; transform-origin:50% 50%; }
+  .node small { display:block; font-size:19px; font-weight:400; color:var(--ink2); margin-top:4px; font-family:'K Mono','K Sans','K Kr'; }
+  .dotg { position:absolute; width:20px; height:20px; border-radius:50%; border:2px solid var(--ink3); }
+  .read { position:absolute; font-family:'K Cond'; font-weight:700; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="world">
+<div id="bg"></div>
+<div class="a" id="prog" style="left:0;top:0;height:6px;width:0;background:var(--red)"></div>
+<div class="a mono" style="right:140px;top:96px;font-size:19px;color:var(--ink3);letter-spacing:.06em">图解 · 韩国年轻人的五倍杠杆</div>
+<div class="a" style="left:140px;right:140px;top:962px;height:1px;background:var(--rule)"></div>
+
+<!-- N1 · one account -->
+<section class="scene" id="n1">
+  <div class="kick">个案</div>
+  <div class="head">从 2,000 万到 3 亿韩元，再到清零</div>
+  <div class="deck">一名 24 岁韩国大学生用约 5 倍杠杆交易半导体股，账户在 4 周内被强制平仓</div>
+  <svg class="full" id="n1svg"></svg>
+  <div class="lbl a" id="n1a" style="left:250px;top:700px"><b>本金 2,000 万₩</b><small>约合 10 万元人民币，加约 5 倍杠杆</small></div>
+  <div class="lbl a" id="n1b" style="left:830px;top:322px;text-align:right"><b>峰值 ≈ 3 亿₩</b><small>约合 150 万元人民币</small></div>
+  <div class="lbl a" id="n1c" style="left:1580px;top:742px"><b style="color:var(--red)">强制平仓</b><small>本金清零，并倒欠券商</small></div>
+  <div class="note a" id="n1n">注：曲线形态为示意，仅起点、峰值和结局依据报道。</div>
+  <div class="src">来源：路透社报道（据原稿引用）</div><div class="pg">1 / 6</div>
+</section>
+
+<!-- N2 · 14 years -->
+<section class="scene" id="n2">
+  <div class="kick">买房的距离</div>
+  <div class="head">不吃不喝 14 年，才够首尔一套公寓的首付</div>
+  <div class="deck">每一格 = 名校毕业生一整年的全部工资</div>
+  <div id="n2units"></div>
+  <svg class="full" id="n2svg"></svg>
+  <div class="a cond" id="n2y" style="left:0;width:1920px;top:640px;text-align:center;font-size:72px;font-weight:700">14 年</div>
+  <div class="a" id="n2more" style="left:220px;top:790px;white-space:nowrap"><span style="font-size:26px;color:var(--ink2);margin-right:18px">现实里还得先扣掉：</span><span class="pill">房租</span><span class="pill">生活开支</span><span class="pill">谈恋爱</span><span class="pill">房价继续涨</span><span style="font-size:26px;color:var(--red);font-weight:700">→ 更久</span></div>
+  <div class="note a" id="n2n">注：14 年为稿件引用的估算口径，未计入房租、生活开支与房价上涨。</div>
+  <div class="src">来源：据原稿引用数据</div><div class="pg">2 / 6</div>
+</section>
+
+<!-- N3 · margin balance -->
+<section class="scene" id="n3">
+  <div class="kick">加杠杆的年轻人</div>
+  <div class="head">20–30 岁群体的股票融资余额，一年多涨到 4.19 万亿韩元</div>
+  <div class="deck">单位：万亿韩元</div>
+  <svg class="full" id="n3svg"></svg>
+  <div class="a read" id="n3av" style="left:700px;top:580px;width:200px;text-align:center;font-size:56px;color:var(--ink2)">&lt; 2.0</div>
+  <div class="a read" id="n3bv" style="left:1020px;top:352px;width:200px;text-align:center;font-size:72px;color:var(--red)">4.19</div>
+  <div class="lbl a" id="n3al" style="left:700px;top:870px;width:200px;text-align:center;color:var(--ink2)">一年多以前</div>
+  <div class="lbl a" id="n3bl" style="left:1020px;top:870px;width:200px;text-align:center;color:var(--ink2)">最近</div>
+  <div class="lbl a" id="n3x" style="left:1300px;top:400px"><span class="cond" style="font-size:64px;font-weight:700;color:var(--red)">约 2.4 倍</span><small>据稿件：一年多时间</small></div>
+  <div class="note a" id="n3n" style="top:926px">注：起点为“不到 2 万亿”，图中按上限 2.0 绘制，实际增幅大于图示比例。</div>
+  <div class="src">来源：路透社报道（据原稿引用）</div><div class="pg">3 / 6</div>
+</section>
+
+<!-- N4 · flows -->
+<section class="scene" id="n4">
+  <div class="kick">同一个月</div>
+  <div class="head">散户在借钱买，外资在静静地卖</div>
+  <div class="deck">韩国综合股价指数（KOSPI）单月资金流向</div>
+  <svg class="full" id="n4svg"></svg>
+  <div class="lbl a" id="n4l1" style="left:140px;top:428px"><b>个人投资者</b><small>不少是借钱买入</small></div>
+  <div class="lbl a" id="n4l2" style="left:140px;top:598px"><b>海外机构</b><small>同月净卖出</small></div>
+  <div class="a read" id="n4v1" style="left:1040px;top:406px;font-size:60px;color:#fff">+0 万亿₩</div>
+  <div class="lbl a" id="n4v2" style="left:1030px;top:610px;color:var(--ink2)">净卖出 · 规模以原报道为准</div>
+  <div class="a" id="n4box" style="left:1030px;top:720px;width:750px;padding:20px 26px;border-left:4px solid var(--blue);background:rgba(43,90,154,.06)">
+    <div style="font-size:24px;font-weight:700">外资为什么卖？一种可能（假设情境）</div>
+    <div style="font-size:23px;color:var(--ink2);line-height:1.6;margin-top:6px">美债收益率上行 0.1 个百分点 → 配置模型把 AI 敞口下调 3%<br>——与首尔出租屋里的哪个大学生都无关</div>
+  </div>
+  <div class="note a" id="n4n">注：外资卖出规模与原因以原报道为准；蓝框为解说用的假设情境。</div>
+  <div class="src">来源：路透社报道（据原稿引用）</div><div class="pg">4 / 6</div>
+</section>
+
+<!-- N5 · leverage math -->
+<section class="scene" id="n5">
+  <div class="kick">杠杆的算术</div>
+  <div class="head">5 倍杠杆：股价跌 20%，本金归零</div>
+  <div class="deck">本金亏损 ≈ 股价跌幅 × 杠杆倍数（未计利息、手续费）</div>
+  <svg class="full" id="n5svg"></svg>
+  <div class="a" id="n5read" style="left:1580px;top:420px;width:200px">
+    <div style="font-size:22px;color:var(--ink2)">股价</div><div class="read" id="n5d" style="position:static;font-size:84px;line-height:1">−0%</div>
+    <div style="font-size:22px;color:var(--ink2);margin-top:22px">5 倍杠杆下的本金</div><div class="read" id="n5e" style="position:static;font-size:84px;line-height:1;color:var(--red)">−0%</div>
+  </div>
+  <div class="note a" id="n5n">注：简化模型。现实中跌破担保比例即会被追缴保证金或强平，往往比归零更早出手。</div>
+  <div class="src">计算：编辑部；公式见上</div><div class="pg">5 / 6</div>
+</section>
+
+<!-- N6 · cascade -->
+<section class="scene" id="n6">
+  <div class="kick">连锁反应</div>
+  <div class="head">强制平仓为什么会一波接一波</div>
+  <div class="deck">一个自我强化的循环</div>
+  <svg class="full" id="n6svg"></svg>
+  <div class="node a" id="n6a" style="left:610px;top:300px">① 股价下跌</div>
+  <div class="node a" id="n6b" style="left:880px;top:560px">② 账户跌破担保比例<small>券商发出追缴通知</small></div>
+  <div class="node a" id="n6c" style="left:610px;top:800px">③ 开盘前市价卖出<small>08:30 · 반대매매</small></div>
+  <div class="node a" id="n6d" style="left:340px;top:560px">④ 卖压加大<small>触发下一批账户</small></div>
+  <div class="lbl a" id="n6t" style="left:1300px;top:330px"><b>被强平的账户</b><small>每个点代表一批账户（示意）</small></div>
+  <div id="n6dots"></div>
+  <div class="note a" id="n6n">注：示意图，点数不代表真实账户数量。</div>
+  <div class="src">机制：据原稿描述整理</div><div class="pg">6 / 6</div>
+</section>
+
+<!-- N7 · close -->
+<section class="scene" id="n7">
+  <div class="a serif" id="n7a" style="left:140px;top:330px;font-size:72px;font-weight:900">市场杀死的从来不是看错的人，</div>
+  <div class="a serif" id="n7b" style="left:140px;top:430px;font-size:72px;font-weight:900">而是<span style="color:var(--red)">没有时间</span>的人。</div>
+  <div class="a" id="n7c" style="left:144px;top:590px;font-size:34px;color:var(--ink2)">杠杆能借给你翻倍的幻觉，但它从不借给你哪怕一秒钟的时间。</div>
+  <div class="a mono" id="n7d" style="left:144px;top:840px;font-size:20px;color:var(--ink2);line-height:1.8">资料：路透社报道；稿件《24 岁大学生 4 周输光 3 亿》引用数据<br>说明：账户路径、外资动因与连锁循环为示意；余额与倍数以原报道为准</div>
+</section>
+
+</div></div>
+
+<script src="engine.js"></script>
+<script>
+const { prog, ease, tf, show, $, lerp, clamp, step, hash, fmt, draw, svgEl, rng, win } = E;
+$('bg').style.backgroundImage = `url(${E.paperTexture([244, 242, 236], 3, 500)})`;
+
+const up = (el, t, at, dur = 0.5, dy = 14) => { const k = prog(t, at, at + dur, ease.out); tf(el, { y: dy * (1 - k), o: k }); };
+const line = (svg, x1, y1, x2, y2, a = {}) => svgEl(svg, 'path', { d: `M${x1},${y1} L${x2},${y2}`, pathLength: 1, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, ...a });
+const text = (svg, x, y, s, a = {}) => { const e = svgEl(svg, 'text', { x, y, ...a }); e.textContent = s; return e; };
+function headerIn(id, t, a) {
+  const sc = $(id);
+  for (const [sel, d] of [['.kick', 0], ['.head', 0.12], ['.deck', 0.3]]) up(sc.querySelector(sel), t, a + d);
+  for (const sel of ['.src', '.pg']) { const e = sc.querySelector(sel); if (e) e.style.opacity = prog(t, a + 0.4, a + 0.8, ease.lin); }
+}
+
+/* ---------- N1 ---------- */
+const n1 = $('n1svg');
+const X0 = 220, XP = 1300, XE = 1540, YB = 860, ys = v => YB - v / 3.5 * 500;
+const ACC = (() => {
+  const r = rng(240), s = [], N = 90;
+  for (let i = 0; i <= N; i++) { let v = 0.2 + 2.78 * Math.pow(i / N, 2.1); if (i > 1 && i < N) v *= 1 + (r() - 0.5) * 0.14; s.push([X0 + i * (XP - X0) / N, v]); }
+  s[N][1] = 2.98;
+  const c = [2.98, 2.71, 2.84, 2.40, 2.05, 2.22, 1.71, 1.32, 1.47, 1.02, 0.66, 0.79, 0.41, 0.18, 0.06, 0].map((v, j) => [XP + j * (XE - XP) / 15, v]);
+  return { rise: s, crash: c };
+})();
+const pathOf = pts => 'M' + pts.map(([x, v]) => `${x.toFixed(1)},${ys(v).toFixed(1)}`).join('L');
+const n1band = svgEl(n1, 'rect', { x: XP, y: 330, width: XE - XP, height: YB - 330, fill: 'var(--shade)' });
+const n1bandT = text(n1, (XP + XE) / 2, 356, '4 周', { 'text-anchor': 'middle', class: 'big', style: 'font-size:34px;fill:var(--red)' });
+const n1grid = [0, 1, 2, 3].map(v => line(n1, X0 - 20, ys(v), 1640, ys(v), { stroke: v ? 'var(--grid)' : 'var(--ink)', 'stroke-width': v ? 1.5 : 2 }));
+const n1yl = [0, 1, 2, 3].map(v => text(n1, X0 - 30, ys(v) + 7, v ? `${v} 亿₩` : '0', { 'text-anchor': 'end' }));
+const n1xl = [[X0, '入市'], [XP, '数月后 · 峰值'], [XE, '4 周后']].map(([x, s], i) => text(n1, x, YB + 36, s, { 'text-anchor': i ? 'middle' : 'start' }));
+const n1rise = svgEl(n1, 'path', { d: pathOf(ACC.rise), pathLength: 1, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 4, 'stroke-linejoin': 'round' });
+const n1crash = svgEl(n1, 'path', { d: pathOf(ACC.crash), pathLength: 1, fill: 'none', stroke: 'var(--red)', 'stroke-width': 4.5, 'stroke-linejoin': 'round' });
+const n1lead = [line(n1, X0, ys(0.2) - 10, 250, 690), line(n1, XP, ys(2.98) - 12, 1080, 360), line(n1, XE + 6, YB - 6, 1574, 770, { stroke: 'var(--red)' })];
+const n1dots = [[X0, 0.2, 'var(--ink)'], [XP, 2.98, 'var(--ink)'], [XE, 0, 'var(--red)']].map(([x, v, c]) => svgEl(n1, 'circle', { cx: x, cy: ys(v), r: 9, fill: c, stroke: 'var(--paper)', 'stroke-width': 3 }));
+const n1head = svgEl(n1, 'circle', { r: 7, fill: 'var(--ink)' });
+function N1(t) {
+  headerIn('n1', t, 0.2);
+  n1grid.forEach((g, i) => draw(g, prog(t, 0.8 + i * 0.08, 1.6 + i * 0.08, ease.inOut)));
+  [...n1yl, ...n1xl].forEach(e => e.style.opacity = prog(t, 1.3, 1.7, ease.lin));
+  const kr = prog(t, 2.0, 9.0, ease.inOut), kc = prog(t, 10.0, 12.0, ease.in2);
+  draw(n1rise, kr); draw(n1crash, kc);
+  const head = kc > 0 ? n1crash.getPointAtLength(n1crash.getTotalLength() * kc) : n1rise.getPointAtLength(n1rise.getTotalLength() * kr);
+  n1head.setAttribute('cx', head.x); n1head.setAttribute('cy', head.y);
+  n1head.style.fill = kc > 0 ? 'var(--red)' : 'var(--ink)';
+  n1head.style.opacity = kr > 0 && kc < 1 ? 1 : 0;
+  const band = prog(t, 9.6, 10.0, ease.lin);
+  n1band.style.opacity = band; n1bandT.style.opacity = band;
+  n1dots[0].style.opacity = prog(t, 2.0, 2.2, ease.lin);
+  [[0, 2.6, 'n1a'], [1, 9.2, 'n1b'], [2, 12.3, 'n1c']].forEach(([i, a, id]) => {
+    draw(n1lead[i], prog(t, a, a + 0.35, ease.inOut));
+    if (i) n1dots[i].style.opacity = prog(t, a - 0.1, a, ease.lin);
+    up($(id), t, a + 0.25);
+  });
+  $('n1n').style.opacity = prog(t, 13.4, 13.9, ease.lin);
+}
+
+/* ---------- N2 ---------- */
+const UNITS = [];
+for (let i = 0; i < 14; i++) {
+  const u = document.createElement('div');
+  u.className = 'unit a';
+  u.style.left = `${220 + i * 106}px`; u.style.top = '400px';
+  u.innerHTML = `<span class="mono" style="position:absolute;left:0;right:0;top:100px;text-align:center;font-size:20px;color:var(--ink2)">${i + 1}</span>`;
+  $('n2units').appendChild(u); UNITS.push(u);
+}
+const n2 = $('n2svg'), n2R = 220 + 13 * 106 + 88;
+const n2br = svgEl(n2, 'path', { d: `M220,548 L220,566 L${n2R},566 L${n2R},548 M${(220 + n2R) / 2},566 L${(220 + n2R) / 2},584`, pathLength: 1, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 });
+function N2(t) {
+  headerIn('n2', t, 17.2);
+  UNITS.forEach((u, i) => {
+    const a = 18.2 + i * 0.32;
+    u.style.opacity = prog(t, a - 0.6, a - 0.3, ease.lin) * 0.999 + 0.001;
+    u.style.background = t >= a ? 'var(--ink)' : 'transparent';
+    u.firstChild.style.opacity = prog(t, a - 0.6, a - 0.3, ease.lin);
+    tf(u, { s: t >= a && t < a + 0.12 ? 1.06 : 1, o: prog(t, 17.6, 18.0, ease.lin) });
+  });
+  draw(n2br, prog(t, 23.0, 23.6, ease.inOut));
+  up($('n2y'), t, 23.4);
+  up($('n2more'), t, 25.4);
+  $('n2more').querySelectorAll('.pill').forEach((p, i) => { p.style.opacity = prog(t, 25.6 + i * 0.35, 25.9 + i * 0.35, ease.lin); });
+  $('n2n').style.opacity = prog(t, 27.6, 28.1, ease.lin);
+}
+
+/* ---------- N3 ---------- */
+const n3 = $('n3svg'), B0 = 860, yv = v => B0 - v * 100;
+const n3grid = [1, 2, 3, 4, 5].map(v => line(n3, 600, yv(v), 1300, yv(v), { stroke: 'var(--grid)' }));
+const n3gl = [0, 1, 2, 3, 4, 5].map(v => text(n3, 580, yv(v) + 7, String(v), { 'text-anchor': 'end' }));
+const n3base = line(n3, 600, B0, 1300, B0, { 'stroke-width': 2.5 });
+const n3a = svgEl(n3, 'rect', { x: 700, width: 200, fill: '#c9c4b8' });
+const n3atop = line(n3, 700, yv(2), 900, yv(2), { stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-dasharray': '10 8' });
+const n3b = svgEl(n3, 'rect', { x: 1020, width: 200, fill: 'var(--red)' });
+const n3lead = line(n3, 1225, yv(4.19) + 4, 1294, 450);
+function N3(t) {
+  headerIn('n3', t, 31.2);
+  n3grid.forEach((g, i) => draw(g, prog(t, 31.8 + i * 0.06, 32.5 + i * 0.06, ease.inOut)));
+  n3gl.forEach(e => e.style.opacity = prog(t, 32.2, 32.6, ease.lin));
+  draw(n3base, prog(t, 31.8, 32.4, ease.inOut));
+  const ka = prog(t, 33.0, 33.8, ease.out), kb = prog(t, 34.4, 36.4, ease.inOut);
+  n3a.setAttribute('y', yv(2 * ka)); n3a.setAttribute('height', 200 * ka);
+  n3b.setAttribute('y', yv(4.19 * kb)); n3b.setAttribute('height', 419 * kb);
+  n3atop.style.opacity = prog(t, 33.7, 33.9, ease.lin);
+  n3atop.style.strokeDasharray = '10 8';
+  up($('n3av'), t, 33.8); up($('n3al'), t, 33.2); up($('n3bl'), t, 34.6);
+  $('n3bv').textContent = (4.19 * kb).toFixed(2);
+  tf($('n3bv'), { y: 419 * (1 - kb), o: kb > 0.02 ? 1 : 0 });
+  draw(n3lead, prog(t, 37.0, 37.4, ease.inOut));
+  up($('n3x'), t, 37.3);
+  $('n3n').style.opacity = prog(t, 39.0, 39.5, ease.lin);
+}
+
+/* ---------- N4 ---------- */
+const n4 = $('n4svg'), AX = 1000, PX = 17.5;
+const n4ax = line(n4, AX, 380, AX, 700, { 'stroke-width': 2.5 });
+const n4b1 = svgEl(n4, 'rect', { x: AX, y: 418, height: 92, fill: 'var(--red)' });
+const n4tip = svgEl(n4, 'path', { d: '', fill: 'var(--red)' });
+const n4arr = svgEl(n4, 'path', { d: `M${AX},633 L${AX - 230},633`, pathLength: 1, fill: 'none', stroke: 'var(--blue)', 'stroke-width': 10, 'stroke-linecap': 'round' });
+const n4head = svgEl(n4, 'path', { d: `M${AX - 210},611 L${AX - 246},633 L${AX - 210},655`, fill: 'none', stroke: 'var(--blue)', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+const n4z = text(n4, AX, 372, '0', { 'text-anchor': 'middle' });
+const n4s = text(n4, AX + 40 * PX, 540, '40', { 'text-anchor': 'middle' });
+function N4(t) {
+  headerIn('n4', t, 45.2);
+  draw(n4ax, prog(t, 45.8, 46.3, ease.inOut)); n4z.style.opacity = prog(t, 46.0, 46.3, ease.lin);
+  up($('n4l1'), t, 46.2); up($('n4l2'), t, 46.5);
+  const k = prog(Math.floor(t * 15) / 15, 46.8, 48.6, ease.out), w = 40 * PX * k;
+  n4b1.setAttribute('width', w);
+  n4tip.setAttribute('d', k > 0.98 ? `M${AX + w},418 l18,15 l-12,15 l14,16 l-12,15 l14,16 l-22,15 Z` : '');
+  n4s.style.opacity = 0;
+  $('n4v1').textContent = `+${Math.round(40 * k)} 万亿₩${k > 0.98 ? ' 以上' : ''}`;
+  $('n4v1').style.opacity = k > 0.25 ? 1 : 0;
+  draw(n4arr, prog(t, 49.6, 50.3, ease.inOut)); n4head.style.opacity = prog(t, 50.2, 50.35, ease.lin);
+  up($('n4v2'), t, 50.4);
+  up($('n4box'), t, 52.6);
+  $('n4n').style.opacity = prog(t, 54.2, 54.7, ease.lin);
+}
+
+/* ---------- N5 ---------- */
+const n5 = $('n5svg'), PX0 = 260, PX1 = 1500, PY0 = 860, PY1 = 360;
+const px = d => PX0 + d / 25 * (PX1 - PX0), py = l => PY0 - l / 100 * (PY0 - PY1);
+const n5grid = [25, 50, 75, 100].map(l => line(n5, PX0, py(l), PX1, py(l), { stroke: l === 100 ? 'var(--ink)' : 'var(--grid)', 'stroke-dasharray': l === 100 ? '8 8' : '' }));
+const n5gl = [0, 25, 50, 75, 100].map(l => text(n5, PX0 - 18, py(l) + 7, `−${l}%`.replace('−0%', '0'), { 'text-anchor': 'end' }));
+const n5xl = [0, 5, 10, 15, 20, 25].map(d => text(n5, px(d), PY0 + 34, d ? `−${d}%` : '0', { 'text-anchor': 'middle' }));
+const n5axT = [text(n5, PX1, PY0 + 74, '股价跌幅 →', { 'text-anchor': 'end' }), text(n5, PX0 - 18, PY1 - 26, '本金亏损', { 'text-anchor': 'end' }), text(n5, PX1, py(100) - 14, '本金归零', { 'text-anchor': 'end', style: 'fill:var(--ink)' })];
+const n5base = line(n5, PX0, PY0, PX1, PY0, { 'stroke-width': 2.5 });
+const LEV = [[1, '#b9b4a9', 3], [2, '#999488', 3], [3, '#6f6b62', 3], [5, 'var(--red)', 5.5]];
+const n5lines = LEV.map(([m, c, w]) => { const dEnd = Math.min(25, 100 / m); return svgEl(n5, 'path', { d: `M${px(0)},${py(0)} L${px(dEnd)},${py(m * dEnd)}`, pathLength: 1, fill: 'none', stroke: c, 'stroke-width': w, 'stroke-linecap': 'round' }); });
+const n5lab = LEV.map(([m, c]) => { const dEnd = Math.min(25, 100 / m); return text(n5, px(dEnd) + (m === 5 ? -8 : 14), py(m * dEnd) + (m === 5 ? -18 : 8), `${m}×`, { class: 'big', 'text-anchor': m === 5 ? 'end' : 'start', style: `font-size:34px;fill:${c}` }); });
+const n5guide = svgEl(n5, 'path', { fill: 'none', stroke: 'var(--red)', 'stroke-width': 1.5, 'stroke-dasharray': '5 6' });
+const n5dot = svgEl(n5, 'circle', { r: 11, fill: 'var(--red)', stroke: 'var(--paper)', 'stroke-width': 4 });
+function N5(t) {
+  headerIn('n5', t, 58.2);
+  n5grid.forEach((g, i) => draw(g, prog(t, 58.8 + i * 0.07, 59.5 + i * 0.07, ease.inOut)));
+  draw(n5base, prog(t, 58.8, 59.4, ease.inOut));
+  [...n5gl, ...n5xl, ...n5axT].forEach(e => e.style.opacity = prog(t, 59.2, 59.6, ease.lin));
+  n5lines.forEach((l, i) => { const a = i < 3 ? 59.6 + i * 0.4 : 61.2; draw(l, prog(t, a, a + (i < 3 ? 0.7 : 1.1), ease.inOut)); n5lab[i].style.opacity = prog(t, a + 0.6, a + 0.9, ease.lin); });
+  const d = 10 * prog(t, 63.0, 63.6, ease.inOut) + 5 * prog(t, 65.6, 66.1, ease.inOut) + 5 * prog(t, 68.0, 68.5, ease.inOut);
+  const on = prog(t, 62.6, 62.9, ease.lin);
+  n5dot.setAttribute('cx', px(d)); n5dot.setAttribute('cy', py(5 * d)); n5dot.style.opacity = on;
+  n5guide.setAttribute('d', `M${px(d)},${PY0} L${px(d)},${py(5 * d)} L${PX0},${py(5 * d)}`); n5guide.style.opacity = on * (d > 0.2 ? 1 : 0);
+  const dp = Math.round(d);
+  $('n5d').textContent = `−${dp}%`; $('n5e').textContent = `−${Math.min(100, dp * 5)}%`;
+  $('n5read').style.opacity = on;
+  $('n5n').style.opacity = prog(t, 69.4, 69.9, ease.lin);
+}
+
+/* ---------- N6 ---------- */
+const n6 = $('n6svg'), CX = 760, CY = 640, RR = 250;
+const arc = (a0, a1) => { const p = a => [CX + Math.cos(a) * RR, CY + Math.sin(a) * RR]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0.toFixed(1)},${y0.toFixed(1)} A${RR},${RR} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`; };
+const D2R = Math.PI / 180;
+const n6arcs = [[-62, -28], [28, 62], [118, 152], [208, 242]].map(([a, b]) => svgEl(n6, 'path', { d: arc(a * D2R, b * D2R), pathLength: 1, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3, 'marker-end': '' }));
+const n6heads = [[-28], [62], [152], [242]].map(([b]) => { const a = b * D2R, x = CX + Math.cos(a) * RR, y = CY + Math.sin(a) * RR, ang = (b + 90); return svgEl(n6, 'path', { d: 'M-10,-9 L4,0 L-10,9', fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3, transform: `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${ang})` }); });
+const n6ring = svgEl(n6, 'circle', { cx: CX, cy: CY, r: RR, fill: 'none', stroke: 'var(--grid)', 'stroke-width': 2 });
+n6.insertBefore(n6ring, n6.firstChild);
+const n6dot = svgEl(n6, 'circle', { r: 12, fill: 'var(--red)' });
+const DOTS = [];
+for (let r = 0; r < 8; r++) for (let c = 0; c < 14; c++) {
+  const d = document.createElement('div');
+  d.className = 'dotg a';
+  d.style.left = `${1300 + c * 34}px`; d.style.top = `${430 + r * 34}px`;
+  $('n6dots').appendChild(d); DOTS.push(d);
+}
+const DORDER = DOTS.map((d, i) => [d, hash(i * 1.7)]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+// loop phase: accelerates lap after lap
+const phaseAt = t => { const s = Math.max(0, t - 78.6); return s * 0.42 + s * s * 0.045; };
+function N6(t) {
+  headerIn('n6', t, 74.2);
+  [['n6a', 75.0], ['n6b', 75.6], ['n6c', 76.2], ['n6d', 76.8]].forEach(([id, a]) => up($(id), t, a, 0.4, 10));
+  n6ring.style.opacity = prog(t, 74.8, 75.2, ease.lin);
+  n6arcs.forEach((p, i) => { draw(p, prog(t, 75.3 + i * 0.6, 75.7 + i * 0.6, ease.inOut)); n6heads[i].style.opacity = prog(t, 75.65 + i * 0.6, 75.7 + i * 0.6, ease.lin); });
+  const ph = phaseAt(t), a = (-90 + ph * 360) * D2R;
+  n6dot.setAttribute('cx', CX + Math.cos(a) * RR); n6dot.setAttribute('cy', CY + Math.sin(a) * RR);
+  n6dot.style.opacity = prog(t, 78.4, 78.6, ease.lin);
+  // node ③ flashes red each time the dot passes it
+  const near = Math.abs(((ph % 1) + 1) % 1 - 0.5) < 0.07 && t > 78.6;
+  $('n6c').style.background = near ? 'var(--red)' : 'var(--paper)'; $('n6c').style.color = near ? '#fff' : 'var(--ink)';
+  $('n6c').querySelector('small').style.color = near ? '#fff' : 'var(--ink2)';
+  up($('n6t'), t, 77.4);
+  const lit = Math.floor(clamp(ph / 6.5) * DOTS.length);
+  DORDER.forEach((d, i) => {
+    d.style.opacity = prog(t, 77.6, 78.0, ease.lin);
+    d.style.background = i < lit ? 'var(--red)' : 'transparent';
+    d.style.borderColor = i < lit ? 'var(--red)' : 'var(--ink3)';
+  });
+  $('n6n').style.opacity = prog(t, 80.0, 80.5, ease.lin);
+}
+
+/* ---------- N7 ---------- */
+function N7(t) {
+  up($('n7a'), t, 86.4, 0.7, 18); up($('n7b'), t, 87.3, 0.7, 18);
+  up($('n7c'), t, 89.4, 0.7, 12); up($('n7d'), t, 91.4, 0.7, 8);
+}
+
+const SC = [['n1', 0, 17, N1], ['n2', 17, 31, N2], ['n3', 31, 45, N3], ['n4', 45, 58, N4], ['n5', 58, 74, N5], ['n6', 74, 86, N6], ['n7', 86, 97, N7]];
+const DUR = 97;
+E.mount({
+  duration: DUR, grain: 0.045, weave: 0, dust: false, flicker: 0,
+  chapters: SC.map(([id, a]) => [a, id.toUpperCase()]),
+  render(t) {
+    $('prog').style.width = `${1920 * t / DUR}px`;
+    for (const [id, a, b, fn] of SC) {
+      const on = t >= a && t < b;
+      show($(id), on);
+      if (on) { fn(t); $(id).style.opacity = b === DUR ? prog(t, a, a + 0.3, ease.lin) : win(t, a, b, 0.35); }
+    }
+  },
+});
+</script>
+</body>
+</html>
