@@ -155,8 +155,7 @@ export default function HallOfFame() {
           </p>
           {canManage && (
             <p className="text-sm">
-              If this is the first setup, run migration 0017 in Supabase SQL
-              Editor, then reload.
+              Apply migrations 0017 and 0057 in Supabase SQL Editor, then reload.
             </p>
           )}
         </div>
@@ -180,6 +179,7 @@ export default function HallOfFame() {
             key={category.id}
             department={department}
             category={category.name}
+            awardType={category.award_type ?? "individual"}
             monthLabel={format(month, "MMMM yyyy")}
             entries={(winners.data ?? [])
               .filter((w) => w.category_id === category.id)
@@ -188,9 +188,11 @@ export default function HallOfFame() {
                 user_id: w.user_id,
                 achievement: w.achievement,
                 username: w.holder?.username ?? null,
+                role: w.holder?.role ?? null,
                 avatar_url: w.holder?.avatar_url ?? null,
                 active_border: w.holder?.active_border ?? null,
                 active_accessory: w.holder?.active_accessory ?? null,
+                team_members: w.team_members ?? [],
               }))}
           />
         ))

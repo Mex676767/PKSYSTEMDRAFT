@@ -35,11 +35,12 @@ function CelestialMap() {
 type DepartmentPodiumProps = {
   department: string;
   category: string;
+  awardType: "individual" | "team";
   entries: HofPodiumEntry[];
   monthLabel?: string;
 };
 
-export function DepartmentPodium({ department, category, entries, monthLabel }: DepartmentPodiumProps) {
+export function DepartmentPodium({ department, category, awardType, entries, monthLabel }: DepartmentPodiumProps) {
   return (
     <section aria-label={`${department} ${category} podium`} className="hof-celestial-shell">
       <CelestialMap />
@@ -48,8 +49,8 @@ export function DepartmentPodium({ department, category, entries, monthLabel }: 
         <p>✦ Monthly KPI spotlight</p>
         <h2>{department} · {monthLabel}</h2>
         <span>Celebrating this month&apos;s standout performers</span>
-        <div className="hof-celestial-tags" aria-label="Award details">
-          <b>{department}</b><b>{category}</b>{monthLabel && <b>{monthLabel}</b>}
+        <div className="hof-celestial-tags" aria-label="Award category">
+          <b>{category}</b>
         </div>
       </header>
 
@@ -59,26 +60,49 @@ export function DepartmentPodium({ department, category, entries, monthLabel }: 
         <div className="hof-celestial-scroll">
           <div className="hof-celestial-podium">
             {[2, 1, 3].map((rank) => {
-              const entry = entries.find((person) => person.rank === rank);
+              const rankedEntries = entries.filter((person) => person.rank === rank);
+              const lead = rankedEntries[0];
               const winner = rank === 1;
               return (
                 <article key={rank} data-rank={rank} className={cn("hof-celestial-place", winner && "is-winner")}>
-                  {entry ? (
+                  {rankedEntries.length ? (
                     <>
-                      <div className="hof-celestial-avatar-stage">
-                        {winner && <ChampionCrown />}
-                        <UserAvatar
-                          user={{ name: entry.username ?? "Team member", initials: initialsForUsername(entry.username ?? "?"), color: colorForId(entry.user_id) }}
-                          photoUrl={entry.avatar_url}
-                          border={entry.active_border}
-                          accessory={entry.active_accessory}
-                          reserveSpace={false}
-                          className={cn("hof-celestial-avatar", winner && "is-winner")}
-                        />
+                      <div className={cn("hof-celestial-people", awardType === "individual" && rankedEntries.length > 1 && "is-tied")}>
+                        {rankedEntries.map((entry) => (
+                          <div className="hof-celestial-person" key={entry.user_id}>
+                            <div className="hof-celestial-avatar-stage">
+                              {winner && <ChampionCrown />}
+                              <UserAvatar
+                                user={{ name: entry.username ?? "Team member", initials: initialsForUsername(entry.username ?? "?"), color: colorForId(entry.user_id) }}
+                                photoUrl={entry.avatar_url}
+                                border={entry.active_border}
+                                accessory={entry.active_accessory}
+                                reserveSpace={false}
+                                className={cn("hof-celestial-avatar", winner && "is-winner", rankedEntries.length > 1 && "is-tied-avatar")}
+                              />
+                            </div>
+                            <h3>{entry.username ?? "Team member"}</h3>
+                            {awardType === "team" && <p className="hof-celestial-lead-role">{entry.role || "ATL/TL"}</p>}
+                          </div>
+                        ))}
                       </div>
-                      <h3>{entry.username ?? "Team member"}</h3>
-                      <p className="hof-celestial-place-name">{places[rank]}</p>
-                      <p className="hof-celestial-achievement">{entry.achievement}</p>
+                      <p className="hof-celestial-place-name">
+                        {awardType === "individual" && rankedEntries.length > 1 ? "Tied " : ""}{places[rank]}
+                      </p>
+                      <p className="hof-celestial-achievement">{lead.achievement}</p>
+                      {awardType === "team" && !!lead.team_members?.length && (
+                        <div className="hof-celestial-team" aria-label={`${lead.team_members.length} team members`}>
+                          <span className="hof-celestial-team-heading">Team members</span>
+                          <ul>
+                            {lead.team_members.map((member) => (
+                              <li key={member.user_id}>
+                                <strong>@{member.username ?? "Former member"}</strong>
+                                <small>Team member</small>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="hof-celestial-unclaimed"><span>{places[rank]}</span><b>Unclaimed</b></div>

@@ -5,11 +5,22 @@ export type HofPodiumEntry = {
   rank: number;
   user_id: string;
   username: string | null;
+  role?: string | null;
   avatar_url: string | null;
   active_border: string | null; active_accessory?: string | null;
   achievement: string;
+  team_members?: HofTeamMember[];
 };
-export type AwardCategory = { id: string; department: string; name: string };
+export type HofTeamMember = {
+  user_id: string;
+  username: string | null;
+};
+export type AwardCategory = {
+  id: string;
+  department: string;
+  name: string;
+  award_type: "individual" | "team";
+};
 export type AwardWinner = {
   id: string;
   category_id: string;
@@ -17,8 +28,11 @@ export type AwardWinner = {
   rank: number;
   user_id: string;
   achievement: string;
+  team_member_ids: string[];
+  team_members: HofTeamMember[];
   holder: {
     username: string | null;
+    role: string | null;
     avatar_url: string | null;
     active_border: string | null; active_accessory?: string | null;
   } | null;
@@ -27,6 +41,7 @@ export type WinnerInput = {
   rank: number;
   user_id: string;
   achievement: string;
+  team_member_ids: string[];
 };
 export type DeletionLog = {
   id: string;
@@ -104,11 +119,31 @@ export function useAwardWinners(month: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hof_award_winners")
-        .select("*, holder:profiles!user_id(username,avatar_url,active_border, active_accessory)")
+        .select("*, holder:profiles!user_id(username,role,avatar_url,active_border,active_accessory)")
         .eq("month", month)
         .order("rank");
       if (error) throw error;
-      return data as unknown as AwardWinner[];
+      const rows = data as unknown as (Omit<AwardWinner, "team_members"> & { team_members?: HofTeamMember[] })[];
+      const memberIds = [...new Set(rows.flatMap((winner) => winner.team_member_ids ?? []))];
+      if (memberIds.length === 0) {
+        return rows.map((winner) => ({ ...winner, team_member_ids: winner.team_member_ids ?? [], team_members: [] })) as AwardWinner[];
+      }
+
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", memberIds);
+      if (profileError) throw profileError;
+
+      const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+      return rows.map((winner) => ({
+        ...winner,
+        team_member_ids: winner.team_member_ids ?? [],
+        team_members: (winner.team_member_ids ?? []).flatMap((user_id) => {
+          const profile = profileById.get(user_id);
+          return profile ? [{ user_id, username: profile.username }] : [];
+        }),
+      })) as AwardWinner[];
     },
   });
 }
@@ -132,7 +167,7 @@ export function useManageAwards() {
   return useMutation({
     mutationFn: async (
       action:
-        | { type: "category"; id?: string; department: string; name: string }
+        | { type: "category"; id?: string; department: string; name: string; award_type: "individual" | "team" }
         | { type: "delete"; id: string }
         | {
             type: "winners";
@@ -163,6 +198,7 @@ export function useManageAwards() {
         const values = {
           department: action.department,
           name: action.name.trim(),
+          award_type: action.award_type,
         };
         const query = action.id
           ? supabase
