@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Bebas+Neue&family=Oswald:wght@500;700&family=Playfair+Display:wght@600;800&family=Montserrat:wght@500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Patrick+Hand&family=Kalam:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Serif+SC:wght@700&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Long+Cang&display=swap" rel="stylesheet">
 <style>
 /* Layout: header bar / [viewport + timeline | inspector dock]. Bloomberg-style HUD on carbon slate. */
 :root{
@@ -143,6 +144,11 @@ input[type=color]::-webkit-color-swatch{border:0;border-radius:3px}
 .ib-t{font:600 8px var(--mono);color:var(--mute);letter-spacing:.08em}
 .ob{height:auto;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .ob span{font:600 8px/1.1 var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+.zoombar{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:8px;background:rgba(8,10,14,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.zoombar button{min-width:30px;height:28px;border:0;border-radius:5px;background:transparent;color:var(--fg-2);font:700 12px var(--mono);cursor:pointer;padding:0 6px}
+.zoombar button:hover{background:rgba(0,242,254,.12);color:var(--cyan)}
+#zoomv{min-width:52px;font-size:10.5px;color:var(--fg)}
+.inline-edit{position:absolute;z-index:8;background:rgba(8,10,14,.94);color:#F8FAFC;border:1.5px solid var(--cyan);border-radius:6px;padding:6px 8px;font-family:var(--sans),'Noto Sans SC','PingFang SC',sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.6);resize:both}
 .count-badge{display:inline-flex;align-items:center;gap:6px;font:700 10px var(--mono);color:var(--cyan);letter-spacing:.1em;border:1px solid rgba(0,242,254,.4);border-radius:20px;padding:4px 10px;background:rgba(0,242,254,.06)}
 
 .list{display:flex;flex-direction:column;gap:3px}
@@ -241,6 +247,7 @@ input[type=color]::-webkit-color-swatch{border:0;border-radius:3px}
         <canvas id="view" aria-label="Motion graphics viewport"></canvas>
         <div class="stage-banner" id="banner" hidden></div>
         <div id="drop" hidden>DROP PNG / VIDEO TO ADD LAYER</div>
+        <div class="zoombar" id="zoombar" title="Hold Space and drag to pan"><button data-z="out" title="Zoom out (−)" aria-label="Zoom out">−</button><button data-z="reset" id="zoomv" title="Reset zoom to 100%">100%</button><button data-z="in" title="Zoom in (+)" aria-label="Zoom in">+</button><button data-z="fit" title="Frame all (0)">FIT</button></div>
       </div>
       <div id="timeline">
         <div class="transport">
@@ -348,7 +355,7 @@ function parseRows(str) {
 }
 function rr(c, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function distToSeg(px, py, ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy; let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0; t = clamp(t, 0, 1); return Math.hypot(px - (ax + dx * t), py - (ay + dy * t)); }
-const fontStack = f => f === 'JetBrains Mono' ? '"JetBrains Mono", ui-monospace, monospace' : f === 'Playfair Display' ? '"Playfair Display", Georgia, serif' : `"${f}", Inter, system-ui, sans-serif`;
+const fontStack = f => f === 'JetBrains Mono' ? '"JetBrains Mono", "Noto Sans SC", ui-monospace, monospace' : f === 'Playfair Display' ? '"Playfair Display", "Noto Serif SC", Georgia, serif' : ['Caveat', 'Patrick Hand', 'Kalam'].includes(f) ? `"${f}", "Long Cang", "ZCOOL KuaiLe", cursive` : `"${f}", Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`;
 
 /* =====================================================================
    THEMES (16) — each remaps the six semantic tags and every surface
@@ -492,7 +499,7 @@ function makeMedia(o = {}) {
 function makeOverlay(o = {}) {
   const base = { id: uid('o_'), type: 'text', name: '', nx: .06, ny: .72, in: 1, dur: 1.2, out: 0, anim: 'slide-up', visible: true, locked: false, color: '', };
   const byType = {
-    text: { text: 'YOUR HEADLINE HERE', font: 'Inter', size: 56, weight: 800, align: 'left', ls: 1, lineH: 1.15, box: false, boxColor: '#080A0E', boxOpacity: .72, glow: true, accent: true, maxW: 1400 },
+    text: { text: 'YOUR HEADLINE HERE', font: 'Inter', size: 56, weight: 800, align: 'left', ls: 1, lineH: 1.15, box: false, boxColor: '#080A0E', boxOpacity: .72, radius: 6, glow: true, accent: true, maxW: 1400, italic: false, stroke: false, strokeColor: '#000000', strokeW: 4, highlight: '', note: false, noteColor: '#FEF08A', rot: 0, shadow: false },
     chart: { title: 'GPU MARKET SHARE', chartType: 'hbar', icon: 'chip', data: 'NVIDIA: 88\nAMD: 8\nINTEL: 2\nOTHER: 2', prefix: '', suffix: '%', decimals: 0, w: 620, h: 340, showValues: true, multi: true, anim: 'fade', nx: .62, ny: .16 },
     counter: { label: 'TOTAL AI CAPEX 2025', from: 0, to: 4.2e11, prefix: '$', suffix: '', decimals: 1, compact: true, size: 96, font: 'JetBrains Mono', ease: 'ease', anim: 'fade', nx: .06, ny: .58, dur: 3 },
   };
@@ -503,7 +510,7 @@ function defaultSettings() {
     design: { theme: 'carbon', card: 'glass', pipe: 'bezier', entrance: 'pop', entranceAt: .3, entranceDur: .8, stagger: .22, pipeIn: 'grow', pipeInDur: 1.1, counter: 'ease', look: 'clean', display: 'card', objectStyle: 'natural', labelStyle: 'chip', pipeSkin: 'neon', view: '3d' },
     flow: { speed: 260, density: 1, dashLen: 14, dashGap: 22, pulse: 1, style: 'mixed', direction: 'forward',
             pipeWidth: 2, glow: 1, anchor: 'floor', labels: true, arrows: true, widthByRate: false,
-            drain: false, drainAccel: 2.4, drainSmooth: 2.2, criticalRunway: 6, tremor: 1, tremorFreq: 22, rgbSplit: true,
+            drain: false, drainAccel: 2.4, drainSmooth: 2.2, criticalRunway: 6, tremor: 1, tremorFreq: 22, rgbSplit: true, endArrow: false, iconVary: 'none',
             icon: 'bill', iconSize: 28, iconMotion: 'upright', iconTint: false, iconTrail: true, iconHalo: true },
     camera: { pitch: 52, yaw: 0, panX: 0, panZ: 0, zoom: 1, fov: 38, autoOrbit: false, orbitSpeed: 4, shake: .6 },
     grid: { show: true, style: 'grid', cell: 80, reach: 1700, major: 5, color: '#1E3A5F', opacity: .6, cursor: true, rings: true, snap: false, scroll: 0, wave: 40, mapSize: 2600, mapDot: 2.5 },
@@ -845,6 +852,47 @@ const PRESETS = {
     flow: { style: 'icon', icon: 'plane', iconMotion: 'align', iconSize: 34, iconHalo: false, iconTrail: false, arrows: false, speed: 200 },
     fx: { title: 'WHERE TRAVEL MONEY GOES', subtitle: '1.4 billion trips a year, flat 2D view', titleIn: .6, titleOut: 9, titleAnim: 'pop', vignette: .15, scanlines: 0, grain: 0, hud: false, corners: false, objectScale: 1.4 },
   }),
+  'simple-flow': () => ({
+    name: 'Simple 2D Flowchart',
+    nodes: [
+      { id: 'cus', title: 'CUSTOMERS', category: 'STEP 1', tag: 'cyan', x: -880, z: 0, value: 12400, valueFrom: 0, prefix: '', decimals: 0, showRunway: false, showFlow: false, chart: 'none' },
+      { id: 'sal', title: 'SALES', category: 'STEP 2', tag: 'emerald', x: -440, z: 0, value: 3100, valueFrom: 0, prefix: '', suffix: ' ORDERS', decimals: 0, showRunway: false, showFlow: false, chart: 'none' },
+      { id: 'rev', title: 'REVENUE', category: 'STEP 3', tag: 'amber', x: 0, z: 0, value: 4.6e6, valueFrom: 0, compact: true, decimals: 1, showRunway: false, showFlow: false, chart: 'none' },
+      { id: 'ops', title: 'OPERATIONS', category: 'COSTS', tag: 'crimson', x: 440, z: 260, value: 3.1e6, valueFrom: 0, compact: true, decimals: 1, showRunway: false, showFlow: false, chart: 'none' },
+      { id: 'pro', title: 'PROFIT', category: 'WHAT IS LEFT', tag: 'nvidia', x: 440, z: -260, value: 1.5e6, valueFrom: 0, compact: true, decimals: 1, showRunway: false, showFlow: false, chart: 'none' },
+      { id: 'inv', title: 'REINVEST', category: 'GROWTH', tag: 'purple', x: 880, z: -260, value: .9e6, valueFrom: 0, compact: true, decimals: 1, showRunway: false, showFlow: false, chart: 'none' },
+    ],
+    links: [
+      { from: 'cus', to: 'sal', label: 'BUY', tag: 'cyan', rate: 1, arc: 0 }, { from: 'sal', to: 'rev', label: 'PAY', tag: 'emerald', rate: 1, arc: 0 },
+      { from: 'rev', to: 'ops', label: 'SPEND', tag: 'crimson', rate: .8, arc: 0 }, { from: 'rev', to: 'pro', label: 'KEEP', tag: 'nvidia', rate: .8, arc: 0 }, { from: 'pro', to: 'inv', label: 'GROW', tag: 'purple', rate: .7, arc: 0 },
+    ],
+    camera: { pitch: 89, yaw: 0, panX: 0, panZ: 0, zoom: .82, fov: 38 }, keys: { camera: [], stress: [] },
+    design: { theme: 'studio', view: '2d', card: 'simple', display: 'card', pipeSkin: 'simple', pipe: 'circuit', entrance: 'fade', pipeIn: 'draw', stagger: .35 },
+    grid: { style: 'dots', opacity: .35, rings: false },
+    flow: { style: 'dots', endArrow: true, arrows: false, labels: true, speed: 180, pipeWidth: 2.2 },
+    fx: { title: 'HOW A BUSINESS MAKES MONEY', subtitle: 'Simple 2D flowchart · edit any box in the Node tab', titleIn: .4, titleOut: 0, titleAnim: 'fade', hud: false, legend: false, corners: false, vignette: 0, scanlines: 0, grain: 0, bloom: .2, bloomWide: .1, cardScale: 1.05, titleScale: .9 },
+  }),
+  'notes-zh': () => ({
+    name: '便利贴笔记 Sticky Notes (中文)',
+    nodes: [
+      { id: 'rev', title: '总收入', category: '收入来源', tag: 'cyan', x: -700, z: 120, value: 12, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'none', seed: 3 },
+      { id: 'cost', title: '运营成本', category: '支出', tag: 'crimson', x: -220, z: 300, value: 7.2, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'none', seed: 5 },
+      { id: 'pro', title: '净利润', category: '结余', tag: 'emerald', x: -220, z: -160, value: 3.1, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'pictogram', chartIcon: 'yen', seed: 7 },
+      { id: 'rd', title: '研发投入', category: '未来增长', tag: 'purple', x: 300, z: 300, value: 1.6, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'none', seed: 9 },
+      { id: 'mk', title: '市场营销', category: '获客', tag: 'amber', x: 300, z: -20, value: 1.2, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'none', seed: 11 },
+      { id: 'sh', title: '股东回报', category: '分红', tag: 'nvidia', x: 300, z: -330, value: .8, valueFrom: 0, prefix: '¥', suffix: '亿', decimals: 1, showRunway: false, showFlow: false, chart: 'none', seed: 13 },
+    ],
+    links: [
+      { from: 'rev', to: 'cost', label: '支付成本', tag: 'crimson', rate: 1.2 }, { from: 'rev', to: 'pro', label: '留存利润', tag: 'emerald', rate: .8 },
+      { from: 'cost', to: 'rd', label: '投入研发', tag: 'purple', rate: .7 }, { from: 'pro', to: 'mk', label: '再投资', tag: 'amber', rate: .6 }, { from: 'pro', to: 'sh', label: '分红', tag: 'nvidia', rate: .6 },
+    ],
+    camera: { pitch: 89, yaw: 0, panX: -100, panZ: 0, zoom: .9, fov: 38 }, keys: { camera: [], stress: [] },
+    design: { theme: 'notebook', view: '2d', card: 'note', display: 'card', pipeSkin: 'marker', pipe: 'bezier', entrance: 'drop', pipeIn: 'draw', stagger: .3 },
+    grid: { style: 'ruled', opacity: .6, rings: false },
+    flow: { style: 'icon', icon: 'yen', iconMotion: 'spin', iconSize: 24, iconHalo: false, iconTrail: false, endArrow: true, arrows: false, labels: true },
+    fx: { title: '公司的钱是怎么流动的？', subtitle: '一张便利贴看懂收入、成本与利润', titleIn: .4, titleOut: 0, titleAnim: 'typewriter', hud: false, legend: false, corners: false, vignette: 0, scanlines: 0, grain: 0, bloom: 0, bloomWide: 0, cardScale: 1.15 },
+    overlays: [{ type: 'text', text: '重点：利润只占三成！', font: 'Long Cang', weight: 400, size: 46, note: true, noteColor: '#FBCFE8', rot: 3, color: '#1F2937', glow: false, accent: false, nx: .7, ny: .62, in: 3, dur: 1, anim: 'pop' }],
+  }),
 };
 
 /* =====================================================================
@@ -943,6 +991,7 @@ function iconIsDir(id) { return !!(ICONS[id] && ICONS[id].dir); }
 // draws an icon (built-in id or 'asset:<id>' upload) centred at x,y with box size `size`
 function drawIcon(c, id, x, y, size, ang = 0, flip = 1, tint = null) {
   let img = null, iw = 1, ih = 1;
+  if (id && id.startsWith('mix:')) id = id.slice(4).split(',')[0].trim();
   if (id && id.startsWith('asset:')) { const a = assets.get(id.slice(6)); if (!a || !a.ready || (a.kind === 'video' && a.el.readyState < 2)) return false; img = a.el; iw = a.w; ih = a.h; }
   else { img = iconSprite(ICONS[id] ? id : 'bill', tint); iw = ih = 96; }
   const k = size / Math.max(iw, ih), w = iw * k, h = ih * k;
@@ -1434,6 +1483,178 @@ const VIEWS = [['3d', '3D perspective'], ['ortho', 'Orthographic'], ['2d', '2D f
 DESIGN_COUNT += ICON_IDS.length + OBJECT_IDS.length + OBJECT_STYLES.length + DISPLAYS.length + LABEL_STYLES.length + PIPE_SKINS.length + ICON_MOTIONS.length + VIEWS.length;
 
 /* =====================================================================
+   NOTES, SIMPLE 2D, FLOW RECIPES, STYLE PACKS, TEXT LIBRARY (EN / 中文)
+   ===================================================================== */
+const CJK_FALLBACK = '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif';
+const _fontReq = new Set();
+function ensureFont(fam, text = '', weight = 400) {
+  if (!document.fonts || !document.fonts.load || !fam) return;
+  const key = fam + '|' + weight + '|' + String(text).slice(0, 60); if (_fontReq.has(key)) return; _fontReq.add(key);
+  document.fonts.load(`${weight} 40px "${fam}"`, text || 'Aa').catch(() => {});
+}
+const hasCJK = s => /[　-鿿＀-￯]/.test(String(s || ''));
+
+THEMES.notebook = T('Notebook', '#FBF8F1', '#FFFFFF', '#B9CDEB', 'rgba(255,255,255,.95)', '#E5DED0', '#1F2937', '#6B7280', '#111827', ['#2563EB', '#16A34A', '#7C3AED', '#65A30D', '#DC2626', '#EA580C'], { light: true, chip: 'rgba(255,255,255,.95)' });
+THEMES.whiteboard = T('Whiteboard', '#FFFFFF', '#F8FAFC', '#E5E7EB', 'rgba(255,255,255,.96)', '#E5E7EB', '#111827', '#4B5563', '#0B0F17', ['#0EA5E9', '#22C55E', '#8B5CF6', '#84CC16', '#EF4444', '#F97316'], { light: true, chip: 'rgba(255,255,255,.95)' });
+THEMES.chalkboard = T('Chalkboard', '#1E2B23', '#2B3D31', '#33493B', 'rgba(30,43,35,.92)', '#3E5848', '#F1F5EE', '#A9BBAE', '#FFFFFF', ['#A5F3FC', '#BBF7D0', '#DDD6FE', '#D9F99D', '#FCA5A5', '#FED7AA']);
+CARD_STYLES.push(['simple', 'Simple box'], ['note', 'Sticky note'], ['paper', 'Index card'], ['whiteboard', 'Whiteboard']);
+const PAPERISH = new Set(['simple', 'note', 'paper', 'whiteboard']);
+PIPE_SKINS.splice(PIPE_SKINS.length - 1, 0, ['simple', 'Simple line'], ['sketch', 'Hand sketch'], ['marker', 'Marker']);
+FLOORS.splice(FLOORS.length - 1, 0, ['ruled', 'Ruled paper']);
+FONTS.push(['Noto Sans SC', '思源黑体 Noto Sans SC'], ['Noto Serif SC', '思源宋体 Noto Serif SC'], ['ZCOOL KuaiLe', '站酷快乐体 ZCOOL KuaiLe'], ['Ma Shan Zheng', '马善政毛笔 Ma Shan Zheng'], ['Long Cang', '龙藏手写 Long Cang'], ['ZCOOL XiaoWei', '站酷小薇 ZCOOL XiaoWei'], ['Caveat', 'Caveat (handwriting)'], ['Patrick Hand', 'Patrick Hand'], ['Kalam', 'Kalam (marker)']);
+const ICON_VARY = [['none', 'Same'], ['colors', 'Colors'], ['sizes', 'Sizes'], ['both', 'Both']];
+
+// one-click "what flows through the pipe" recipes
+const FLOW_RECIPES = [
+  ['cars-road', 'Cars on road', '公路车流', { skin: 'road', icon: 'mix:car,bus,truck', motion: 'align', size: 30, vary: 'colors', pipe: 'ground' }],
+  ['traffic', 'Rush-hour traffic', '高峰车流', { skin: 'road', icon: 'car', motion: 'align', size: 26, vary: 'colors', density: 2.4, pipe: 'ground' }],
+  ['money-tube', 'Money in a tube', '管道里的钱', { skin: 'tube', icon: 'mix:bill,usd,cash', motion: 'tumble', size: 28, vary: 'sizes' }],
+  ['cash-river', 'Cash river', '现金河流', { skin: 'water', icon: 'bill', motion: 'bounce', size: 30, density: 1.6 }],
+  ['coins', 'Coin stream', '硬币流', { skin: 'neon', icon: 'mix:usd,eur,yen,gbp', motion: 'spin', size: 24, density: 1.8 }],
+  ['dollar-signs', '$ signs', '美元符号', { skin: 'dotted', icon: 'dollar', motion: 'upright', size: 30 }],
+  ['crypto', 'Crypto flow', '加密货币', { skin: 'laser', icon: 'mix:btc,eth,usdt', motion: 'spin', size: 26 }],
+  ['gold', 'Gold transfer', '黄金运输', { skin: 'conveyor', icon: 'mix:gold,goldstack', motion: 'upright', size: 28 }],
+  ['cards', 'Card payments', '刷卡支付', { skin: 'dotted', icon: 'card', motion: 'tumble', size: 26 }],
+  ['ships', 'Shipping lanes', '海运航线', { skin: 'water', icon: 'mix:ship,tanker', motion: 'align', size: 40, pipe: 'ground' }],
+  ['sailing', 'Sailing', '帆船', { skin: 'water', icon: 'sailboat', motion: 'align', size: 34, pipe: 'ground' }],
+  ['flights', 'Flight routes', '航班航线', { skin: 'flight', icon: 'plane', motion: 'align', size: 34, pipe: 'arch' }],
+  ['rail', 'Rail freight', '铁路货运', { skin: 'rail', icon: 'train', motion: 'align', size: 34, pipe: 'ground' }],
+  ['trucks', 'Truck logistics', '卡车物流', { skin: 'road', icon: 'mix:truck,container', motion: 'align', size: 32, pipe: 'ground' }],
+  ['drones', 'Drone delivery', '无人机配送', { skin: 'flight', icon: 'mix:drone,crate', motion: 'bounce', size: 28, pipe: 'arch' }],
+  ['data', 'Data packets', '数据包', { skin: 'laser', icon: 'mix:packet,doc,mail', motion: 'upright', size: 24 }],
+  ['power', 'Electricity', '电力传输', { skin: 'cable', icon: 'bolt', motion: 'upright', size: 22, pipe: 'sag' }],
+  ['oil', 'Oil pipeline', '石油管道', { skin: 'pipe', icon: 'barrel', motion: 'upright', size: 24 }],
+  ['gas', 'Gas pipeline', '天然气管道', { skin: 'pipe', icon: 'flame', motion: 'upright', size: 22 }],
+  ['water', 'Water supply', '供水', { skin: 'tube', icon: 'drop', motion: 'bounce', size: 22, density: 1.6 }],
+  ['leaves', 'Falling leaves', '落叶', { skin: 'dotted', icon: 'mix:leaf,sprout', motion: 'tumble', size: 24 }],
+  ['fish', 'Fish migration', '鱼群洄游', { skin: 'water', icon: 'fish', motion: 'align', size: 26, vary: 'sizes', density: 1.6 }],
+  ['birds', 'Bird migration', '候鸟迁徙', { skin: 'none', icon: 'bird', motion: 'align', size: 26, vary: 'sizes', pipe: 'arch', density: 1.6 }],
+  ['people', 'People moving', '人流', { skin: 'simple', icon: 'mix:person,people', motion: 'bounce', size: 26, vary: 'colors' }],
+  ['shopping', 'Shopping', '购物消费', { skin: 'conveyor', icon: 'mix:cart,gift,tag', motion: 'upright', size: 26 }],
+  ['food', 'Food chain', '食物链', { skin: 'ribbon', icon: 'mix:apple,wheat,fish', motion: 'tumble', size: 24 }],
+  ['co2', 'Emissions', '碳排放', { skin: 'dotted', icon: 'co2', motion: 'tumble', size: 28 }],
+  ['chips', 'Chip supply', '芯片供应', { skin: 'conveyor', icon: 'mix:chip,cpu', motion: 'upright', size: 26 }],
+  ['rockets', 'Space launch', '火箭发射', { skin: 'flight', icon: 'rocket', motion: 'align', size: 30, pipe: 'arch' }],
+  ['plain-dots', 'Simple dots', '简单圆点', { skin: 'simple', style: 'dots' }],
+  ['plain-arrows', 'Simple arrows', '简单箭头', { skin: 'simple', style: 'arrows' }],
+  ['plain-dashes', 'Simple dashes', '简单虚线', { skin: 'simple', style: 'dashes' }],
+];
+function applyFlowRecipe(id, link) {
+  const r = (FLOW_RECIPES.find(x => x[0] === id) || [])[3]; if (!r) return;
+  const f = scene.flow, d = scene.design, st = r.style || 'icon';
+  if (link) { link.style = st === 'icon' ? 'inherit' : st; link.icon = st === 'icon' ? r.icon : 'inherit'; link.skin = r.skin; link.shape = r.pipe || 'inherit'; if (st === 'icon') { f.iconMotion = r.motion || f.iconMotion; f.iconVary = r.vary || 'none'; } }
+  else {
+    f.style = st; if (r.icon) f.icon = r.icon; if (r.motion) f.iconMotion = r.motion; if (r.size) f.iconSize = r.size; f.iconVary = r.vary || 'none'; f.density = r.density || 1;
+    d.pipeSkin = r.skin; if (r.pipe) d.pipe = r.pipe;
+    for (const l of scene.links) { l.icon = 'inherit'; l.skin = 'inherit'; l.style = 'inherit'; l.shape = 'inherit'; }
+  }
+  if (st === 'icon') f.iconHalo = !['road', 'water', 'rail', 'simple'].includes(r.skin) && f.iconHalo;
+  commit(); toast(`Flow: ${FLOW_RECIPES.find(x => x[0] === id)[1]}${link ? ' on this pipe' : ' on every pipe'}`);
+}
+
+// one-click whole-scene looks
+const STYLE_PACKS = [
+  ['cinematic', 'Cinematic HUD', '电影感 HUD', { theme: 'carbon', design: { view: '3d', card: 'glass', display: 'card', pipeSkin: 'neon', pipe: 'bezier', entrance: 'pop', pipeIn: 'grow' }, flow: { style: 'mixed', endArrow: false, arrows: true }, grid: { style: 'grid', show: true }, look: 'clean' }],
+  ['simple-2d', 'Simple 2D flowchart', '简洁 2D 流程图', { theme: 'studio', design: { view: '2d', card: 'simple', display: 'card', pipeSkin: 'simple', pipe: 'circuit', entrance: 'fade', pipeIn: 'draw' }, flow: { style: 'dots', endArrow: true, arrows: false }, grid: { style: 'dots', show: true, opacity: .35 }, look: 'minimal', clearIcons: true }],
+  ['sticky', 'Sticky notes', '便利贴', { theme: 'notebook', design: { view: '2d', card: 'note', display: 'card', pipeSkin: 'marker', pipe: 'bezier', entrance: 'drop', pipeIn: 'draw' }, flow: { style: 'dots', endArrow: true, arrows: false }, grid: { style: 'ruled', show: true, opacity: .6 }, look: 'minimal', clearIcons: true }],
+  ['whiteboard', 'Whiteboard sketch', '白板手绘', { theme: 'whiteboard', design: { view: '2d', card: 'whiteboard', display: 'card', pipeSkin: 'sketch', pipe: 'bezier', entrance: 'scan', pipeIn: 'draw' }, flow: { style: 'arrows', endArrow: true, arrows: false }, grid: { style: 'none', show: false }, look: 'minimal', clearIcons: true }],
+  ['chalk', 'Chalkboard', '黑板粉笔', { theme: 'chalkboard', design: { view: '2d', card: 'whiteboard', display: 'card', pipeSkin: 'sketch', pipe: 'bezier', entrance: 'fade', pipeIn: 'draw' }, flow: { style: 'dots', endArrow: true, arrows: false }, grid: { style: 'none', show: false }, look: 'minimal', clearIcons: true }],
+  ['paper', 'Paper report', '纸质报告', { theme: 'paper', design: { view: '2d', card: 'paper', display: 'card', pipeSkin: 'simple', pipe: 'straight', entrance: 'slide-up', pipeIn: 'grow' }, flow: { style: 'pulses', endArrow: true, arrows: false }, grid: { style: 'ruled', show: true, opacity: .45 }, look: 'crisp', clearIcons: true }],
+  ['corporate', 'Corporate clean', '商务简约', { theme: 'studio', design: { view: 'ortho', card: 'simple', display: 'card', pipeSkin: 'ribbon', pipe: 'bezier', entrance: 'slide-up', pipeIn: 'grow' }, flow: { style: 'icon', icon: 'mix:usd,bill', iconMotion: 'upright', endArrow: false }, grid: { style: 'dots', show: true, opacity: .4 }, look: 'broadcast' }],
+  ['cartoon', 'Kids cartoon', '卡通童趣', { theme: 'candy', design: { view: '2d', display: 'object', objectStyle: 'sticker', labelStyle: 'tag', pipeSkin: 'road', pipe: 'bezier', entrance: 'bounce-in', pipeIn: 'draw' }, flow: { style: 'icon', icon: 'mix:car,bus,truck', iconMotion: 'align', iconVary: 'colors', iconSize: 30 }, grid: { style: 'fields', show: true, opacity: .5 }, look: 'minimal' }],
+  ['blueprint', 'Blueprint', '蓝图', { theme: 'royal', design: { view: 'ortho', display: 'object', objectStyle: 'blueprint', card: 'outline', pipeSkin: 'laser', entrance: 'scan', pipeIn: 'draw' }, flow: { style: 'packets', endArrow: false }, grid: { style: 'grid', show: true }, look: 'crt' }],
+  ['newspaper', 'Newspaper', '报纸', { theme: 'paper', design: { view: '2d', display: 'object', objectStyle: 'outline', labelStyle: 'plain', pipeSkin: 'simple', entrance: 'fade', pipeIn: 'grow' }, flow: { style: 'dashes', endArrow: true }, grid: { style: 'none', show: false }, look: 'crisp', clearIcons: true }],
+  ['neon-night', 'Neon night', '霓虹夜景', { theme: 'neon', design: { view: '3d', card: 'neon', display: 'card', objectStyle: 'neon', pipeSkin: 'laser', entrance: 'glitch', pipeIn: 'flash' }, flow: { style: 'comets' }, grid: { style: 'terrain', show: true }, look: 'dreamy' }],
+  ['iso-city', 'Isometric city', '等距城市', { theme: 'arctic', design: { view: 'iso', display: 'object', objectStyle: 'natural', labelStyle: 'chip', pipeSkin: 'road', pipe: 'ground', entrance: 'rise', pipeIn: 'grow' }, flow: { style: 'icon', icon: 'mix:car,bus,truck', iconMotion: 'align', iconVary: 'colors' }, grid: { style: 'streets', show: true }, look: 'clean' }],
+];
+function applyStylePack(id) {
+  const p = (STYLE_PACKS.find(x => x[0] === id) || [])[3]; if (!p) return;
+  if (p.theme) applyTheme(p.theme);
+  Object.assign(scene.design, p.design || {}); Object.assign(scene.flow, p.flow || {}); Object.assign(scene.grid, p.grid || {});
+  if (p.look) applyLook(p.look);
+  for (const n of scene.nodes) { n.display = 'inherit'; n.cardStyle = 'inherit'; n.objectStyle = 'inherit'; }
+  for (const l of scene.links) { l.skin = 'inherit'; l.style = 'inherit'; l.shape = 'inherit'; if (p.clearIcons) l.icon = 'inherit'; }
+  if (scene.design.view === '2d') scene.camera.yaw = 0;
+  tl.seek(0); tl.playing = true; commit(); toast(`Style pack: ${STYLE_PACKS.find(x => x[0] === id)[1]}`);
+}
+
+// text style presets for text layers
+const NOTE_BASE = { font: 'Caveat', weight: 700, size: 46, note: true, color: '#1F2937', glow: false, accent: false, box: false, stroke: false, shadow: false, highlight: '' };
+const TEXT_STYLES = [
+  ['headline', 'Headline', { font: 'Inter', weight: 800, size: 60, glow: true, accent: true, box: false, note: false, stroke: false, highlight: '', shadow: false, italic: false, color: '', rot: 0 }],
+  ['neon', 'Neon glow', { font: 'Montserrat', weight: 900, size: 64, glow: true, accent: false, color: '#00F2FE', note: false, box: false, stroke: false, shadow: false }],
+  ['thumbnail', 'YouTube thumbnail', { font: 'Montserrat', weight: 900, size: 84, color: '#FDE047', stroke: true, strokeColor: '#000000', strokeW: 10, shadow: true, glow: false, accent: false, note: false, box: false }],
+  ['bigstat', 'Big number', { font: 'JetBrains Mono', weight: 700, size: 96, glow: true, accent: true, note: false, box: false, stroke: false }],
+  ['lower', 'Lower third', { font: 'Inter', weight: 700, size: 34, box: true, boxColor: '#080A0E', boxOpacity: .8, radius: 6, accent: true, glow: false, note: false, stroke: false }],
+  ['subtitle', 'Subtitle bar', { font: 'Inter', weight: 600, size: 36, box: true, boxColor: '#000000', boxOpacity: .72, radius: 6, align: 'center', nx: .5, ny: .84, glow: false, accent: false, color: '#FFFFFF', note: false, stroke: false }],
+  ['caption', 'Caption', { font: 'JetBrains Mono', weight: 400, size: 18, glow: false, accent: false, color: '', note: false, box: false, stroke: false }],
+  ['note', 'Sticky note', { ...NOTE_BASE, noteColor: '#FEF08A', rot: -3 }],
+  ['note-pink', 'Pink note', { ...NOTE_BASE, noteColor: '#FBCFE8', rot: 2.5 }],
+  ['note-blue', 'Blue note', { ...NOTE_BASE, noteColor: '#BFDBFE', rot: -1.5 }],
+  ['note-green', 'Green note', { ...NOTE_BASE, noteColor: '#BBF7D0', rot: 1.5 }],
+  ['hand', 'Handwritten', { font: 'Patrick Hand', weight: 400, size: 46, glow: false, accent: false, color: '', note: false, box: false, stroke: false }],
+  ['brush', '毛笔 Chinese brush', { font: 'Ma Shan Zheng', weight: 400, size: 84, glow: false, shadow: true, accent: false, note: false, box: false, stroke: false }],
+  ['cute', '可爱 Cute', { font: 'ZCOOL KuaiLe', weight: 400, size: 62, glow: false, accent: false, stroke: true, strokeColor: '#FFFFFF', strokeW: 7, color: '#EC4899', note: false, box: false, shadow: true }],
+  ['zh-bold', '中文粗体 Bold', { font: 'Noto Sans SC', weight: 900, size: 64, glow: true, accent: true, note: false, box: false, stroke: false }],
+  ['zh-serif', '宋体 Serif', { font: 'Noto Serif SC', weight: 700, size: 60, glow: false, accent: true, note: false, box: false, stroke: false }],
+  ['zh-hand', '手写 Handwriting', { font: 'Long Cang', weight: 400, size: 64, glow: false, accent: false, note: false, box: false, stroke: false }],
+  ['highlight', 'Marker highlight', { font: 'Inter', weight: 800, size: 52, highlight: '#FDE047', color: '#111827', glow: false, accent: false, note: false, box: false, stroke: false }],
+  ['outline', 'Outline', { font: 'Montserrat', weight: 900, size: 72, stroke: true, strokeColor: '#00F2FE', strokeW: 3, color: 'transparent', glow: false, accent: false, note: false, box: false }],
+  ['quote', 'Quote', { font: 'Playfair Display', weight: 600, size: 46, italic: true, glow: false, accent: true, note: false, box: false, stroke: false }],
+  ['terminal', 'Terminal', { font: 'JetBrains Mono', weight: 500, size: 30, color: '#4AF626', box: true, boxColor: '#000000', boxOpacity: .85, radius: 2, anim: 'typewriter', glow: true, accent: false, note: false, stroke: false }],
+  ['pill', 'Pill tag', { font: 'Inter', weight: 800, size: 24, box: true, boxColor: '#00F2FE', boxOpacity: 1, radius: 40, color: '#05070A', glow: false, accent: false, note: false, stroke: false }],
+  ['chapter', 'Chapter title', { font: 'Bebas Neue', weight: 400, size: 110, align: 'center', nx: .5, ny: .42, glow: true, accent: false, note: false, box: false, stroke: false }],
+];
+function applyTextStyle(o, id) {
+  const s = (TEXT_STYLES.find(x => x[0] === id) || [])[2]; if (!s) return;
+  Object.assign(o, { italic: false, rot: 0, highlight: '', shadow: false, stroke: false }, s);
+  if (hasCJK(o.text) && ['Inter', 'Montserrat', 'Bebas Neue'].includes(o.font)) o.font = 'Noto Sans SC';
+  if (hasCJK(o.text) && ['Caveat', 'Patrick Hand'].includes(o.font)) o.font = 'Long Cang';
+  ensureFont(o.font, o.text, o.weight); commit();
+}
+
+// 152 ready-made texts: [category, English, 中文]
+const TEXT_CATS = [['all', 'All 全部'], ['title', 'Titles 标题'], ['hook', 'Hooks 开场'], ['finance', 'Finance 金融'], ['tech', 'Tech 科技'], ['eco', 'Ecology 生态'], ['data', 'Data 数据'], ['lower', 'Names 字幕条'], ['cta', 'Call to action 互动'], ['source', 'Sources 来源'], ['note', 'Notes 便签'], ['chapter', 'Chapters 章节']];
+const TEXT_LIBRARY = [
+  ['title', 'Follow the Money', '追踪资金流向'], ['title', 'Where Does the Money Go?', '钱到底流向了哪里？'], ['title', 'The AI Gold Rush', 'AI 淘金热'],
+  ['title', 'Inside the Global Supply Chain', '全球供应链内幕'], ['title', 'How the Fed Moves Markets', '美联储如何影响市场'], ['title', 'The Hidden Cost of Cheap Money', '廉价资金的隐性代价'],
+  ['title', 'Anatomy of a Bank Run', '银行挤兑全解析'], ['title', 'The Carbon Cycle Explained', '一图看懂碳循环'], ['title', 'Who Really Owns the World?', '谁真正拥有这个世界？'],
+  ['title', 'The Chip War', '芯片战争'], ['title', 'Energy: The Next Bottleneck', '能源：下一个瓶颈'], ['title', 'From Factory to Your Door', '从工厂到你家门口'],
+  ['hook', 'What happens when the money stops?', '当资金断流时会发生什么？'], ['hook', 'This one chart explains everything', '这一张图解释了一切'], ['hook', 'Nobody is talking about this', '没人在讨论这件事'],
+  ['hook', "Here's the part they don't tell you", '这才是他们没告诉你的部分'], ['hook', 'Watch where the arrows go', '注意箭头的方向'], ['hook', 'Is this a bubble?', '这是泡沫吗？'],
+  ['hook', "The numbers don't add up", '这些数字对不上'], ['hook', 'Pay attention to this flow', '重点关注这条资金流'],
+  ['finance', 'Liquidity is drying up', '流动性正在枯竭'], ['finance', 'Capital flows to the strongest moat', '资本流向护城河最深的地方'], ['finance', 'Debt funds the boom', '繁荣由债务驱动'],
+  ['finance', 'Cash is king', '现金为王'], ['finance', 'Interest rates change everything', '利率改变一切'], ['finance', 'Risk is rising', '风险正在上升'],
+  ['finance', 'Margins are being squeezed', '利润率正被挤压'], ['finance', 'Revenue up, profit down', '营收增长，利润下滑'], ['finance', 'The cycle repeats', '周期总在重演'], ['finance', 'Follow the incentives', '顺着激励去看'],
+  ['tech', 'Compute is the new oil', '算力是新的石油'], ['tech', 'Every AI dollar ends up at Nvidia', '每一美元 AI 投资最终流向英伟达'], ['tech', 'Data centers need power', '数据中心需要电力'],
+  ['tech', 'Software eats the world', '软件正在吞噬世界'], ['tech', 'The model is the product', '模型即产品'], ['tech', 'Training costs double every year', '训练成本每年翻倍'],
+  ['eco', "Trees are the planet's lungs", '树木是地球之肺'], ['eco', 'Every leaf captures carbon', '每一片叶子都在吸收碳'], ['eco', 'Energy flows up the food chain', '能量沿食物链向上传递'],
+  ['eco', 'Only 10% passes to the next level', '只有 10% 传递到下一级'], ['eco', 'Nature recycles everything', '大自然循环利用一切'], ['eco', 'Protect the ecosystem', '保护生态系统'],
+  ['data', '+38% year over year', '同比增长 38%'], ['data', '$1 trillion in 5 years', '5 年内达到 1 万亿美元'], ['data', '3× faster than last cycle', '比上一轮周期快 3 倍'],
+  ['data', '1 in 3 companies', '每 3 家公司中就有 1 家'], ['data', 'Record high', '创历史新高'], ['data', 'Down 72% from peak', '较峰值下跌 72%'],
+  ['data', 'Half of global trade', '全球一半的贸易'], ['data', 'Every second, $4.2 million', '每秒 420 万美元'],
+  ['lower', 'Jensen Huang\nCEO, NVIDIA', '黄仁勋\n英伟达 CEO'], ['lower', 'Jerome Powell\nChair, Federal Reserve', '鲍威尔\n美联储主席'], ['lower', 'Analyst\nMarket Research', '分析师\n市场研究'], ['lower', 'Your Name\nYour Channel', '你的名字\n你的频道'],
+  ['cta', 'Subscribe for more', '订阅获取更多内容'], ['cta', 'Like if you learned something', '学到了就点个赞'], ['cta', 'Comment your prediction below', '在评论区留下你的预测'],
+  ['cta', 'Watch the full breakdown', '观看完整解析'], ['cta', 'Share this with a friend', '分享给你的朋友'],
+  ['source', 'Source: company filings, 2025', '数据来源：公司财报，2025'], ['source', 'Data: IMF, World Bank', '数据：国际货币基金组织、世界银行'], ['source', 'Not financial advice', '不构成投资建议'],
+  ['source', 'Figures are estimates', '数据为估算值'], ['source', 'Illustrative, not to scale', '示意图，非实际比例'],
+  ['note', 'Key point!', '重点！'], ['note', 'Remember this', '记住这一点'], ['note', 'Money comes in here', '资金从这里流入'],
+  ['note', 'Money leaks out here', '资金从这里流出'], ['note', 'Bottleneck', '瓶颈在这里'], ['note', 'This is the loop', '这就是闭环'],
+  ['chapter', 'Chapter 1: The Setup', '第一章：背景'], ['chapter', 'Chapter 2: The Flow', '第二章：资金流动'], ['chapter', 'Chapter 3: The Crunch', '第三章：危机'],
+  ['chapter', 'What comes next?', '接下来会怎样？'], ['chapter', 'The Bottom Line', '结论'], ['chapter', "Let's zoom in", '让我们放大来看'],
+];
+const TEXT_COUNT = TEXT_LIBRARY.length * 2;
+const LIB_STYLE = { title: ['headline', .06, .16], hook: ['thumbnail', .06, .16], finance: ['highlight', .06, .7], tech: ['neon', .06, .7], eco: ['headline', .06, .7], data: ['bigstat', .06, .55], lower: ['lower', .06, .78], cta: ['pill', .44, .88], source: ['caption', .06, .93], note: ['note', .64, .26], chapter: ['chapter', .5, .42] };
+function addLibraryText(entry, lang) {
+  const [cat, en, zh] = entry, text = lang === 'zh' ? zh : lang === 'both' ? `${en}\n${zh}` : en, [styleId, nx, ny] = LIB_STYLE[cat] || LIB_STYLE.title;
+  const o = Overlays.add('text', { text, nx, ny, anim: cat === 'note' ? 'pop' : cat === 'chapter' ? 'wipe' : 'slide-up', size: 56 });
+  applyTextStyle(o, lang === 'zh' && styleId === 'headline' ? 'zh-bold' : styleId);
+  if (cat === 'title' || cat === 'eco' || cat === 'tech') o.size = cat === 'title' ? 60 : 46;
+  o.nx = nx; o.ny = ny; commit(); Inspector.build();
+}
+DESIGN_COUNT += 3 + 4 + 3 + 1 + FLOW_RECIPES.length + STYLE_PACKS.length + TEXT_STYLES.length + ICON_VARY.length;
+
+/* =====================================================================
    GLOBAL RUNTIME STATE
    ===================================================================== */
 let scene = normalizeScene({});
@@ -1596,6 +1817,8 @@ const NodeSystem = {
   objWorld(n) { return n.scale * scene.fx.objectScale * (n.objectScale || 1); },
   dims(n, style = this.styleOf(n)) {
     if (style === 'bubble') return { w: 240, h: 230 };
+    if (style === 'note') return { w: 250, h: n.chart === 'none' ? 190 : 240 };
+    if (PAPERISH.has(style)) return { w: n.w, h: n.chart === 'none' ? 108 : 170 };
     if (style === 'tag') return { w: n.w, h: 54 };
     return { w: n.w, h: n.chart === 'none' ? 132 : 184 };
   },
@@ -1728,7 +1951,13 @@ const FlowSystem = {
       const N = shape === 'wave' || shape === 'zigzag' || shape === 'helix' ? 160 : 64, raw = [], cum = [0];
       for (let i = 0; i <= N; i++) { raw.push(fn(i / N)); if (i) { const q = raw[i - 1], r = raw[i]; cum.push(cum[i - 1] + Math.hypot(r[0] - q[0], r[1] - q[1], r[2] - q[2])); } }
       const total = cum[N], trim = scene.flow.anchor === 'floor' ? 44 : 0;
-      const s0 = Math.min(trim * A.scale, total * .3), s1 = Math.max(total - trim * B.scale, total * .7);
+      let s0 = Math.min(trim * A.scale, total * .3), s1 = Math.max(total - trim * B.scale, total * .7);
+      if (cam3.ortho && cam3.sp > .9 && A._r && B._r) { // flat 2D: start/end lines at the box edges so arrowheads stay visible
+        const inside = (r, P) => P && P.x > r.x - 6 && P.x < r.x + r.w + 6 && P.y > r.y - 6 && P.y < r.y + r.h + 6, o0 = s0, o1 = s1;
+        for (let j = 0; j <= N; j++) { const q = raw[j]; if (!inside(A._r, cam3.project(q[0], q[1], q[2]))) { s0 = Math.max(s0, cum[j]); break; } }
+        for (let j = N; j >= 0; j--) { const q = raw[j]; if (!inside(B._r, cam3.project(q[0], q[1], q[2]))) { s1 = Math.min(s1, cum[j]); break; } }
+        if (s1 - s0 < 24) { s0 = o0; s1 = o1; }
+      }
       const M = shape === 'wave' || shape === 'zigzag' || shape === 'helix' ? 140 : this.M;
       const sx = new Float32Array(M), sy = new Float32Array(M), ss = new Float32Array(M), ok = new Uint8Array(M);
       let j = 0, sum = 0, cnt = 0;
@@ -1819,6 +2048,13 @@ const FlowSystem = {
         c.lineWidth = w * 7 * s; c.stroke(); c.strokeStyle = rgba(mixRgb(col, [255, 255, 255], .4), .6); c.lineWidth = Math.max(.6, w * .8 * s); c.stroke(); break;
       }
       case 'dotted': { tr(); c.lineCap = 'round'; movingDash(.1, 9, Math.max(1.5, w * 2.6 * s), rgba(col, .9)); break; }
+      case 'simple': { c.globalCompositeOperation = 'source-over'; tr(); c.strokeStyle = rgba(col, .9); c.lineWidth = Math.max(1.2, w * 1.3 * s); c.stroke(); break; }
+      case 'marker': { c.globalCompositeOperation = 'source-over'; tr(); c.strokeStyle = rgba(col, .35); c.lineWidth = w * 5 * s; c.stroke(); c.strokeStyle = rgba(col, .9); c.lineWidth = Math.max(1, w * 1.1 * s); c.stroke(); break; }
+      case 'sketch': {
+        c.globalCompositeOperation = 'source-over'; c.strokeStyle = rgba(col, .85); c.lineWidth = Math.max(1, 1.5 * s);
+        for (let pass = 0; pass < 2; pass++) { c.beginPath(); let pen = false; const last = Math.floor(q * (g.M - 1)); for (let m = 0; m <= last; m++) { if (!g.ok[m]) { pen = false; continue; } const jx = (hash(m * 1.37 + pass * 17 + g.L) - .5) * 3 * s, jy = (hash(m * 2.11 + pass * 29 + g.L) - .5) * 3 * s; if (!pen) { c.moveTo(g.sx[m] + jx, g.sy[m] + jy); pen = true; } else c.lineTo(g.sx[m] + jx, g.sy[m] + jy); } c.stroke(); }
+        break;
+      }
       case 'laser': { const fl = .6 + .4 * hash(Math.floor(tl.t * 30) + g.L); tr(); c.strokeStyle = rgba(mixRgb(col, [255, 255, 255], .5), fl); c.lineWidth = Math.max(.8, w * .7 * s); c.stroke(); for (const o of [-w * 1.6, w * 1.6]) { this.traceOffset(c, g, o, 0, q); c.strokeStyle = rgba(col, .55 * fl); c.lineWidth = Math.max(.6, w * .5 * s); c.stroke(); } break; }
       case 'rope': { c.globalCompositeOperation = 'source-over'; tr(); c.strokeStyle = '#7A4A22'; c.lineWidth = w * 3.2 * s; c.stroke(); tr(); c.setLineDash([4 * s, 4 * s]); c.strokeStyle = '#C08A55'; c.lineWidth = w * 2.2 * s; c.stroke(); c.setLineDash([]); break; }
       case 'pipe': {
@@ -1858,7 +2094,14 @@ const FlowSystem = {
       c.globalAlpha = clamp(alpha, 0, 1);
       const boost = pin === 'flash' && g.reveal < 1 ? 1 + (1 - g.reveal) * 3 : 1;
       if (glow) { if (['neon', 'tube', 'ribbon', 'dotted', 'flight'].includes(skin)) { this.trace(c, g, 0, q); c.strokeStyle = rgba(col, (.35 + .25 * stress) * f.glow); c.lineWidth = w * 3.2 * s * boost; c.stroke(); } }
-      else this.drawSkin(c, g, skin, w, s, col, q, r, dirs, sp, isSel, isHov, boost);
+      else {
+        this.drawSkin(c, g, skin, w, s, col, q, r, dirs, sp, isSel, isHov, boost);
+        if (f.endArrow && q > .1) for (const d of dirs) {
+          const ue = d > 0 ? Math.min(q, .985) : .015, p = this.pointAt(g, ue), p2 = this.pointAt(g, ue - .03 * d); if (!p || !p2) continue;
+          const a = Math.atan2(p.y - p2.y, p.x - p2.x), z = (7 + 3 * w) * p.s + 3;
+          c.save(); c.globalCompositeOperation = 'source-over'; c.translate(p.x, p.y); c.rotate(a); c.fillStyle = rgba(col, .95); c.beginPath(); c.moveTo(z, 0); c.lineTo(-z * .8, -z * .7); c.lineTo(-z * .45, 0); c.lineTo(-z * .8, z * .7); c.closePath(); c.fill(); c.restore();
+        }
+      }
       if (pin === 'draw' && q < 1) { const p = this.pointAt(g, q); if (p) { const z = 30 * p.s; c.drawImage(sprite(col), p.x - z / 2, p.y - z / 2, z, z); } }
       if (sp.kind) this.drawParticles(c, g, sp, dirs, w, q, glow);
       if (!glow && f.arrows && q >= .55 && sp.kind !== 'icon') {
@@ -1876,6 +2119,7 @@ const FlowSystem = {
   drawParticles(c, g, sp, dirs, w, q, glow) {
     const f = scene.flow, r = this.rt(g.link.id), col = g.col, ww = Math.sqrt(w / 2), now = tl.t;
     const gap = sp.kind === 'icon' ? 60 + f.iconSize * 3 : sp.gap, iconId = sp.kind === 'icon' ? this.iconOf(g.link) : null;
+    const mixList = iconId && iconId.startsWith('mix:') ? iconId.slice(4).split(',').map(x => x.trim()).filter(x => ICONS[x] || x.startsWith('asset:')) : null;
     const count = Math.max(sp.kind === 'comet' || sp.kind === 'beam' || sp.kind === 'icon' ? 1 : 2, Math.round(g.L / (gap / Math.max(.05, f.density))));
     const ph = fract(r.phase * (sp.mul || 1)), baseA = c.globalAlpha;
     for (const d of dirs) for (let i = 0; i < count; i++) {
@@ -1887,7 +2131,9 @@ const FlowSystem = {
       const tang = () => { const p2 = this.pointAt(g, clamp(u + .01 * d, 0, 1)); return p2 ? Math.atan2(p2.y - p.y, p2.x - p.x) : 0; };
       switch (sp.kind) {
         case 'icon': {
-          const size = f.iconSize * p.s, tg = tang(), dirIcon = iconIsDir(iconId) || iconId.startsWith('asset:');
+          const pid = mixList && mixList.length ? mixList[(i * 7 + (d < 0 ? 3 : 0)) % mixList.length] : iconId, vary = f.iconVary || 'none';
+          const vk = vary === 'sizes' || vary === 'both' ? .72 + hash(i * 3.3 + g.L) * .6 : 1, vtint = vary === 'colors' || vary === 'both' ? RGB[TAG_KEYS[(i * 5 + (g.L | 0)) % 6]] : (f.iconTint ? col : null);
+          const size = f.iconSize * p.s * vk, tg = tang(), dirIcon = iconIsDir(pid) || pid.startsWith('asset:');
           let ang = 0, flip = 1, oy = 0, k = 1;
           switch (f.iconMotion) {
             case 'align': ang = tg; if (Math.cos(tg) < 0) { ang = tg - Math.PI; flip = dirIcon ? -1 : 1; } break;
@@ -1899,7 +2145,7 @@ const FlowSystem = {
           if (f.iconTrail) { const K = 6, trailU = size * 2.2 / Math.max(1, g.L * p.s); for (let k2 = 1; k2 <= K; k2++) { const ua = u - d * trailU * k2 / K; if (ua < 0 || ua > 1) break; const pa = this.pointAt(g, ua); if (!pa) break; const z = size * .5 * (1 - k2 / K); c.globalAlpha = baseA * edge * .5 * (1 - k2 / K); c.drawImage(sprite(col), pa.x - z / 2, pa.y - z / 2, z, z); } c.globalAlpha = baseA * edge; }
           c.save(); c.globalCompositeOperation = 'source-over';
           if (f.iconHalo && !TH.light) { const z = size * 1.5; c.globalAlpha = baseA * edge * .55; c.drawImage(sprite(col), p.x - z / 2, p.y + oy - z / 2, z, z); c.globalAlpha = baseA * edge; }
-          drawIcon(c, iconId, p.x, p.y + oy - size * .1, size * k, ang, flip, f.iconTint ? col : null); c.restore(); break;
+          drawIcon(c, pid, p.x, p.y + oy - size * .1, size * k, ang, flip, vtint); c.restore(); break;
         }
         case 'pulse': case 'comet': {
           const comet = sp.kind === 'comet', K = comet ? 12 : 7, trailU = (comet ? 260 : 60 + 50 * f.pulse) / g.L;
@@ -1927,7 +2173,7 @@ const FlowSystem = {
         }
         case 'glyph': {
           const ch = sp.ch.length > 1 ? sp.ch[(i + Math.floor(now * 4)) % 2] : sp.ch, fs = (11 + 7 * f.pulse) * p.s * ww;
-          c.font = `700 ${fs}px "JetBrains Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.font = `700 ${fs}px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
           c.fillStyle = rgba(mixRgb(col, [255, 255, 255], .25), 1); c.fillText(ch, p.x, p.y); break;
         }
         case 'coin': {
@@ -1964,7 +2210,7 @@ const FlowSystem = {
       const p = this.pointAt(g, .5); if (!p) continue;
       const k = clamp(p.s * 1.15, .6, 1.4), fs = 10.5 * k;
       c.globalAlpha = clamp((g.reveal - .6) / .4, 0, 1);
-      c.font = `600 ${fs}px "JetBrains Mono", monospace`; if ('letterSpacing' in c) c.letterSpacing = (1 * k) + 'px';
+      c.font = `600 ${fs}px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace`; if ('letterSpacing' in c) c.letterSpacing = (1 * k) + 'px';
       const txt = l.label, tw = c.measureText(txt).width, ph = fs + 9 * k, pw = tw + 16 * k, x = p.x - pw / 2, y = p.y - ph - 12 * k;
       c.fillStyle = TH.chip; rr(c, x, y, pw, ph, 4 * k); c.fill();
       c.strokeStyle = rgba(g.col, .55); c.lineWidth = 1; c.stroke();
@@ -2051,8 +2297,8 @@ const MediaSystem = {
       if (editorView() && !a) {
         const w = 260, h = 90, x = m.space === 'screen' ? m.x : REF_W / 2, y = m.space === 'screen' ? m.y : REF_H / 2;
         c.save(); c.setLineDash([6, 5]); c.strokeStyle = 'rgba(255,149,0,.7)'; c.strokeRect(x - w / 2, y - h / 2, w, h); c.setLineDash([]);
-        c.fillStyle = 'rgba(255,149,0,.9)'; c.font = '600 12px "JetBrains Mono", monospace'; c.textAlign = 'center';
-        c.fillText('RELINK MEDIA', x, y - 4); c.fillStyle = 'rgba(226,232,240,.6)'; c.font = '500 11px "JetBrains Mono", monospace'; c.fillText(m.assetName || m.name, x, y + 14); c.restore();
+        c.fillStyle = 'rgba(255,149,0,.9)'; c.font = '600 12px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.textAlign = 'center';
+        c.fillText('RELINK MEDIA', x, y - 4); c.fillStyle = 'rgba(226,232,240,.6)'; c.font = '500 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillText(m.assetName || m.name, x, y + 14); c.restore();
       }
       return;
     }
@@ -2171,6 +2417,7 @@ const Floor = {
       case 'fields': this.fields(c); break;
       case 'clouds': this.clouds(c); break;
       case 'rings': this.rings(c); break;
+      case 'ruled': this.ruled(c); break;
       case 'none': break;
       default: this.lines(c, 0, true);
     }
@@ -2301,6 +2548,11 @@ const Floor = {
     }
     c.restore();
   },
+  ruled(c) {
+    this.lines(c, 0, false, true); const reach = this.reach(), out = [0, 0, 0, 0], bk = this.buckets(), x = cam3.tx - reach * .55;
+    for (let i = 0; i < 24; i++) { const z0 = cam3.tz - reach + i * reach / 12; this.seg(bk, x, z0, x, z0 + reach / 12, reach * 1.2, out); }
+    this.strokeBuckets(c, bk, [220, 60, 60], 1.4, 2.2);
+  },
   rings(c) {
     const g = scene.grid, step = Math.max(40, g.cell * 1.5), reach = Math.max(this.reach(), 1200), bk = this.buckets(), out = [0, 0, 0, 0], off = (tl.t * 60) % step;
     for (let r = off; r < reach * 1.4; r += step) for (let k = 0; k < 80; k++) { const a0 = k / 80 * TAU, a1 = (k + 1) / 80 * TAU; this.seg(bk, Math.cos(a0) * r, Math.sin(a0) * r, Math.cos(a1) * r, Math.sin(a1) * r, reach * 1.4, out); }
@@ -2333,20 +2585,22 @@ function drawAnimText(c, text, x, y, o) {
   let x0 = o.align === 'center' ? x - tw / 2 : o.align === 'right' ? x - tw : x;
   c.translate(x0, y); c.scale(scale, scale); c.textAlign = 'left'; c.fillStyle = o.color;
   if (o.glow && !TH.light) { c.shadowColor = o.glowColor || 'rgba(0,242,254,.35)'; c.shadowBlur = o.glowBlur || 20; }
+  if (o.shadow) { c.shadowColor = 'rgba(0,0,0,.65)'; c.shadowBlur = o.size * .12; c.shadowOffsetX = o.size * .05; c.shadowOffsetY = o.size * .07; }
+  const F = (t, fx, fy) => { if (o.stroke) { c.save(); c.shadowColor = 'transparent'; c.lineJoin = 'round'; c.lineWidth = o.stroke.w; c.strokeStyle = o.stroke.c; c.strokeText(t, fx, fy); c.restore(); } c.fillText(t, fx, fy); };
   const chars = [...text], seed = Math.floor(tl.t * 30);
   const perChar = fn => { let cx = 0; chars.forEach((ch, i) => { const w = c.measureText(ch).width; fn(ch, i, cx, w); cx += w; }); };
   switch (style) {
-    case 'none': c.fillText(text, 0, 0); break;
-    case 'typewriter': { const s = chars.slice(0, Math.ceil(chars.length * p)).join(''); c.fillText(s, 0, 0); const cw = c.measureText(s).width; if ((tl.t * 3 | 0) % 2 === 0) c.fillRect(cw + 4, -o.size * .8, o.size * .08, o.size * .9); break; }
-    case 'fade': c.globalAlpha *= e; c.fillText(text, 0, 0); break;
-    case 'slide-up': c.globalAlpha *= e; c.fillText(text, 0, (1 - e) * o.size * .8); break;
-    case 'scramble': { const rev = Math.floor(chars.length * p); c.fillText(chars.map((ch, i) => i < rev || ch === ' ' ? ch : SCRAMBLE[Math.floor(hash(i * 7.7 + seed) * SCRAMBLE.length)]).join(''), 0, 0); break; }
-    case 'wipe': c.beginPath(); c.rect(-10, -o.size * 1.4, (full + 20) * e, o.size * 2.4); c.clip(); c.fillText(text, 0, 0); break;
-    case 'pop': perChar((ch, i, cx, w) => { const q = clamp(p * 1.6 - i / chars.length * .6, 0, 1); if (q <= 0) return; const s = easeOutBack(q); c.save(); c.globalAlpha *= Math.min(1, q * 3); c.translate(cx + w / 2, -o.size * .35); c.scale(s, s); c.fillText(ch, -w / 2, o.size * .35); c.restore(); }); break;
-    case 'glitch': { const j = (hash(seed) - .5) * o.size * .3 * (1 - p); c.globalAlpha *= hash(seed + 3) > (1 - p) * .6 ? 1 : .3; if (!TH.light) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,40,80,.6)'; c.fillText(text, j + 4 * (1 - p), 0); c.fillStyle = 'rgba(0,240,255,.6)'; c.fillText(text, -j - 4 * (1 - p), 0); c.restore(); } c.fillText(text, j * .3, 0); break; }
-    case 'split': { const words = text.split(' '); let cx = 0; const sw = c.measureText(' ').width; words.forEach((wd, i) => { const q = clamp(p * 1.5 - i / words.length * .5, 0, 1), eq = easeOutCubic(q); c.save(); c.globalAlpha *= eq; c.fillText(wd, cx, (1 - eq) * o.size * .9); c.restore(); cx += c.measureText(wd).width + sw; }); break; }
-    case 'flicker': c.globalAlpha *= hash(seed * 1.3) < .35 + p * .6 ? 1 : .15; c.fillText(text, 0, 0); break;
-    default: c.fillText(text, 0, 0);
+    case 'none': F(text, 0, 0); break;
+    case 'typewriter': { const s = chars.slice(0, Math.ceil(chars.length * p)).join(''); F(s, 0, 0); const cw = c.measureText(s).width; if ((tl.t * 3 | 0) % 2 === 0) c.fillRect(cw + 4, -o.size * .8, o.size * .08, o.size * .9); break; }
+    case 'fade': c.globalAlpha *= e; F(text, 0, 0); break;
+    case 'slide-up': c.globalAlpha *= e; F(text, 0, (1 - e) * o.size * .8); break;
+    case 'scramble': { const rev = Math.floor(chars.length * p); F(chars.map((ch, i) => i < rev || ch === ' ' ? ch : SCRAMBLE[Math.floor(hash(i * 7.7 + seed) * SCRAMBLE.length)]).join(''), 0, 0); break; }
+    case 'wipe': c.beginPath(); c.rect(-10, -o.size * 1.4, (full + 20) * e, o.size * 2.4); c.clip(); F(text, 0, 0); break;
+    case 'pop': perChar((ch, i, cx, w) => { const q = clamp(p * 1.6 - i / chars.length * .6, 0, 1); if (q <= 0) return; const s = easeOutBack(q); c.save(); c.globalAlpha *= Math.min(1, q * 3); c.translate(cx + w / 2, -o.size * .35); c.scale(s, s); F(ch, -w / 2, o.size * .35); c.restore(); }); break;
+    case 'glitch': { const j = (hash(seed) - .5) * o.size * .3 * (1 - p); c.globalAlpha *= hash(seed + 3) > (1 - p) * .6 ? 1 : .3; if (!TH.light) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,40,80,.6)'; F(text, j + 4 * (1 - p), 0); c.fillStyle = 'rgba(0,240,255,.6)'; F(text, -j - 4 * (1 - p), 0); c.restore(); } F(text, j * .3, 0); break; }
+    case 'split': { const words = text.split(' '); let cx = 0; const sw = c.measureText(' ').width; words.forEach((wd, i) => { const q = clamp(p * 1.5 - i / words.length * .5, 0, 1), eq = easeOutCubic(q); c.save(); c.globalAlpha *= eq; F(wd, cx, (1 - eq) * o.size * .9); c.restore(); cx += c.measureText(wd).width + sw; }); break; }
+    case 'flicker': c.globalAlpha *= hash(seed * 1.3) < .35 + p * .6 ? 1 : .15; F(text, 0, 0); break;
+    default: F(text, 0, 0);
   }
   c.restore();
   return { x: x0, w: tw };
@@ -2378,18 +2632,31 @@ const Overlays = {
   },
   drawText(c, o, tm) {
     const lines = String(o.text || '').split('\n'), X = o.nx * REF_W, Y = o.ny * REF_H, lh = o.size * o.lineH;
-    const font = `${o.weight} ${o.size}px ${fontStack(o.font)}`, col = this.textColor(o);
+    const font = `${o.italic ? 'italic ' : ''}${o.weight} ${o.size}px ${fontStack(o.font)}`, col = this.textColor(o);
+    ensureFont(o.font, o.text, o.weight); if (hasCJK(o.text)) ensureFont('Noto Sans SC', o.text, 700);
     c.save(); c.font = font; if ('letterSpacing' in c) c.letterSpacing = o.ls + 'px';
     const widths = lines.map(l => Math.min(c.measureText(l).width, o.maxW)), W = Math.max(10, ...widths), H = lines.length * lh;
     c.restore();
-    const bx = o.align === 'center' ? X - W / 2 : o.align === 'right' ? X - W : X, pad = o.size * .35;
-    if (o.box) { c.save(); c.globalAlpha *= o.boxOpacity * clamp(tm.p * 3, 0, 1); c.fillStyle = o.boxColor; rr(c, bx - pad, Y - pad * .7, (W + pad * 2) * (o.anim === 'wipe' ? easeOutCubic(tm.p) : 1), H + pad * 1.4, 6); c.fill(); c.restore(); }
+    const off = o.align === 'center' ? -W / 2 : o.align === 'right' ? -W : 0, pad = o.size * (o.note ? .6 : .35), e = easeOutCubic(tm.p);
+    c.save(); c.translate(X, Y); if (o.rot) c.rotate(o.rot * DEG);
+    if (o.note) {
+      const nw = W + pad * 2, nh = H + pad * 1.6, x0 = off - pad, y0 = -pad * .8, f = 22;
+      c.save(); c.globalAlpha *= clamp(tm.p * 3, 0, 1); c.shadowColor = 'rgba(0,0,0,.3)'; c.shadowBlur = 18; c.shadowOffsetY = 8; c.fillStyle = o.noteColor || '#FEF08A';
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0 + nw, y0); c.lineTo(x0 + nw, y0 + nh - f); c.lineTo(x0 + nw - f, y0 + nh); c.lineTo(x0, y0 + nh); c.closePath(); c.fill(); c.shadowColor = 'transparent';
+      c.fillStyle = 'rgba(0,0,0,.12)'; c.beginPath(); c.moveTo(x0 + nw, y0 + nh - f); c.lineTo(x0 + nw - f, y0 + nh - f); c.lineTo(x0 + nw - f, y0 + nh); c.closePath(); c.fill();
+      c.translate(x0 + nw / 2, y0); c.rotate(-.05); c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(-nw * .18, -10, nw * .36, 20); c.restore();
+    } else if (o.box) { c.save(); c.globalAlpha *= o.boxOpacity * clamp(tm.p * 3, 0, 1); c.fillStyle = o.boxColor; rr(c, off - pad, -pad * .7, (W + pad * 2) * (o.anim === 'wipe' ? e : 1), H + pad * 1.4, o.radius ?? 6); c.fill(); c.restore(); }
     lines.forEach((l, i) => {
-      const lp = clamp(tm.p * (1 + lines.length * .25) - i * .25, 0, 1);
-      drawAnimText(c, l, X, Y + i * lh + o.size * .82, { style: o.anim, p: lp, font, ls: o.ls, color: col, align: o.align, size: o.size, maxW: o.maxW, glow: o.glow, glowColor: rgba(RGB.cyan, .35) });
+      const lp = clamp(tm.p * (1 + lines.length * .25) - i * .25, 0, 1), ly = i * lh + o.size * .82;
+      if (o.highlight) {
+        c.save(); c.font = font; const lw = Math.min(c.measureText(l).width, o.maxW), hx = o.align === 'center' ? -lw / 2 : o.align === 'right' ? -lw : 0, hw = (lw + 14) * easeOutCubic(clamp(lp * 1.6, 0, 1));
+        c.globalAlpha *= .8; c.fillStyle = o.highlight; c.beginPath(); c.moveTo(hx - 7, ly - o.size * .62); c.lineTo(hx - 7 + hw, ly - o.size * .7); c.lineTo(hx - 7 + hw, ly + o.size * .12); c.lineTo(hx - 7, ly + o.size * .18); c.closePath(); c.fill(); c.restore();
+      }
+      drawAnimText(c, l, 0, ly, { style: o.anim, p: lp, font, ls: o.ls, color: col, align: o.align, size: o.size, maxW: o.maxW, glow: o.glow && !o.shadow, glowColor: rgba(RGB.cyan, .35), shadow: o.shadow, stroke: o.stroke ? { c: o.strokeColor || '#000', w: o.strokeW || 4 } : null });
     });
-    if (o.accent) { const aw = W * easeOutCubic(tm.p); c.save(); c.globalCompositeOperation = GOP; c.fillStyle = rgba(RGB.cyan, .9); c.fillRect(bx, Y + H + o.size * .12, aw, Math.max(2, o.size * .04)); c.restore(); }
-    o._r = { x: bx - pad, y: Y - pad * .7, w: W + pad * 2, h: H + pad * 1.4 };
+    if (o.accent) { c.save(); c.globalCompositeOperation = GOP; c.fillStyle = rgba(RGB.cyan, .9); c.fillRect(off, H + o.size * .12, W * e, Math.max(2, o.size * .04)); c.restore(); }
+    c.restore();
+    o._r = { x: X + off - pad, y: Y - pad * .8, w: W + pad * 2, h: H + pad * 1.6 };
   },
   drawCounter(c, o, tm) {
     const X = o.nx * REF_W, Y = o.ny * REF_H, raw = clamp(tm.age / Math.max(.05, o.dur), 0, 1);
@@ -2399,7 +2666,7 @@ const Overlays = {
     if (o.ease === 'slot' && raw < 1) txt = txt.replace(/\d/g, (d, i) => String(Math.floor(hash(i * 3.3 + Math.floor(tl.t * 25)) * 10)));
     const col = this.textColor(o), ap = clamp(tm.p * 4, 0, 1);
     c.save(); c.globalAlpha *= ap;
-    c.font = `600 ${o.size * .22}px "JetBrains Mono", monospace`; if ('letterSpacing' in c) c.letterSpacing = (o.size * .03) + 'px';
+    c.font = `600 ${o.size * .22}px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace`; if ('letterSpacing' in c) c.letterSpacing = (o.size * .03) + 'px';
     c.fillStyle = TH.sub; c.textBaseline = 'alphabetic'; c.fillText(o.label, X, Y);
     const lw = c.measureText(o.label).width;
     c.restore();
@@ -2413,13 +2680,13 @@ const Overlays = {
     c.save(); c.globalAlpha *= clamp(tm.p * 3, 0, 1);
     rr(c, X, Y, W, H, 10); c.fillStyle = TH.card; c.fill(); c.strokeStyle = TH.border; c.lineWidth = 1.2; c.stroke();
     c.save(); c.globalCompositeOperation = GOP; c.strokeStyle = rgba(RGB.cyan, .9); c.lineWidth = 2; c.beginPath(); c.moveTo(X + 16, Y); c.lineTo(X + 16 + (W - 32) * e, Y); c.stroke(); c.restore();
-    c.font = '600 13px "JetBrains Mono", monospace'; if (hasLS) c.letterSpacing = '2px'; c.fillStyle = TH.text; c.textBaseline = 'alphabetic'; c.fillText(String(o.title || '').toUpperCase(), X + 18, Y + 28); if (hasLS) c.letterSpacing = '0px';
+    c.font = '600 13px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; if (hasLS) c.letterSpacing = '2px'; c.fillStyle = TH.text; c.textBaseline = 'alphabetic'; c.fillText(String(o.title || '').toUpperCase(), X + 18, Y + 28); if (hasLS) c.letterSpacing = '0px';
     const px = X + 18, py = Y + 44, pw = W - 36, ph = H - 62, n = rows.length;
     const fmt = v => (o.prefix || '') + fmtNumber(v, o.decimals, Math.abs(v) >= 1e4) + (o.suffix || '');
-    if (!n) { c.fillStyle = TH.sub; c.font = '500 12px "JetBrains Mono", monospace'; c.fillText('Add rows like  LABEL: 42', px, py + 30); c.restore(); return; }
+    if (!n) { c.fillStyle = TH.sub; c.font = '500 12px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillText('Add rows like  LABEL: 42', px, py + 30); c.restore(); return; }
     const max = Math.max(...rows.map(r => Math.abs(r.value)), 1e-9), sum = rows.reduce((a, r) => a + Math.max(0, r.value), 0) || 1;
     const stag = i => easeOutCubic(clamp(tm.p * 1.6 - i / n * .6, 0, 1));
-    c.font = '500 11px "JetBrains Mono", monospace';
+    c.font = '500 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace';
     switch (o.chartType) {
       case 'bar': {
         const bw = pw / n, base = py + ph - 18;
@@ -2451,8 +2718,8 @@ const Overlays = {
       case 'donut': case 'pie': {
         const R = Math.min(ph, pw * .5) / 2, cx = px + R + 4, cy = py + ph / 2, inner = o.chartType === 'donut' ? R * .6 : 0; let a0 = -Math.PI / 2;
         rows.forEach((r, i) => { const frac = Math.max(0, r.value) / sum, a1 = a0 + frac * TAU * e, col = this.palette(o, i); c.beginPath(); c.moveTo(cx + Math.cos(a0) * inner, cy + Math.sin(a0) * inner); c.arc(cx, cy, R, a0, a1); if (inner) c.arc(cx, cy, inner, a1, a0, true); else c.lineTo(cx, cy); c.closePath(); c.fillStyle = rgba(col, .92); c.fill(); c.strokeStyle = TH.light ? '#fff' : 'rgba(8,10,14,.9)'; c.lineWidth = 2; c.stroke(); a0 = a0 + frac * TAU * e; });
-        if (inner) { c.fillStyle = TH.value; c.font = '700 20px "JetBrains Mono", monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(fmt(rows[0].value), cx, cy); c.textAlign = 'left'; }
-        c.font = '500 11px "JetBrains Mono", monospace'; c.textBaseline = 'middle';
+        if (inner) { c.fillStyle = TH.value; c.font = '700 20px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(fmt(rows[0].value), cx, cy); c.textAlign = 'left'; }
+        c.font = '500 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.textBaseline = 'middle';
         const lx = cx + R + 24, lh = Math.min(22, ph / n);
         rows.forEach((r, i) => { const y = py + ph / 2 - (n - 1) * lh / 2 + i * lh, col = this.palette(o, i); c.globalAlpha = clamp(tm.p * 2 - i / n, 0, 1); c.fillStyle = rgba(col, 1); c.fillRect(lx, y - 5, 10, 10); c.fillStyle = TH.text; c.fillText(`${r.label.slice(0, 16)}  ${o.showValues ? fmt(r.value) : ''}`, lx + 18, y, px + pw - lx - 18); });
         c.textBaseline = 'alphabetic'; break;
@@ -2480,8 +2747,8 @@ const Overlays = {
       }
       case 'stacked': {
         let x = px; const y = py + ph * .25, bh = Math.min(48, ph * .32);
-        rows.forEach((r, i) => { const w = pw * Math.max(0, r.value) / sum * e, col = this.palette(o, i); c.fillStyle = rgba(col, .92); c.fillRect(x, y, Math.max(0, w - 2), bh); if (w > 40 && o.showValues) { c.fillStyle = TH.light ? '#fff' : '#080A0E'; c.font = '700 12px "JetBrains Mono", monospace'; c.fillText(Math.round(r.value / sum * 100) + '%', x + 6, y + bh / 2 + 4); } x += w; });
-        c.font = '500 11px "JetBrains Mono", monospace'; let lx = px, ly = y + bh + 26;
+        rows.forEach((r, i) => { const w = pw * Math.max(0, r.value) / sum * e, col = this.palette(o, i); c.fillStyle = rgba(col, .92); c.fillRect(x, y, Math.max(0, w - 2), bh); if (w > 40 && o.showValues) { c.fillStyle = TH.light ? '#fff' : '#080A0E'; c.font = '700 12px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillText(Math.round(r.value / sum * 100) + '%', x + 6, y + bh / 2 + 4); } x += w; });
+        c.font = '500 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; let lx = px, ly = y + bh + 26;
         rows.forEach((r, i) => { const col = this.palette(o, i), t = r.label.slice(0, 14), tw = c.measureText(t).width + 30; if (lx + tw > px + pw) { lx = px; ly += 20; } c.fillStyle = rgba(col, 1); c.fillRect(lx, ly - 9, 10, 10); c.fillStyle = TH.text; c.fillText(t, lx + 16, ly); lx += tw; });
         break;
       }
@@ -2781,6 +3048,7 @@ const AnimationEngine = {
     c.save(); c.globalCompositeOperation = GOP;
     for (const { n, st, an } of drawOrder) {
       if (an.a <= .02) continue;
+      if (NodeSystem.displayOf(n) === 'card' && PAPERISH.has(NodeSystem.styleOf(n))) continue;
       let col = colorOf(n); if (st.crit) col = mixRgb(col, RGB.crimson, .7 + .3 * Math.sin(now * 8));
       const R = 42 * n.scale * NodeSystem.sizeFactor(n, st) * an.s; c.globalAlpha = an.a;
       this.floorCircle(c, n.x, n.z, R);
@@ -2869,7 +3137,7 @@ const AnimationEngine = {
     let style = scene.design.labelStyle; if (style === 'none' && !force) return; if (style === 'none') style = 'chip';
     const hasLS = 'letterSpacing' in c, cat = this.typed(n.category, an.typed), title = this.typed(n.title, an.typed), val = this.typed(this.valueText(n, st), an.typed);
     c.save(); c.globalAlpha = an.a; c.translate(x, yBottom); c.scale(k, k); c.textBaseline = 'alphabetic';
-    const F1 = '600 10px "JetBrains Mono", monospace', F2 = '800 16px Inter, system-ui, sans-serif', F3 = '700 19px "JetBrains Mono", monospace';
+    const F1 = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace', F2 = '800 16px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif', F3 = '700 19px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace';
     const meas = (f, t, ls) => { c.font = f; if (hasLS) c.letterSpacing = ls; const w = c.measureText(t).width; if (hasLS) c.letterSpacing = '0px'; return w; };
     const w1 = meas(F1, cat, '1.5px'), w2 = meas(F2, title, '.5px'), w3 = meas(F3, val, '0px');
     const txt = (f, t, tx, ty, color, ls, align = 'left') => { c.font = f; if (hasLS) c.letterSpacing = ls; c.textAlign = align; c.fillStyle = color; c.fillText(t, tx, ty); if (hasLS) c.letterSpacing = '0px'; };
@@ -2906,11 +3174,12 @@ const AnimationEngine = {
     }
     n._r = { x: Pa.x - w / 2 * S0, y: Pa.y - h * S0, w: w * S0, h: h * S0 };
     c.save(); c.globalAlpha = an.a;
-    c.translate(Pa.x + (jx + an.x) * S0, Pa.y + (jy + an.y) * S0); c.rotate(an.r); c.scale(S * an.sx, S * an.sy); c.translate(-w / 2, -h);
+    c.translate(Pa.x + (jx + an.x) * S0, Pa.y + (jy + an.y) * S0); c.rotate(an.r + (style === 'note' ? (hash(n.seed * 1.7) - .5) * .12 : 0)); c.scale(S * an.sx, S * an.sy); c.translate(-w / 2, -h);
     if (an.clip < 1) { c.beginPath(); c.rect(-12, -12, w + 24, (h + 24) * an.clip); c.clip(); }
     this.cardFrame(c, style, w, h, col, st, now, S);
     if (style === 'bubble') this.bubbleContent(c, n, w, h, col, st, now, an);
     else if (style === 'tag') this.tagContent(c, n, w, h, col, st, an);
+    else if (PAPERISH.has(style)) this.simpleContent(c, n, style, w, h, col, st, now, an);
     else this.cardContent(c, n, style, w, h, col, st, now, an);
     if (an.flash > 0) { c.globalCompositeOperation = GOP; rr(c, 0, 0, w, h, 10); c.fillStyle = `rgba(255,255,255,${an.flash * .8})`; c.fill(); }
     if (an.glitch > 0) { c.globalCompositeOperation = GOP; for (let i = 0; i < 3; i++) { const y = hash(Math.floor(tl.t * 40) + i * 7 + n.seed) * h; c.fillStyle = rgba(i % 2 ? RGB.crimson : RGB.cyan, .5 * an.glitch); c.fillRect(-8 + hash(i + tl.t * 50) * 16, y, w, 3 + hash(i * 3 + tl.t) * 8); } }
@@ -2942,6 +3211,26 @@ const AnimationEngine = {
         c.save(); c.globalCompositeOperation = GOP; c.fillStyle = rgba(col, .25); c.fillRect(-3, 0, 9, h); c.restore();
         critRing(() => { c.beginPath(); c.rect(-6, -6, w + 12, h + 12); }); return;
       }
+      case 'simple': { shadow(); rr(c, 0, 0, w, h, 12); c.fillStyle = light ? '#FFFFFF' : TH.card; c.fill(); noShadow(); c.strokeStyle = rgba(col, .85); c.lineWidth = 2.4; c.stroke(); critRing(() => rr(c, 0, 0, w, h, 12)); return; }
+      case 'note': {
+        c.shadowColor = 'rgba(0,0,0,.3)'; c.shadowBlur = 16 * S; c.shadowOffsetY = 8 * S; const f = 28;
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(w, 0); c.lineTo(w, h - f); c.lineTo(w - f, h); c.lineTo(0, h); c.closePath(); c.fillStyle = rgba(mixRgb(col, [255, 247, 190], .7), 1); c.fill(); noShadow();
+        c.beginPath(); c.moveTo(w, h - f); c.lineTo(w - f, h - f); c.lineTo(w - f, h); c.closePath(); c.fillStyle = 'rgba(0,0,0,.13)'; c.fill();
+        c.save(); c.translate(w / 2, -2); c.rotate(-.06); c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(-36, -10, 72, 20); c.restore();
+        critRing(() => { c.beginPath(); c.rect(0, 0, w, h); }); return;
+      }
+      case 'paper': {
+        shadow(); c.fillStyle = '#FBF8F1'; c.fillRect(0, 0, w, h); noShadow();
+        c.strokeStyle = 'rgba(96,140,210,.35)'; c.lineWidth = 1; for (let y = 34; y < h; y += 18) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+        c.strokeStyle = 'rgba(220,60,60,.45)'; c.beginPath(); c.moveTo(24, 0); c.lineTo(24, h); c.stroke(); c.fillStyle = rgba(col, 1); c.fillRect(0, 0, w, 6);
+        critRing(() => { c.beginPath(); c.rect(0, 0, w, h); }); return;
+      }
+      case 'whiteboard': {
+        if (!light) { rr(c, 0, 0, w, h, 8); c.fillStyle = 'rgba(255,255,255,.04)'; c.fill(); }
+        c.strokeStyle = rgba(col, .9); c.lineWidth = 3; c.lineCap = 'round'; c.lineJoin = 'round';
+        for (let pass = 0; pass < 2; pass++) { const j = k => (hash(k * 3.1 + pass * 7.3) - .5) * 6; c.beginPath(); c.moveTo(j(1), j(2)); c.lineTo(w + j(3), j(4)); c.lineTo(w + j(5), h + j(6)); c.lineTo(j(7), h + j(8)); c.closePath(); c.stroke(); }
+        critRing(() => rr(c, 0, 0, w, h, 8)); return;
+      }
       case 'brackets': {
         rr(c, 0, 0, w, h, 4); c.fillStyle = light ? 'rgba(255,255,255,.55)' : 'rgba(8,10,14,.45)'; c.fill();
         c.strokeStyle = rgba(col, .95); c.lineWidth = 2.5; const L = 22;
@@ -2968,6 +3257,21 @@ const AnimationEngine = {
     if (style === 'glass' || style === 'solid' || style === 'pill' || style === 'terminal') accentBar();
     critRing(() => rr(c, 0, 0, w, h, R));
   },
+  simpleContent(c, n, style, w, h, col, st, now, an) {
+    const hand = style === 'note' ? '"Caveat", "Long Cang", "ZCOOL KuaiLe", cursive' : style === 'whiteboard' ? '"Patrick Hand", "ZCOOL KuaiLe", cursive' : style === 'paper' ? '"Kalam", "Long Cang", "Noto Sans SC", cursive' : null;
+    const paper = style === 'note' || style === 'paper', ink = paper ? '#1F2937' : TH.text, inkV = paper ? '#0B0F17' : TH.value, sub = paper ? 'rgba(31,41,55,.62)' : TH.sub;
+    const sans = 'Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif', mono = '"JetBrains Mono", "Noto Sans SC", monospace', txt = n.title + n.category;
+    if (hand) { for (const fam of style === 'note' ? ['Caveat', 'Long Cang'] : style === 'whiteboard' ? ['Patrick Hand', 'ZCOOL KuaiLe'] : ['Kalam', 'Long Cang']) ensureFont(fam, txt + '0123456789', 700); }
+    else if (hasCJK(txt)) ensureFont('Noto Sans SC', txt, 700);
+    const big = style === 'note', cx = w / 2 + (style === 'paper' ? 10 : 0), mw = w - 36; let y = big ? 44 : 28;
+    c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.font = `600 ${hand ? 17 : 10}px ${hand || mono}`; c.fillStyle = paper ? rgba(mixRgb(col, [0, 0, 0], .35), 1) : rgba(col, 1); c.fillText(this.typed(n.category, an.typed), cx, y, mw);
+    y += big ? 38 : 28; c.font = `700 ${big ? 34 : hand ? 26 : 20}px ${hand || sans}`; c.fillStyle = ink; c.fillText(this.typed(n.title, an.typed), cx, y, mw);
+    y += big ? 42 : 34; c.font = `700 ${big ? 38 : hand ? 30 : 26}px ${hand || mono}`; c.fillStyle = inkV; c.fillText(this.typed(this.valueText(n, st), an.typed), cx, y, mw);
+    if (n.showFlow !== false && n.flowRate && !big) { c.font = `500 ${hand ? 15 : 10}px ${hand || mono}`; c.fillStyle = sub; c.fillText(fmtFlow(n), cx, y + 18, mw); }
+    c.textAlign = 'left';
+    if (n.chart !== 'none') this.drawChart(c, n, st, col, 20, y + (big ? 16 : 26), w - 40, h - y - (big ? 16 : 26) - 22, an.typed);
+  },
   valueText(n, st) {
     let s = fmtValue(n, st.v);
     if (st.slot) s = s.replace(/\d/g, (d, i) => String(Math.floor(hash(i * 3.3 + Math.floor(tl.t * 25) + n.seed) * 10)));
@@ -2979,11 +3283,11 @@ const AnimationEngine = {
     const right = style === 'ticket' ? 26 : pad, typed = an.typed, light = TH.light;
     c.textBaseline = 'alphabetic';
     c.fillStyle = rgba(col, 1); c.fillRect(pad, 17, 7, 7);
-    c.font = '600 10px "JetBrains Mono", monospace'; if (hasLS) c.letterSpacing = '1.6px';
+    c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; if (hasLS) c.letterSpacing = '1.6px';
     c.fillStyle = rgba(col, .95); c.fillText(this.typed(n.category.toUpperCase(), typed), pad + 14, 24.5, w - pad - right - 80);
     const status = n.status || (st.crit ? 'CRITICAL' : st.sens > .45 ? 'STRESSED' : 'LIVE');
     const stCol = st.crit ? RGB.crimson : st.sens > .45 ? RGB.amber : RGB.emerald;
-    c.font = '700 8.5px "JetBrains Mono", monospace'; const sw = c.measureText(status).width + 14;
+    c.font = '700 8.5px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; const sw = c.measureText(status).width + 14;
     const blink = st.crit ? (.55 + .45 * Math.sin(now * 12)) : 1;
     rr(c, w - right - sw, 12, sw, 16, 3); c.fillStyle = rgba(stCol, .14 * blink); c.fill(); c.strokeStyle = rgba(stCol, .6 * blink); c.lineWidth = 1; c.stroke();
     c.fillStyle = rgba(stCol, blink); c.fillText(status, w - right - sw + 7, 23.5);
@@ -2995,12 +3299,12 @@ const AnimationEngine = {
       c.save(); rr(c, ix, iy, is, is, 6); c.fillStyle = light ? 'rgba(0,0,0,.05)' : 'rgba(8,10,14,.6)'; c.fill(); c.clip(); c.drawImage(a.el, ix + (is - iw) / 2, iy + (is - ih) / 2, iw, ih); c.restore();
       titleMax -= is + 8;
     }
-    c.font = mono ? '700 15px "JetBrains Mono", monospace' : '700 17px Inter, system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.6px';
+    c.font = mono ? '700 15px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace' : '700 17px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.6px';
     const title = this.typed(n.title, typed), tw = c.measureText(title).width; c.fillStyle = mono ? rgba(col, 1) : TH.text;
     if (tw > titleMax) { c.save(); c.translate(pad, 52); c.scale(titleMax / tw, 1); c.fillText(title, 0, 0); c.restore(); } else c.fillText(title, pad, 52);
     if (hasLS) c.letterSpacing = '0px';
     const vtxt = this.typed(this.valueText(n, st), typed);
-    c.font = '700 26px "JetBrains Mono", monospace'; const vw = c.measureText(vtxt).width, vMax = w - pad - right, vs = Math.min(1, vMax / Math.max(1, vw));
+    c.font = '700 26px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; const vw = c.measureText(vtxt).width, vMax = w - pad - right, vs = Math.min(1, vMax / Math.max(1, vw));
     c.save(); c.translate(pad, 88); c.scale(vs, vs);
     if (st.crit && f.rgbSplit && !light) {
       const o = 1.5 + 3 * st.sev * (.5 + .5 * Math.sin(now * 31));
@@ -3008,17 +3312,17 @@ const AnimationEngine = {
     }
     if (!light) { c.shadowColor = rgba(col, .55); c.shadowBlur = 14; }
     c.fillStyle = TH.value; c.fillText(vtxt, 0, 0); c.shadowBlur = 0; c.restore();
-    c.font = '500 9.5px "JetBrains Mono", monospace'; if (hasLS) c.letterSpacing = '1px';
+    c.font = '500 9.5px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; if (hasLS) c.letterSpacing = '1px';
     if (n.showFlow !== false && n.flowRate) {
       c.fillStyle = TH.sub; c.fillText('FLOW', pad, 112);
-      c.font = '600 11px "JetBrains Mono", monospace'; c.fillStyle = n.flowRate < 0 ? rgba(RGB.crimson, 1) : rgba(light ? RGB.emerald : mixRgb(RGB.emerald, [255, 255, 255], .2), 1);
+      c.font = '600 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = n.flowRate < 0 ? rgba(RGB.crimson, 1) : rgba(light ? RGB.emerald : mixRgb(RGB.emerald, [255, 255, 255], .2), 1);
       c.fillText(fmtFlow(n), pad + 36, 112);
     }
     if (n.showRunway) {
-      const rtxt = st.runway.toFixed(1) + ' ' + n.runwayUnit; c.font = '600 11px "JetBrains Mono", monospace';
+      const rtxt = st.runway.toFixed(1) + ' ' + n.runwayUnit; c.font = '600 11px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace';
       const rw = c.measureText(rtxt).width; c.fillStyle = st.crit ? `rgba(255,59,48,${.7 + .3 * Math.sin(now * 12)})` : TH.text;
       c.fillText(rtxt, w - right - rw, 112);
-      c.font = '500 9.5px "JetBrains Mono", monospace'; c.fillStyle = TH.sub; const lw2 = c.measureText('RUNWAY ').width; c.fillText('RUNWAY', w - right - rw - lw2, 112);
+      c.font = '500 9.5px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.sub; const lw2 = c.measureText('RUNWAY ').width; c.fillText('RUNWAY', w - right - rw - lw2, 112);
       const mw = w - pad - right, frac = clamp(st.runway / Math.max(1, Math.max(n.runwayFrom, n.runway)), 0, 1);
       c.fillStyle = TH.border; c.fillRect(pad, 119, mw, 2); c.fillStyle = st.crit ? '#FF3B30' : rgba(col, .9); c.fillRect(pad, 119, mw * frac, 2);
     }
@@ -3028,17 +3332,17 @@ const AnimationEngine = {
   bubbleContent(c, n, w, h, col, st, now, an) {
     const r = 74, cx = w / 2, cy = 30 + r, hasLS = 'letterSpacing' in c;
     c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-    c.font = '600 10px "JetBrains Mono", monospace'; if (hasLS) c.letterSpacing = '1.6px'; c.fillStyle = rgba(col, .95);
+    c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; if (hasLS) c.letterSpacing = '1.6px'; c.fillStyle = rgba(col, .95);
     c.fillText(this.typed(n.category, an.typed), cx, 14, w);
     const a = n.imageId && assets.get(n.imageId);
     if (a && a.ready && (a.kind !== 'video' || a.el.readyState >= 2)) { const is = 34, k = Math.min(is / a.w, is / a.h); c.drawImage(a.el, cx - a.w * k / 2, cy - r * .62 - a.h * k / 2, a.w * k, a.h * k); }
     const v = this.typed(n.compact ? this.valueText(n, st) : (n.prefix || '') + fmtCompact(Math.abs(st.v), 1) + (n.suffix || ''), an.typed);
-    c.font = '700 24px "JetBrains Mono", monospace'; if (hasLS) c.letterSpacing = '0px';
+    c.font = '700 24px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; if (hasLS) c.letterSpacing = '0px';
     const vw = c.measureText(v).width, vs = Math.min(1, (r * 1.75) / Math.max(1, vw));
     c.save(); c.translate(cx, cy + 6); c.scale(vs, vs); if (!TH.light) { c.shadowColor = rgba(col, .6); c.shadowBlur = 14; } c.fillStyle = TH.value; c.fillText(v, 0, 0); c.restore();
-    c.font = '600 10px "JetBrains Mono", monospace'; c.fillStyle = TH.sub;
+    c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.sub;
     c.fillText(n.showRunway ? `RUNWAY ${st.runway.toFixed(1)} ${n.runwayUnit}` : `${Math.round(st.pct * 100)}% OF TARGET`, cx, cy + 28);
-    c.font = '800 16px Inter, system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.6px'; c.fillStyle = TH.text;
+    c.font = '800 16px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.6px'; c.fillStyle = TH.text;
     c.fillText(this.typed(n.title, an.typed), cx, h - 6, w + 40);
     if (hasLS) c.letterSpacing = '0px'; c.textAlign = 'left';
   },
@@ -3047,9 +3351,9 @@ const AnimationEngine = {
     c.fillStyle = rgba(col, 1); c.beginPath(); c.arc(24, h / 2, 6, 0, TAU); c.fill();
     c.save(); c.globalCompositeOperation = GOP; c.drawImage(sprite(col), 10, h / 2 - 14, 28, 28); c.restore();
     const v = this.typed(this.valueText(n, st), an.typed);
-    c.font = '700 16px "JetBrains Mono", monospace'; const vw = c.measureText(v).width;
+    c.font = '700 16px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; const vw = c.measureText(v).width;
     c.fillStyle = TH.value; c.fillText(v, w - 18 - vw, h / 2 + 1);
-    c.font = '700 14px Inter, system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.5px'; c.fillStyle = TH.text;
+    c.font = '700 14px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'; if (hasLS) c.letterSpacing = '.5px'; c.fillStyle = TH.text;
     c.fillText(this.typed(n.title, an.typed), 40, h / 2 + 1, w - 70 - vw); if (hasLS) c.letterSpacing = '0px';
   },
   drawChart(c, n, st, col, x, y, w, h, reveal = 1) {
@@ -3058,7 +3362,7 @@ const AnimationEngine = {
     if (type === 'pictogram') {
       const N = 10, sz = Math.min(h * .78, w / N * .92), filled = st.pct * N * reveal;
       for (let i = 0; i < N; i++) { const x0 = x + (i + .5) * (w / N), y0 = y + h / 2 - 4, fill = clamp(filled - i, 0, 1); c.globalAlpha = .16; drawIcon(c, n.chartIcon, x0, y0, sz); if (fill > 0) { c.globalAlpha = 1; c.save(); c.beginPath(); c.rect(x0 - sz / 2, y0 - sz, sz * fill, sz * 2); c.clip(); drawIcon(c, n.chartIcon, x0, y0, sz); c.restore(); } }
-      c.globalAlpha = 1; c.font = '600 9px "JetBrains Mono", monospace'; c.fillStyle = TH.sub; c.fillText(`${Math.round(st.pct * 100)}% · EACH ICON = 10%`, x, y + h + 4); c.restore(); return;
+      c.globalAlpha = 1; c.font = '600 9px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.sub; c.fillText(`${Math.round(st.pct * 100)}% · EACH ICON = 10%`, x, y + h + 4); c.restore(); return;
     }
     if (type === 'donut' || type === 'gauge' || type === 'progress') {
       const pct = st.pct * reveal, label = Math.round(pct * 100) + '%';
@@ -3066,19 +3370,19 @@ const AnimationEngine = {
         const r = h / 2 - 2, cx = x + r + 2, cy = y + h / 2;
         c.lineWidth = 7; c.strokeStyle = TH.border; c.beginPath(); c.arc(cx, cy, r - 3, 0, TAU); c.stroke();
         c.strokeStyle = rgba(lc, 1); c.lineCap = 'round'; c.beginPath(); c.arc(cx, cy, r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * pct); c.stroke();
-        c.font = '700 22px "JetBrains Mono", monospace'; c.fillStyle = TH.value; c.textBaseline = 'middle'; c.fillText(label, cx + r + 14, cy - 4);
-        c.font = '500 9px "JetBrains Mono", monospace'; c.fillStyle = TH.sub; c.fillText('OF TARGET', cx + r + 14, cy + 14);
+        c.font = '700 22px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.value; c.textBaseline = 'middle'; c.fillText(label, cx + r + 14, cy - 4);
+        c.font = '500 9px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.sub; c.fillText('OF TARGET', cx + r + 14, cy + 14);
       } else if (type === 'gauge') {
         const r = h - 4, cx = x + w / 2, cy = y + h;
         c.lineWidth = 8; c.lineCap = 'butt'; c.strokeStyle = TH.border; c.beginPath(); c.arc(cx, cy, r, Math.PI, TAU); c.stroke();
         const gr = c.createLinearGradient(cx - r, 0, cx + r, 0); gr.addColorStop(0, rgba(RGB.emerald, 1)); gr.addColorStop(.6, rgba(RGB.amber, 1)); gr.addColorStop(1, rgba(RGB.crimson, 1));
         c.strokeStyle = gr; c.beginPath(); c.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * pct); c.stroke();
         const a = Math.PI + Math.PI * pct; c.strokeStyle = TH.value; c.lineWidth = 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); c.stroke();
-        c.font = '700 13px "JetBrains Mono", monospace'; c.fillStyle = TH.value; c.textAlign = 'center'; c.fillText(label, cx, cy - 4); c.textAlign = 'left';
+        c.font = '700 13px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.value; c.textAlign = 'center'; c.fillText(label, cx, cy - 4); c.textAlign = 'left';
       } else {
         const N = 20, gap = 3, bw = (w - gap * (N - 1)) / N, on = Math.round(pct * N);
         for (let i = 0; i < N; i++) { c.fillStyle = i < on ? rgba(lc, .35 + .65 * i / N) : TH.border; c.fillRect(x + i * (bw + gap), y + 8, bw, h - 22); }
-        c.font = '600 10px "JetBrains Mono", monospace'; c.fillStyle = TH.sub; c.fillText(`PROGRESS ${label}`, x, y + h + 2);
+        c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = TH.sub; c.fillText(`PROGRESS ${label}`, x, y + h + 2);
       }
       c.restore(); return;
     }
@@ -3119,7 +3423,7 @@ const AnimationEngine = {
   },
   drawHUD(c, now) {
     const fx = scene.fx, W = REF_W, H = REF_H, u = clamp(fx.hudScale, .5, 3), m = 56, hasLS = 'letterSpacing' in c;
-    const font = (w, px) => `${w} ${px * u}px "JetBrains Mono", monospace`;
+    const font = (w, px) => `${w} ${px * u}px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace`;
     const ls = px => { if (hasLS) c.letterSpacing = (px * u) + 'px'; };
     c.save(); c.globalCompositeOperation = 'source-over'; c.textBaseline = 'alphabetic';
     if (fx.corners) {
@@ -3161,10 +3465,10 @@ const AnimationEngine = {
       if (out > 0) {
         const y0 = titleTop + 70 * ts, maxW = Math.max(W * .6, W - m * 2 - (fx.hud && W > 1100 ? 300 * u : 0)), p = clamp(age / 1.2, 0, 1);
         c.globalAlpha = out;
-        const r = drawAnimText(c, fx.title, m, y0, { style: fx.titleAnim, p, font: `800 ${60 * ts}px Inter, system-ui, sans-serif`, ls: ts, color: TH.value, size: 60 * ts, maxW, glow: true, glowColor: rgba(RGB.cyan, .35), glowBlur: 24 });
+        const r = drawAnimText(c, fx.title, m, y0, { style: fx.titleAnim, p, font: `800 ${60 * ts}px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`, ls: ts, color: TH.value, size: 60 * ts, maxW, glow: true, glowColor: rgba(RGB.cyan, .35), glowBlur: 24 });
         c.save(); c.globalCompositeOperation = GOP; const lineW = r.w * easeOutCubic(p);
         c.fillStyle = rgba(RGB.cyan, .9); c.fillRect(m, y0 + 16 * ts, lineW, 2 * ts); c.fillStyle = rgba(RGB.cyan, .18); c.fillRect(m, y0 + 13 * ts, lineW, 8 * ts); c.restore();
-        if (fx.subtitle) drawAnimText(c, fx.subtitle, m, y0 + 54 * ts, { style: fx.titleAnim === 'none' ? 'none' : 'fade', p: clamp((age - .5) / .7, 0, 1), font: `500 ${21 * ts}px Inter, system-ui, sans-serif`, ls: .3 * ts, color: TH.sub, size: 21 * ts, maxW });
+        if (fx.subtitle) drawAnimText(c, fx.subtitle, m, y0 + 54 * ts, { style: fx.titleAnim === 'none' ? 'none' : 'fade', p: clamp((age - .5) / .7, 0, 1), font: `500 ${21 * ts}px Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`, ls: .3 * ts, color: TH.sub, size: 21 * ts, maxW });
         c.globalAlpha = 1;
       }
     }
@@ -3191,7 +3495,7 @@ const AnimationEngine = {
         c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)); c.closePath();
         c.fillStyle = 'rgba(0,242,254,.07)'; c.fill(); c.strokeStyle = 'rgba(0,242,254,.45)'; c.lineWidth = 1; c.stroke();
         const P = cam3.project(hoverFloor.x, 0, hoverFloor.z);
-        if (P) { c.font = '500 10px "JetBrains Mono", monospace'; c.fillStyle = 'rgba(0,242,254,.8)'; c.fillText(`X ${Math.round(hoverFloor.x)}  Z ${Math.round(hoverFloor.z)}`, P.x + 12, P.y - 10); }
+        if (P) { c.font = '500 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = 'rgba(0,242,254,.8)'; c.fillText(`X ${Math.round(hoverFloor.x)}  Z ${Math.round(hoverFloor.z)}`, P.x + 12, P.y - 10); }
       }
     }
     const box = (r, color, dash) => { c.strokeStyle = color; c.lineWidth = 1.5; if (dash) c.setLineDash([5, 4]); c.strokeRect(r.x - 3, r.y - 3, r.w + 6, r.h + 6); c.setLineDash([]); };
@@ -3204,7 +3508,7 @@ const AnimationEngine = {
         const r = n._r, p = 7, L = 14, x0 = r.x - p, y0 = r.y - p, x1 = r.x + r.w + p, y1 = r.y + r.h + p;
         c.strokeStyle = '#00F2FE'; c.lineWidth = 2; c.shadowColor = 'rgba(0,242,254,.8)'; c.shadowBlur = 10;
         for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { c.beginPath(); c.moveTo(x, y + L * sy); c.lineTo(x, y); c.lineTo(x + L * sx, y); c.stroke(); }
-        c.shadowBlur = 0; c.font = '600 10px "JetBrains Mono", monospace'; c.fillStyle = '#00F2FE';
+        c.shadowBlur = 0; c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = '#00F2FE';
         c.fillText(`${n.locked ? 'LOCKED · ' : ''}X ${Math.round(n.x)} · Z ${Math.round(n.z)} · EL ${Math.round(n.elev)}${n.geo ? ' · ' + n.geo.toUpperCase() : ''}`, x0, y0 - 8);
       }
     }
@@ -3213,7 +3517,7 @@ const AnimationEngine = {
       if (p) {
         c.save(); c.translate(p.x, p.y); c.rotate(Math.PI / 4); c.fillStyle = '#080A0E'; c.strokeStyle = '#00F2FE'; c.lineWidth = 2; c.shadowColor = '#00F2FE'; c.shadowBlur = 10;
         c.fillRect(-6, -6, 12, 12); c.strokeRect(-6, -6, 12, 12); c.restore();
-        c.font = '600 10px "JetBrains Mono", monospace'; c.fillStyle = 'rgba(0,242,254,.85)';
+        c.font = '600 10px "JetBrains Mono", "Noto Sans SC", "PingFang SC", monospace'; c.fillStyle = 'rgba(0,242,254,.85)';
         c.fillText('DRAG: BEND · SHIFT+DRAG: ARC', p.x + 14, p.y + 22);
       }
     }
@@ -3307,6 +3611,7 @@ canvas.addEventListener('pointerdown', e => {
   if (pointers.size === 2) { const [a, b] = [...pointers.values()]; dragState = { mode: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y), z0: scene.camera.zoom }; return; }
   const p = toRef(e); lastPointer = p;
   const fp = cam3.unproject(p.x, p.y), base = { p0: p, moved: false };
+  if (spaceDown) { spaceUsed = true; canvas.style.cursor = 'grabbing'; dragState = { ...base, mode: 'pan', fp0: fp, cam0: { ...scene.camera } }; return; }
   if (e.button === 1 || e.button === 2) { dragState = { ...base, mode: e.shiftKey || e.button === 2 ? 'orbit' : 'pan', fp0: fp, cam0: { ...scene.camera } }; return; }
   if (sel?.type === 'link') {
     const g = geoms.find(x => x.link.id === sel.id), hp = g && FlowSystem.pointAt(g, .5);
@@ -3352,7 +3657,7 @@ canvas.addEventListener('pointermove', e => {
     if (m.space === 'world') { const fp = cam3.unproject(p.x, p.y); if (fp && ds.fp0) { m.wx = ds.wx0 + fp.x - ds.fp0.x; m.wz = ds.wz0 + fp.z - ds.fp0.z; } }
     else { m.x = ds.x0 + p.x - ds.p0.x; m.y = ds.y0 + p.y - ds.p0.y; }
   }
-  else if (ds.mode === 'pan') { const fp = cam3.unproject(p.x, p.y); if (fp && ds.fp0) { scene.camera.panX -= fp.x - ds.fp0.x; scene.camera.panZ -= fp.z - ds.fp0.z; cam3.set(scene.camera, 0, 0); } }
+  else if (ds.mode === 'pan') { manualCam(); const fp = cam3.unproject(p.x, p.y); if (fp && ds.fp0) { scene.camera.panX -= fp.x - ds.fp0.x; scene.camera.panZ -= fp.z - ds.fp0.z; cam3.set(scene.camera, 0, 0); } }
   else if (ds.mode === 'orbit') { scene.camera.yaw = ((ds.cam0.yaw + (p.x - ds.p0.x) * .22 + 540) % 360) - 180; scene.camera.pitch = clamp(ds.cam0.pitch + (p.y - ds.p0.y) * .15, 8, 89.5); }
   else if (ds.mode === 'bend') {
     const l = ds.link;
@@ -3374,11 +3679,14 @@ canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('pointerleave', () => { if (!dragState) { hover = null; hoverFloor = null; } });
 canvas.addEventListener('dblclick', e => {
   const p = toRef(e), h = hitTest(p);
+  if (h?.type === 'overlay') { const o = selObj(h); if (o && o.type === 'text') return inlineEdit(o._r, o.text, v => { o.text = v; }, true, o.size); if (o && o.type === 'counter') return inlineEdit(o._r, o.label, v => { o.label = v; }, false, 24); if (o && o.type === 'chart') return inlineEdit(o._r, o.title, v => { o.title = v; }, false, 20); }
+  if (h?.type === 'node') { const n = selObj(h); if (n) return inlineEdit(n._r, n.title, v => { n.title = v; }, false, 22); }
+  if (h?.type === 'link') { const l = selObj(h); const g = geoms.find(x => x.link === l), q = g && FlowSystem.pointAt(g, .5); if (l && q) return inlineEdit({ x: q.x - 120, y: q.y - 50, w: 240, h: 34 }, l.label, v => { l.label = v; }, false, 16); }
   if (!h) { const fp = cam3.unproject(p.x, p.y); if (fp) NodeSystem.add({ x: snapV(fp.x, e), z: snapV(fp.z, e) }); }
 });
 let wheelCommitT = 0;
 canvas.addEventListener('wheel', e => {
-  e.preventDefault(); if (exporting) return; const p = toRef(e), c = scene.camera, before = cam3.unproject(p.x, p.y);
+  e.preventDefault(); if (exporting) return; manualCam(); const p = toRef(e), c = scene.camera, before = cam3.unproject(p.x, p.y);
   c.zoom = clamp(c.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0012)), .1, 6); cam3.set(c, 0, 0);
   const after = cam3.unproject(p.x, p.y); if (before && after) { c.panX += before.x - after.x; c.panZ += before.z - after.z; }
   clearTimeout(wheelCommitT); wheelCommitT = setTimeout(commit, 350);
@@ -3394,6 +3702,25 @@ function openUpload(target = null, accept = 'image/*,video/*,.png,.jpg,.jpeg,.we
 /* =====================================================================
    KEYBOARD
    ===================================================================== */
+let spaceDown = false, spaceUsed = false, manualWarned = false;
+function manualCam() { if (scene.keys.cameraOn && scene.keys.camera.length && tl.playing) { scene.keys.cameraOn = false; if (!manualWarned) { manualWarned = true; toast('Camera keyframes paused so you can move freely. Turn Animate back on in the Camera tab.'); } } }
+function zoomBy(f) { const c = scene.camera; manualCam(); c.zoom = clamp(c.zoom * f, .08, 8); clearTimeout(wheelCommitT); wheelCommitT = setTimeout(commit, 350); }
+addEventListener('keyup', e => {
+  if (e.key !== ' ' || !spaceDown) return; spaceDown = false; canvas.style.cursor = 'default';
+  const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (!spaceUsed && $('#modal').hidden && !exporting) tl.toggle();
+});
+addEventListener('blur', () => { spaceDown = false; });
+let inlineEl = null;
+function inlineEdit(r, value, set, multiline, size) {
+  if (!r) return; if (inlineEl) inlineEl.blur();
+  const cr = canvas.getBoundingClientRect(), sr = stageEl.getBoundingClientRect(), k = cr.width / REF_W;
+  const ta = el(multiline ? 'textarea' : 'input', { class: 'inline-edit', 'aria-label': 'Edit text', style: `left:${cr.left - sr.left + r.x * k}px;top:${cr.top - sr.top + r.y * k}px;width:${Math.max(160, r.w * k)}px;${multiline ? `height:${Math.max(44, r.h * k + 12)}px;` : ''}font-size:${clamp(size * k, 12, 40)}px` });
+  ta.value = value || ''; stageEl.append(ta); ta.focus(); ta.select(); inlineEl = ta;
+  let done = false; const finish = save => { if (done) return; done = true; if (save) { set(ta.value); commit(); Inspector.build(); } ta.remove(); inlineEl = null; };
+  ta.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') finish(false); if (e.key === 'Enter' && (!multiline || e.ctrlKey || e.metaKey)) { e.preventDefault(); finish(true); } });
+  ta.addEventListener('blur', () => finish(true));
+}
 addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase(), typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
   if (!$('#modal').hidden) { if (e.key === 'Escape' && !exporting) closeModal(); return; }
@@ -3404,7 +3731,10 @@ addEventListener('keydown', e => {
   if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); const n = sel?.type === 'node' && selObj(); if (n) NodeSystem.duplicate(n); return; }
   if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); showJSON('export'); return; }
   switch (e.key) {
-    case ' ': e.preventDefault(); if (!e.repeat) tl.toggle(); break;
+    case ' ': e.preventDefault(); if (!e.repeat) { spaceDown = true; spaceUsed = false; canvas.style.cursor = 'grab'; } break;
+    case '=': case '+': zoomBy(1.2); break;
+    case '-': case '_': zoomBy(1 / 1.2); break;
+    case '0': frameAll(); break;
     case 'Home': tl.seek(0); break;
     case 'End': tl.seek(tl.duration); break;
     case 'Escape': if (recording) Recorder.stop(true); else { connectFrom = null; updateBanner(); select(null, false); } break;
@@ -3936,6 +4266,8 @@ function buildLinkInspector(r, l) {
   selectField(s, 'Particles', l, 'style', withInherit(PARTICLES));
   selectField(s, 'Pipe skin', l, 'skin', withInherit(PIPE_SKINS));
   toggle(s, 'Drain affects', l, 'drain');
+  s = sec(r, 'Flow recipe for this pipe', false);
+  chipGrid(s, FLOW_RECIPES.map(x => [x[0], `${x[1]} · ${x[2]}`]), () => false, v => { applyFlowRecipe(v, l); Inspector.build(); }, { two: true });
   s = sec(r, 'What it carries');
   hint(s, 'Pick an icon to send along this pipe: money, goods, ships, trucks, leaves, or your own PNG. AUTO uses the global icon from the Flow tab.');
   iconPicker(s, '', l, 'icon', { inherit: true });
@@ -3980,7 +4312,12 @@ function buildDesignTab(r) {
   const d = scene.design;
   r.append(el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap' }, el('span', { class: 'count-badge' }, `${DESIGN_COUNT} DESIGN & ANIMATION OPTIONS`),
     el('span', { class: 'spacer' }), B('Randomize look', () => { randomizeDesign(); Inspector.build(); }, 'primary'), B('Replay', () => { tl.seek(0); tl.playing = true; })));
-  let s = sec(r, `View · ${VIEWS.length}`);
+  let s = sec(r, `Style packs · ${STYLE_PACKS.length}`);
+  hint(s, 'One click restyles the whole scene: simple 2D flowchart, sticky notes, whiteboard, cinematic HUD and more. Your text and numbers stay.');
+  chipGrid(s, STYLE_PACKS.map(x => [x[0], `${x[1]} · ${x[2]}`]), () => false, v => { applyStylePack(v); Inspector.build(); }, { two: true });
+  s = sec(r, `Flow recipes · ${FLOW_RECIPES.length}`, false);
+  chipGrid(s, FLOW_RECIPES.map(x => [x[0], `${x[1]} · ${x[2]}`]), () => false, v => { applyFlowRecipe(v, sel?.type === 'link' ? selObj() : null); }, { two: true });
+  s = sec(r, `View · ${VIEWS.length}`);
   chipGrid(s, VIEWS, v => (d.view || '3d') === v, v => { d.view = v; commit(); });
   hint(s, '<b>2D flat</b> lays everything out on a flat page (top-down, no perspective). Pair it with a <b>Flat 2D</b> or <b>Sticker 2D</b> object style.');
   s = sec(r, `Color theme · ${Object.keys(THEMES).length}`);
@@ -4043,8 +4380,18 @@ function buildTextTab(r) {
     B('+ Lower third', () => Overlays.add('text', { text: 'JENSEN HUANG\nCEO, NVIDIA', size: 34, weight: 700, box: true, accent: true, nx: .06, ny: .78, anim: 'wipe', lineH: 1.3 })),
     B('+ Big stat', () => Overlays.add('counter')),
     B('+ Chart', () => Overlays.add('chart')),
+    B('+ Sticky note', () => { const o = Overlays.add('text', { text: 'Key point!' }); applyTextStyle(o, 'note'); o.nx = .64; o.ny = .26; Inspector.build(); }),
+    B('+ 便签', () => { const o = Overlays.add('text', { text: '重点！' }); applyTextStyle(o, 'note'); o.font = 'Long Cang'; o.nx = .64; o.ny = .26; Inspector.build(); }),
     B('+ Pictogram', () => Overlays.add('chart', { title: 'PEOPLE WITH INTERNET ACCESS', chartType: 'pictogram', icon: 'person', data: 'EUROPE: 89\nAMERICAS: 81\nASIA: 66\nAFRICA: 38', suffix: '%' })),
     B('+ Caption', () => Overlays.add('text', { text: 'Source: company filings, 2025', size: 18, weight: 500, font: 'JetBrains Mono', glow: false, accent: false, nx: .06, ny: .93, anim: 'fade' })));
+  s = sec(r, `Text library · ${TEXT_COUNT} (EN + 中文)`);
+  const LS = Inspector.lib || (Inspector.lib = { lang: 'en', cat: 'all' });
+  seg(s, 'Language', LS, 'lang', [['en', 'English'], ['zh', '中文'], ['both', 'Both 双语']], { onSet: () => Inspector.build() });
+  chipGrid(s, TEXT_CATS, v => LS.cat === v, v => { LS.cat = v; Inspector.build(); });
+  const lib = el('div', { class: 'list', style: 'max-height:260px;overflow:auto' });
+  for (const entry of TEXT_LIBRARY) { if (LS.cat !== 'all' && entry[0] !== LS.cat) continue; const t = LS.lang === 'zh' ? entry[2] : LS.lang === 'both' ? `${entry[1]} · ${entry[2]}` : entry[1];
+    lib.append(el('div', { class: 'li', title: 'Add to the scene', onclick: () => addLibraryText(entry, LS.lang) }, el('span', { class: 'meta', style: 'width:54px' }, entry[0].toUpperCase()), el('span', { class: 'nm' }, t.replace('\n', ' · ')), el('span', { class: 'meta' }, '+'))); }
+  s.append(lib); hint(s, 'Click a line to add it. Double-click any text in the viewport to edit it in place.');
   s = sec(r, `Layers · ${scene.overlays.length}`);
   if (!scene.overlays.length) hint(s, 'Text, number and chart layers sit on top of the scene. Drag them in the viewport. Each has its own in/out time and animation.');
   const list = el('div', { class: 'list' }), L = scene.overlays;
@@ -4061,6 +4408,7 @@ function buildTextTab(r) {
   const o = sel?.type === 'overlay' && selObj(); if (!o) return;
   s = sec(r, 'Content');
   if (o.type === 'text') { textArea(s, 'Text', o, 'text', { rows: 3, onCommit: () => Inspector.build() }); }
+  if (o.type === 'text') { const ts = sec(r, `Text style · ${TEXT_STYLES.length}`); chipGrid(ts, TEXT_STYLES.map(x => [x[0], x[1]]), () => false, v => { applyTextStyle(o, v); Inspector.build(); }, { two: true }); }
   if (o.type === 'counter') { textField(s, 'Label', o, 'label', { upper: true }); numField(s, 'From', o, 'from'); numField(s, 'To', o, 'to'); textField(s, 'Prefix', o, 'prefix'); textField(s, 'Suffix', o, 'suffix'); slider(s, 'Decimals', o, 'decimals', 0, 3, 1); toggle(s, 'Compact', o, 'compact'); selectField(s, 'Easing', o, 'ease', COUNTERS); }
   if (o.type === 'chart') {
     textField(s, 'Title', o, 'title', { upper: true }); selectField(s, 'Chart type', o, 'chartType', OV_CHARTS, { onSet: () => Inspector.build() });
@@ -4077,7 +4425,14 @@ function buildTextTab(r) {
     slider(s, 'Size', o, 'size', 10, 260, 1);
     if (o.type === 'text') { seg(s, 'Weight', o, 'weight', [['400', 'Regular'], ['600', 'Semi'], ['800', 'Bold'], ['900', 'Black']]); seg(s, 'Align', o, 'align', [['left', 'Left'], ['center', 'Center'], ['right', 'Right']]); slider(s, 'Letter space', o, 'ls', -4, 30, .5); slider(s, 'Line height', o, 'lineH', .8, 2.4, .01); slider(s, 'Max width', o, 'maxW', 100, 3000, 10); }
     colorField(s, 'Color', o, 'color', { allowEmpty: true, placeholder: 'theme' });
-    if (o.type === 'text') { toggle(s, 'Glow', o, 'glow'); toggle(s, 'Accent line', o, 'accent'); toggle(s, 'Box', o, 'box'); colorField(s, 'Box color', o, 'boxColor'); slider(s, 'Box opacity', o, 'boxOpacity', 0, 1, .01); }
+    if (o.type === 'text') {
+      toggle(s, 'Glow', o, 'glow'); toggle(s, 'Shadow', o, 'shadow'); toggle(s, 'Italic', o, 'italic'); toggle(s, 'Accent line', o, 'accent');
+      toggle(s, 'Outline', o, 'stroke'); colorField(s, 'Outline color', o, 'strokeColor'); slider(s, 'Outline width', o, 'strokeW', 1, 20, .5);
+      colorField(s, 'Highlight', o, 'highlight', { allowEmpty: true, placeholder: 'none' });
+      toggle(s, 'Sticky note', o, 'note'); colorField(s, 'Note color', o, 'noteColor');
+      toggle(s, 'Box', o, 'box'); colorField(s, 'Box color', o, 'boxColor'); slider(s, 'Box opacity', o, 'boxOpacity', 0, 1, .01); slider(s, 'Box corners', o, 'radius', 0, 60, 1);
+      slider(s, 'Rotation', o, 'rot', -45, 45, .5, { def: 0, fmt: v => v.toFixed(1) + '°' });
+    }
   } else tagPicker(s, 'Single color', o);
   s = sec(r, 'Timing & position');
   selectField(s, 'Animation', o, 'anim', TEXT_ANIMS);
@@ -4110,9 +4465,14 @@ function buildFlowTab(r) {
   slider(s, 'Dash length', f, 'dashLen', 1, 120, 1, { def: 14 }); slider(s, 'Dash gap', f, 'dashGap', 1, 160, 1, { def: 22 });
   slider(s, 'Intensity', f, 'pulse', 0, 3, .01, { def: 1 });
   seg(s, 'Liquidity dir.', f, 'direction', [['forward', 'Forward'], ['reverse', 'Reverse']]);
+  s = sec(r, `Flow recipes · ${FLOW_RECIPES.length}`);
+  hint(s, 'What moves through the pipes. Click one: it applies to the <b>selected pipe</b>, or to <b>every pipe</b> when nothing is selected.');
+  chipGrid(s, FLOW_RECIPES.map(x => [x[0], `${x[1]} · ${x[2]}`]), () => false, v => { applyFlowRecipe(v, sel?.type === 'link' ? selObj() : null); Inspector.build(); }, { two: true });
   s = sec(r, 'Icons & vehicles', f.style === 'icon');
   iconPicker(s, 'Icon carried', f, 'icon', { onSet: () => { f.style = 'icon'; } });
+  textField(s, 'Icon mix', f, 'icon', { placeholder: 'mix:car,bus,truck' });
   selectField(s, 'Motion', f, 'iconMotion', ICON_MOTIONS);
+  seg(s, 'Variation', f, 'iconVary', ICON_VARY);
   slider(s, 'Icon size', f, 'iconSize', 8, 120, 1, { def: 28 });
   toggle(s, 'Tint to pipe', f, 'iconTint'); toggle(s, 'Glow trail', f, 'iconTrail'); toggle(s, 'Halo', f, 'iconHalo');
   hint(s, 'Each pipe can carry its own icon: select a pipe and use <b>What it carries</b>.');
@@ -4121,7 +4481,7 @@ function buildFlowTab(r) {
   selectField(s, 'Shape', scene.design, 'pipe', PIPE_SHAPES);
   slider(s, 'Pipe width', f, 'pipeWidth', .3, 6, .05, { def: 2 }); slider(s, 'Pipe glow', f, 'glow', 0, 2.5, .01, { def: 1 });
   seg(s, 'Anchor', f, 'anchor', [['floor', 'Floor'], ['card', 'Card']]);
-  toggle(s, 'Labels', f, 'labels'); toggle(s, 'Arrows', f, 'arrows'); toggle(s, 'Width by rate', f, 'widthByRate');
+  toggle(s, 'Labels', f, 'labels'); toggle(s, 'Arrows', f, 'arrows'); toggle(s, 'End arrowhead', f, 'endArrow'); toggle(s, 'Width by rate', f, 'widthByRate');
 }
 function buildCameraTab(r) {
   const c = scene.camera, kd = scene.keys.cameraOn && scene.keys.camera.length;
@@ -4354,10 +4714,12 @@ const Transport = {
     $('#t-code').innerHTML = `${fmtTime(tl.t)} <span>/ ${fmtTime(tl.duration)}</span>`;
     $('#t-frame').textContent = `F ${String(Math.floor(tl.t * scene.output.fps)).padStart(4, '0')} · ${scene.output.fps} FPS · ${scene.output.w}×${scene.output.h}`;
     $('#t-stress').style.width = (stress * 100).toFixed(1) + '%';
+    $('#zoomv').textContent = Math.round(scene.camera.zoom * 100) + '%';
   },
 };
 function toggleDrain() { scene.flow.drain = !scene.flow.drain; commit(); toast(scene.flow.drain ? 'Drain mode engaged · flows shift to crimson and accelerate' : 'Drain mode released'); }
 $('#t-start').onclick = () => tl.seek(0);
+document.querySelectorAll('#zoombar button').forEach(b => b.onclick = () => { const z = b.dataset.z; if (z === 'in') zoomBy(1.25); else if (z === 'out') zoomBy(.8); else if (z === 'fit') frameAll(); else { manualCam(); scene.camera.zoom = 1; commit(); } });
 $('#t-play').onclick = () => tl.toggle();
 $('#t-loop').onclick = () => { scene.timeline.loop = !scene.timeline.loop; commit(); };
 document.querySelectorAll('#t-speed button').forEach(b => b.onclick = () => { scene.timeline.speed = +b.dataset.v; commit(); });
@@ -4373,7 +4735,7 @@ $('#btn-import').onclick = () => showJSON('import');
 $('#btn-png').onclick = snapshotPNG;
 $('#btn-video').onclick = () => recording ? Recorder.stop(false) : openVideoExport();
 $('#btn-help').onclick = () => openModal('KEYBOARD & MOUSE', [el('div', { class: 'kgrid' }, ...[
-  ['Space', 'Play / pause'], ['R', 'Replay from start'], ['Home / End', 'Jump to start / end'], [', / .', 'Step one frame back / forward'], ['L', 'Toggle loop'],
+  ['Space (tap)', 'Play / pause'], ['Space + drag', 'Pan the view up, down, left, right'], ['+ / − / 0', 'Zoom in / out / fit'], ['Double-click text', 'Edit text, node titles or pipe labels in place'], ['R', 'Replay from start'], ['Home / End', 'Jump to start / end'], [', / .', 'Step one frame back / forward'], ['L', 'Toggle loop'],
   ['Drag card', 'Move node across the floor (Ctrl to snap)'], ['Alt + drag card', 'Draw a pipe to another card'], ['C', 'Connect selected node to the next one you click'],
   ['Double-click floor', 'Add node at that point'], ['N / T', 'Add node / add text layer'], ['Ctrl + D', 'Duplicate node'], ['Delete', 'Delete selection or selected key'], ['Arrows', 'Nudge selection (Shift = ×5)'],
   ['Drag empty space', 'Pan camera'], ['Shift / right-drag', 'Orbit camera (yaw + pitch)'], ['Wheel / pinch', 'Zoom toward cursor'], ['F', 'Frame all nodes'],
