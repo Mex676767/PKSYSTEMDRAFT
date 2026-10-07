@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.git/
+pnpm-lock.yaml
+artifacts/mockup-sandbox/
+.tmp/
