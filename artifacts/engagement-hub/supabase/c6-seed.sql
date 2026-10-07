@@ -73,12 +73,13 @@ create policy "Approved users can delete their own post images" on storage.objec
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 select cron.unschedule(jobname) from cron.job
-where jobname in ('birthday-notifications', 'birthday-emails', 'pk-expire-open', 'pk-auto-settle', 'pk-missed-updates', 'maintenance-prune-cron-history');
+where jobname in ('birthday-notifications', 'birthday-emails', 'pk-expire-open', 'pk-auto-settle', 'pk-missed-updates', 'pk-archive-monthly-seasons', 'maintenance-prune-cron-history');
 select cron.schedule('birthday-notifications', '5 * * * *', 'select notify_todays_birthdays()');
 select cron.schedule('birthday-emails', '10 * * * *', 'select trigger_birthday_emails()');
 select cron.schedule('pk-expire-open', '20 * * * *', 'select pk_expire_open()');
 select cron.schedule('pk-auto-settle', '40 * * * *', 'select pk_auto_settle()');
 select cron.schedule('pk-missed-updates', '50 * * * *', 'select pk_check_missed_updates()');
+select cron.schedule('pk-archive-monthly-seasons', '15 0 * * *', 'select pk_archive_seasons()');
 select cron.schedule(
   'maintenance-prune-cron-history',
   '30 3 * * 0',

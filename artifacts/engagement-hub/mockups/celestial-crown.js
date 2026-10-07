@@ -7,14 +7,14 @@ celestial.querySelector('.crown').innerHTML = crownIcon;
 celestial.querySelectorAll('.royal-place').forEach((place,index)=>{
   const rank = [2,1,3][index];
   place.dataset.rank = rank;
-  place.querySelector('.medal').innerHTML = `<span class="rank-jewel">${rank === 1 ? '✦' : rank === 2 ? 'II' : 'III'}</span><span>${rank === 1 ? 'THE MONTHLY CHAMPION' : rank === 2 ? 'SILVER HONORS' : 'BRONZE HONORS'}</span>`;
+  place.querySelector('.medal')?.remove();
   place.querySelector('.score').insertAdjacentHTML('afterend', '<span class="score-caption">ACHIEVEMENT SCORE</span>');
   place.querySelector('.rank-detail').remove();
   place.querySelector('.place-number').insertAdjacentHTML('beforebegin', '<div class="engraved-divider" aria-hidden="true"><i></i>✧<i></i></div>');
   place.insertAdjacentHTML('beforeend', `<div class="podium-foot-label">${rank===1?'GOLD DISTINCTION':rank===2?'SILVER DISTINCTION':'BRONZE DISTINCTION'}</div>`);
 });
 celestial.insertAdjacentHTML('beforeend', '<div class="stage-dedication"><span>✦</span> CELEBRATING EXCELLENCE, TOGETHER <span>✦</span></div>');
-document.querySelector('#podium-1 .concept-note').innerHTML = '<span class="option-no">01</span><div><b>Celestial Crown · refined</b><br>A celestial backdrop, sculpted metallic crown, engraved rank badges, inset panels, and a layered awards stage. Clean avatar circles with no surrounding branches.</div>';
+document.querySelector('#podium-1 .concept-note').innerHTML = '<span class="option-no">01</span><div><b>Celestial Crown · refined</b><br>Celestial geometry, luminous card edges, a sculpted champion crown, inset panels, and a layered awards stage in the Hub’s plum, pink, orange, and gold palette.</div>';
 document.querySelector('[data-show="cert-3"]').textContent = 'C · Midnight Registry ✓ Confirmed';
 document.querySelectorAll('[data-group="certificate"]').forEach(panel => panel.classList.toggle('active',panel.id==='cert-3'));
 document.querySelectorAll('[data-controls="certificate"] .pick').forEach(button=>button.classList.toggle('active',button.dataset.show==='cert-3'));
