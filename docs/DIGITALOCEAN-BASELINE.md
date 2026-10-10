@@ -12,6 +12,15 @@ imported for each tenant. Do not rerun the initial baseline restore or import
 scripts against these populated databases; those scripts are for a fresh empty
 target only. Both production Workers now proxy application API traffic to their matching DigitalOcean tenant APIs.
 
+A read-only destination audit on 2026-10-10 confirmed 62 C9 profiles with 62
+approval rows, 8 password credentials, and 54 Google identity records; C6 has
+56 profiles with 56 approval rows, 0 password credentials, and 56 Google
+identity records. Neither tenant has profiles missing approval rows, Hall of
+Fame leaders missing profiles, or team members missing profiles. A real C9
+password login also succeeded after production cutover. These checks verify
+destination state; they are not a substitute for the remaining product-level
+PK, Google identity, push, and voice acceptance checks.
+
 ## Fresh-target restore procedure
 
 The following steps describe initial provisioning for a fresh target only.
