@@ -3,8 +3,6 @@ FROM node:24-bookworm-slim AS build
 RUN corepack enable && corepack prepare pnpm@11.0.0 --activate
 WORKDIR /workspace
 COPY . .
-# Keep the workspace's package-manager guard satisfied in Docker build stages.
-ENV npm_config_user_agent=pnpm/11.0.0
 RUN pnpm install --frozen-lockfile --filter @workspace/api-server...
 RUN pnpm --filter @workspace/api-server run build
 
