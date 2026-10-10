@@ -116,7 +116,8 @@ export default function Admin() {
 function formatBirthday(value: string | null) {
   if (!value) return "No birthday set";
 
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  // node-postgres serializes PostgreSQL `date` values as ISO timestamps in JSON.
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(value);
   if (!match) return "Birthday needs review";
 
   const month = Number(match[2]);
