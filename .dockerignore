@@ -1,0 +1,11 @@
+.git
+.claude
+.pnpm-store
+node_modules
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+deliverables
+alignment-and-birthday-fixes.patch
+*.log

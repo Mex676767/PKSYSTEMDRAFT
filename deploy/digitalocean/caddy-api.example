@@ -1,0 +1,9 @@
+api-c9.165-245-183-45.sslip.io {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4101
+}
+
+api-c6.165-245-183-45.sslip.io {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4102
+}
