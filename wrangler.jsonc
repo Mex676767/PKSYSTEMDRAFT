@@ -3,9 +3,12 @@
 // on GitHub Pages and doesn't use this.
 {
   "name": "c6",
+  "main": "./artifacts/engagement-hub/worker.ts",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./artifacts/engagement-hub/dist/public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api", "/api/*"],
     // Client-side routes like /challenges/123 fall back to index.html.
     "not_found_handling": "single-page-application"
   }

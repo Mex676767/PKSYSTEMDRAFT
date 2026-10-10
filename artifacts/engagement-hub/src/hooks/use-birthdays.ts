@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/api";
 
 export type BirthdayEntry = {
   id: string;
@@ -30,11 +30,7 @@ export function useBirthdays() {
   return useQuery({
     queryKey: ["birthdays"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username, department, role, birthday, avatar_url, active_border, active_accessory")
-        .not("birthday", "is", null);
-      if (error) throw error;
+      const data = await apiRequest<Omit<BirthdayEntry, "isToday" | "daysUntil">[]>("/birthdays");
 
       const today = new Date();
       const todayM = today.getMonth();
@@ -42,7 +38,7 @@ export function useBirthdays() {
       const todayMidnight = new Date(today.getFullYear(), todayM, todayD).getTime();
       const dayMs = 24 * 60 * 60 * 1000;
 
-      return (data as Omit<BirthdayEntry, "isToday" | "daysUntil">[])
+      return data
         .map((p): BirthdayEntry => {
           const { month, day } = monthDayOf(p.birthday);
           const isToday = month === todayM && day === todayD;
@@ -60,10 +56,7 @@ export function useSetMyBirthday() {
   const qc = useQueryClient();
   const { refetchProfile } = useAuth();
   return useMutation({
-    mutationFn: async (birthday: string) => {
-      const { error } = await supabase.rpc("set_my_birthday", { birthday_param: birthday });
-      if (error) throw error;
-    },
+    mutationFn: (birthday: string) => apiRequest("/profile/birthday", { method: "PUT", body: JSON.stringify({ birthday }) }),
     onSuccess: () => {
       refetchProfile();
       qc.invalidateQueries({ queryKey: ["birthdays"] });
@@ -74,10 +67,8 @@ export function useSetMyBirthday() {
 export function useAdminSetBirthday() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, birthday }: { userId: string; birthday: string }) => {
-      const { error } = await supabase.rpc("admin_set_birthday", { user_id_param: userId, birthday_param: birthday });
-      if (error) throw error;
-    },
+    mutationFn: ({ userId, birthday }: { userId: string; birthday: string }) =>
+      apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/birthday`, { method: "PUT", body: JSON.stringify({ birthday }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["birthdays"] });
       qc.invalidateQueries({ queryKey: ["all-profiles-admin"] });

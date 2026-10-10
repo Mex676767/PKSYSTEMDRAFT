@@ -407,7 +407,7 @@ function LearningSharing({ canManage }: { canManage: boolean }) {
 }
 
 function SetupMessage() {
-  return <Card className="border-amber-500/30 bg-amber-500/5"><CardContent className="p-5 text-sm text-amber-800 dark:text-amber-200">Learning Hub data is not ready yet. Apply migration <strong>0052_learning_hub_and_gratitude.sql</strong> to this organisation’s Supabase project.</CardContent></Card>;
+  return <Card className="border-amber-500/30 bg-amber-500/5"><CardContent className="p-5 text-sm text-amber-800 dark:text-amber-200">Learning Hub data is not available yet. The DigitalOcean database setup is still in progress.</CardContent></Card>;
 }
 
 function LoadingCards() {

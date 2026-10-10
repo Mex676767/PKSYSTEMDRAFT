@@ -1,19 +1,18 @@
 import { useEffect } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 
-export function useRealtimeInvalidate(table: string, queryKeys: QueryKey[]) {
+// Temporary cross-backend refresh mechanism while the app moves off Supabase
+// Realtime. TanStack only refetches active queries, and the interval is modest
+// to avoid multiplying requests across mounted pages.
+export function useRealtimeInvalidate(_table: string, queryKeys: QueryKey[]) {
   const qc = useQueryClient();
   useEffect(() => {
-    const channel = supabase
-      .channel(`rt-${table}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table }, () => {
+    const timer = window.setInterval(() => {
         for (const key of queryKeys) qc.invalidateQueries({ queryKey: key });
-      })
-      .subscribe();
+    }, 30_000);
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, qc]);
+  }, [_table, qc]);
 }

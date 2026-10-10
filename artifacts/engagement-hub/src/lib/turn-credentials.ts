@@ -1,9 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
-// Cloudflare's TURN API token is a real secret (unlike Supabase's publishable
-// key), so credentials are generated server-side by the get-turn-credentials
-// Supabase Edge Function and fetched here rather than calling Cloudflare
-// directly from the browser.
+// Cloudflare's TURN API token stays in the DigitalOcean API service. The
+// browser receives only short-lived ICE server credentials.
 
 const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
@@ -15,9 +13,8 @@ export async function getIceServers(): Promise<RTCIceServer[]> {
   if (cached && cached.expiresAt > Date.now()) return cached.servers;
 
   try {
-    const { data, error } = await supabase.functions.invoke("get-turn-credentials");
-    if (error) throw error;
-    const servers = data?.iceServers as RTCIceServer[] | undefined;
+    const data = await apiRequest<{iceServers?:RTCIceServer[]}>("/voice/turn-credentials");
+    const servers = data?.iceServers;
     if (!Array.isArray(servers) || servers.length === 0) throw new Error("Empty TURN credential response");
     // Credentials are valid for 24h server-side; refresh a bit early to be safe.
     cached = { servers, expiresAt: Date.now() + 12 * 60 * 60 * 1000 };

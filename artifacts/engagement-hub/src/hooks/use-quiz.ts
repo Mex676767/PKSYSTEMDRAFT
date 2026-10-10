@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export type QuizQuestion = {
@@ -29,11 +29,7 @@ export type QuizLeaderboardEntry = {
 export function useQuizQuestions() {
   return useQuery({
     queryKey: ["quiz-questions"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_quiz_questions");
-      if (error) throw error;
-      return data as QuizQuestion[];
-    },
+    queryFn: () => apiRequest<QuizQuestion[]>("/quiz/questions"),
   });
 }
 
@@ -42,25 +38,14 @@ export function useMyQuizAnswers() {
   return useQuery({
     queryKey: ["my-quiz-answers", session?.user.id],
     enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quiz_answers")
-        .select("question_id, selected_index, correct")
-        .eq("user_id", session!.user.id);
-      if (error) throw error;
-      return data as QuizAnswer[];
-    },
+    queryFn: () => apiRequest<QuizAnswer[]>("/quiz/answers/me"),
   });
 }
 
 export function useQuizLeaderboard() {
   return useQuery({
     queryKey: ["quiz-leaderboard"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_quiz_leaderboard");
-      if (error) throw error;
-      return data as QuizLeaderboardEntry[];
-    },
+    queryFn: () => apiRequest<QuizLeaderboardEntry[]>("/quiz/leaderboard"),
   });
 }
 
@@ -69,12 +54,9 @@ export function useSubmitQuizAnswer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ questionId, selectedIndex }: { questionId: string; selectedIndex: number }) => {
-      const { data, error } = await supabase.rpc("submit_quiz_answer", {
-        question_id_param: questionId,
-        selected_index_param: selectedIndex,
+      return apiRequest<{ correct: boolean; correct_index: number }>("/quiz/answers", {
+        method: "POST", body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }),
       });
-      if (error) throw error;
-      return data as { correct: boolean; correct_index: number };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-quiz-answers", session?.user.id] });
@@ -87,14 +69,7 @@ export function useSubmitQuizAnswer() {
 export function useAllQuizQuestions() {
   return useQuery({
     queryKey: ["quiz-questions-full"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as QuizQuestionFull[];
-    },
+    queryFn: () => apiRequest<QuizQuestionFull[]>("/admin/quiz/questions"),
   });
 }
 
@@ -102,14 +77,9 @@ export function useCreateQuizQuestion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { question: string; options: string[]; correctIndex: number }) => {
-      const { session } = (await supabase.auth.getSession()).data;
-      const { error } = await supabase.from("quiz_questions").insert({
-        question: input.question,
-        options: input.options,
-        correct_index: input.correctIndex,
-        created_by: session?.user.id,
+      return apiRequest<{ id: string }>("/admin/quiz/questions", {
+        method: "POST", body: JSON.stringify({ question: input.question, options: input.options, correct_index: input.correctIndex }),
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["quiz-questions-full"] });
@@ -121,10 +91,7 @@ export function useCreateQuizQuestion() {
 export function useDeleteQuizQuestion() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("quiz_questions").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => apiRequest(`/admin/quiz/questions/${encodeURIComponent(id)}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["quiz-questions-full"] });
       qc.invalidateQueries({ queryKey: ["quiz-questions"] });

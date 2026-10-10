@@ -49,7 +49,7 @@ export function AdminAchievementsCard() {
 
         {!managed ? (
           <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-3">
-            Run migration <code>0029_achievements</code> in Supabase to manage achievements here.
+            Achievements are not available yet. The DigitalOcean database setup is still in progress.
           </p>
         ) : (
           <div className="space-y-2">

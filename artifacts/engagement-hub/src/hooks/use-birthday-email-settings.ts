@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export type BirthdayEmailSettings = {
   /** Team announcement on/off. */
@@ -46,12 +46,7 @@ export function useBirthdayEmailSettings(enabled: boolean) {
   return useQuery({
     queryKey: ["birthday-email-settings"],
     enabled,
-    queryFn: async () => {
-      // select("*") so the card still loads before migration 0024 adds columns.
-      const { data, error } = await supabase.from("birthday_email_settings").select("*").eq("id", 1).maybeSingle();
-      if (error) throw error;
-      return data as (Partial<BirthdayEmailSettings> & Pick<BirthdayEmailSettings, "enabled" | "subject" | "body">) | null;
-    },
+    queryFn: () => apiRequest<(Partial<BirthdayEmailSettings> & Pick<BirthdayEmailSettings, "enabled" | "subject" | "body">) | null>("/birthday-email/settings"),
   });
 }
 
@@ -59,8 +54,7 @@ export function useSaveBirthdayEmailSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (settings: Partial<Omit<BirthdayEmailSettings, "updated_at">>) => {
-      const { error } = await supabase.from("birthday_email_settings").update(settings).eq("id", 1);
-      if (error) throw error;
+      await apiRequest<void>("/birthday-email/settings", { method:"PATCH", body:JSON.stringify(settings) });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["birthday-email-settings"] }),
   });
@@ -70,16 +64,7 @@ export function useSaveBirthdayEmailSettings() {
 export function useSendTestBirthdayEmail() {
   return useMutation({
     mutationFn: async (kind: BirthdayEmailKind) => {
-      const { data, error } = await supabase.functions.invoke("send-birthday-emails", { body: { action: "test", kind } });
-      if (error) {
-        // Surface the function's own message ("domain not verified", etc.).
-        const ctx = (error as { context?: Response }).context;
-        const detail = ctx && typeof ctx.json === "function" ? await ctx.json().catch(() => null) : null;
-        if (detail?.error) throw new Error(detail.error);
-        if (ctx?.status === 404) throw new Error("The send-birthday-emails function isn't deployed yet.");
-        throw error;
-      }
-      return data as { sent: boolean; to: string };
+      return apiRequest<{ sent:boolean; to:string }>("/birthday-email/test",{method:"POST",body:JSON.stringify({kind})});
     },
   });
 }
@@ -99,14 +84,6 @@ export function useBirthdayEmailLog(enabled: boolean) {
   return useQuery({
     queryKey: ["birthday-email-log"],
     enabled,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("birthday_email_log")
-        .select("id, birthday_on, kind, status, recipients, error, created_at, person:profiles(username)")
-        .order("created_at", { ascending: false })
-        .limit(12);
-      if (error) return [] as BirthdayEmailLogRow[];
-      return data as unknown as BirthdayEmailLogRow[];
-    },
+    queryFn: async () => apiRequest<BirthdayEmailLogRow[]>("/birthday-email/log").catch(() => []),
   });
 }

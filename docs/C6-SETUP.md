@@ -1,5 +1,11 @@
 # C6 hub setup
 
+> **Migration note:** This is the legacy Supabase setup guide. The active plan
+> is in [`DIGITALOCEAN-MIGRATION.md`](DIGITALOCEAN-MIGRATION.md): use the same
+> Cloudflare Worker URL for the frontend during phase one, then proxy `/api`
+> to C6's DigitalOcean API. Do not use the Supabase setup steps below for new
+> deployments.
+
 C6 runs the same code as the C9MYR hub, on its own domain, with its **own
 Supabase project** so the two organisations' data can never mix. Every push to
 `main` redeploys both sites:

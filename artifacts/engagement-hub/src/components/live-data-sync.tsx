@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/lib/supabase";
 
 // Tables not already covered by a feature-specific live subscription. The
 // callback invalidates active queries only, so pages that are not mounted do
@@ -81,57 +80,23 @@ const LIVE_SYNC_QUERY_KEYS: Record<LiveSyncTable, readonly string[]> = {
   voice_sessions: ["activity-history"],
 };
 
-type ProfileChange = {
-  new?: { id?: string; user_id?: string };
-  old?: { id?: string; user_id?: string };
-};
-
 export function LiveDataSync() {
   const queryClient = useQueryClient();
   const { session, refetchProfile } = useAuth();
 
   useEffect(() => {
     if (!session) return;
-
-    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-    let profileTimer: ReturnType<typeof setTimeout> | undefined;
-    const pendingQueryKeys = new Set<string>();
-
-    const refreshActiveData = (table: LiveSyncTable) => {
-      for (const key of LIVE_SYNC_QUERY_KEYS[table]) pendingQueryKeys.add(key);
-      if (refreshTimer) clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => {
-        for (const key of pendingQueryKeys) {
-          queryClient.invalidateQueries({ queryKey: [key], refetchType: "active" });
-        }
-        pendingQueryKeys.clear();
-      }, 350);
-    };
-
-    const refreshProfileIfNeeded = (payload: ProfileChange) => {
-      const changedId = payload.new?.id ?? payload.new?.user_id ?? payload.old?.id ?? payload.old?.user_id;
-      if (changedId !== session.user.id) return;
-      if (profileTimer) clearTimeout(profileTimer);
-      profileTimer = setTimeout(() => void refetchProfile(), 120);
-    };
-
-    let channel = supabase.channel(`hub-live-sync-${session.user.id}`);
-    for (const table of LIVE_SYNC_TABLES) {
-      channel = channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table },
-        (payload) => {
-          refreshActiveData(table);
-          if (table === "profiles" || table === "account_approvals") refreshProfileIfNeeded(payload as ProfileChange);
-        },
-      );
-    }
-    channel.subscribe();
-
+    // Supabase Realtime is being replaced with periodic API refreshes. Only
+    // active queries refetch, keeping the cost bounded while preserving updates.
+    const timer = window.setInterval(() => {
+      const keys = new Set(LIVE_SYNC_TABLES.flatMap((table) => LIVE_SYNC_QUERY_KEYS[table]));
+      for (const key of keys) {
+        void queryClient.invalidateQueries({ queryKey: [key], refetchType: "active" });
+      }
+      void refetchProfile();
+    }, 30_000);
     return () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      if (profileTimer) clearTimeout(profileTimer);
-      supabase.removeChannel(channel);
+      window.clearInterval(timer);
     };
   }, [queryClient, refetchProfile, session?.user.id]);
 

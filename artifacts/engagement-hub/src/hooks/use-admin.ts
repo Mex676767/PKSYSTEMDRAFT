@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/api";
 
 export type AdminProfileRow = {
   id: string;
@@ -21,29 +21,8 @@ export type AdminProfileRow = {
 export function useAllProfiles() {
   return useQuery({
     queryKey: ["all-profiles-admin"],
-    queryFn: async () => {
-      const [profilesResult, approvalsResult] = await Promise.all([
-        supabase.rpc("admin_list_profiles"),
-        supabase.rpc("admin_list_profile_approvals"),
-      ]);
-      if (profilesResult.error) throw profilesResult.error;
-      if (approvalsResult.error && approvalsResult.error.code !== "PGRST202") throw approvalsResult.error;
-
-      if (approvalsResult.error?.code === "PGRST202") {
-        return (profilesResult.data as Omit<AdminProfileRow, "is_approved" | "approved_at">[])
-          .map((profile) => ({ ...profile, approved_at: null, is_approved: true }));
-      }
-
-      const approvals = new Map<string, string | null>(
-        (approvalsResult.data ?? []).map((row: { user_id: string; approved_at: string | null }) => [row.user_id, row.approved_at] as const)
-      );
-      return (profilesResult.data as Omit<AdminProfileRow, "is_approved" | "approved_at">[])
-        .map((profile) => {
-          const approvedAt = approvals.get(profile.id) ?? null;
-          return { ...profile, approved_at: approvedAt, is_approved: approvedAt !== null };
-        })
-        .sort((a, b) => Number(a.is_approved) - Number(b.is_approved));
-    },
+    queryFn: async () => (await apiRequest<AdminProfileRow[]>("/admin/profiles"))
+      .sort((a, b) => Number(a.is_approved) - Number(b.is_approved)),
   });
 }
 
@@ -62,69 +41,58 @@ function useAdminMutation<TVars>(
 }
 
 export function useAdminSetUsername() {
-  return useAdminMutation(async ({ userId, username }: { userId: string; username: string }) => {
-    const { error } = await supabase.rpc("admin_set_username", { target_user: userId, new_username: username });
-    if (error) throw error;
-  });
+  return useAdminMutation(({ userId, username }: { userId: string; username: string }) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/username`, { method: "PATCH", body: JSON.stringify({ username }) })
+  );
 }
 
 export function useApproveUser() {
-  return useAdminMutation(async (userId: string) => {
-    const { error } = await supabase.rpc("admin_approve_user", { target_user: userId });
-    if (error) throw error;
-  }, [["directory"], ["birthdays"], ["giftable-profiles"]]);
+  return useAdminMutation((userId: string) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/approve`, { method: "POST" })
+  , [["directory"], ["birthdays"], ["giftable-profiles"]]);
 }
 
 export function useAdminAdjustPoints() {
-  return useAdminMutation(async ({ userId, amount, reason }: { userId: string; amount: number; reason?: string }) => {
-    const { error } = await supabase.rpc("admin_adjust_points", { target_user: userId, amount, reason: reason ?? null });
-    if (error) throw error;
-  });
+  return useAdminMutation(({ userId, amount, reason }: { userId: string; amount: number; reason?: string }) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/points`, { method: "POST", body: JSON.stringify({ amount, reason: reason ?? null }) })
+  );
 }
 
 /** Hide an account from everyone else (still active, can still sign in). */
 export function useSetUserHidden() {
-  return useAdminMutation(async ({ userId, hidden }: { userId: string; hidden: boolean }) => {
-    const { error } = await supabase.rpc("admin_set_hidden", { target_user: userId, hidden });
-    if (error) throw error;
-  }, [["directory"], ["birthdays"], ["giftable-profiles"]]);
+  return useAdminMutation(({ userId, hidden }: { userId: string; hidden: boolean }) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/hidden`, { method: "PUT", body: JSON.stringify({ hidden }) })
+  , [["directory"], ["birthdays"], ["giftable-profiles"]]);
 }
 
 export function useSetUserAdmin() {
-  return useAdminMutation(async ({ userId, value }: { userId: string; value: boolean }) => {
-    const { error } = await supabase.rpc("set_user_admin", { target_user: userId, value });
-    if (error) throw error;
-  });
+  return useAdminMutation(({ userId, value }: { userId: string; value: boolean }) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/admin`, { method: "PUT", body: JSON.stringify({ value }) })
+  );
 }
 
 export function useSetUserPermissions() {
-  return useAdminMutation(async ({ userId, permissions }: { userId: string; permissions: string[] }) => {
-    const { error } = await supabase.rpc("set_user_permissions", { target_user: userId, perms: permissions });
-    if (error) throw error;
-  });
+  return useAdminMutation(({ userId, permissions }: { userId: string; permissions: string[] }) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/permissions`, { method: "PUT", body: JSON.stringify({ permissions }) })
+  );
 }
 
 export function useDeactivateUser() {
-  return useAdminMutation(async (userId: string) => {
-    const { error } = await supabase.rpc("deactivate_user", { target_user: userId });
-    if (error) throw error;
-  });
+  return useAdminMutation((userId: string) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/active`, { method: "PUT", body: JSON.stringify({ active: false }) })
+  );
 }
 
 export function useReactivateUser() {
-  return useAdminMutation(async (userId: string) => {
-    const { error } = await supabase.rpc("reactivate_user", { target_user: userId });
-    if (error) throw error;
-  });
+  return useAdminMutation((userId: string) =>
+    apiRequest(`/admin/profiles/${encodeURIComponent(userId)}/active`, { method: "PUT", body: JSON.stringify({ active: true }) })
+  );
 }
 
 export function useDeleteOwnAccount() {
   const { signOut } = useAuth();
   return useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("delete_own_account");
-      if (error) throw error;
-    },
+    mutationFn: () => apiRequest("/account", { method: "DELETE" }),
     onSuccess: () => signOut(),
   });
 }

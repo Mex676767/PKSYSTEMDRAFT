@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { apiRequest } from "@/lib/api";
 import { playVoiceCue } from "@/lib/voice-sfx";
 import { reserveScreenSender, clampVoiceVolume } from "@/lib/voice-media";
 import { getIceServers } from "@/lib/turn-credentials";
@@ -24,25 +23,6 @@ export type VoiceParticipant = {
 };
 
 const LAST_CHANNEL_KEY = "voice:lastChannel";
-
-function readPresence(channel: RealtimeChannel): VoiceParticipant[] {
-  const state = channel.presenceState() as Record<
-    string,
-    {
-      username: string;
-      muted?: boolean;
-      deafened?: boolean;
-      streaming?: boolean;
-    }[]
-  >;
-  return Object.entries(state).map(([id, presences]) => ({
-    id,
-    username: presences[0]?.username ?? "unknown",
-    muted: presences[0]?.muted ?? false,
-    deafened: presences[0]?.deafened ?? false,
-    streaming: presences[0]?.streaming ?? false,
-  }));
-}
 
 export function useVoiceChannels(
   channelIds: string[],
@@ -75,7 +55,7 @@ export function useVoiceChannels(
   >(new Map());
   const [audioBlocked, setAudioBlocked] = useState(false);
 
-  const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
+  const channelsRef = useRef<Set<string>>(new Set());
   const joinedIdRef = useRef<string | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -108,12 +88,24 @@ export function useVoiceChannels(
 
   const activeChannel = useCallback(() => {
     const id = joinedIdRef.current;
-    return id ? (channelsRef.current.get(id) ?? null) : null;
+    return id && channelsRef.current.has(id) ? id : null;
   }, []);
+
+  const publishPresence = useCallback((channelId: string, value: { muted: boolean; deafened: boolean; streaming: boolean }) => {
+    if (!username) return;
+    void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, {
+      method: "PUT",
+      body: JSON.stringify({ username, ...value }),
+    }).catch((err) => console.warn("Failed to refresh voice presence", err));
+  }, [username]);
 
   const sendSignal = useCallback(
     (payload: SignalPayload) => {
-      activeChannel()?.send({ type: "broadcast", event: "signal", payload });
+      const channelId = activeChannel();
+      if (channelId) void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/signals`, {
+        method: "POST",
+        body: JSON.stringify({ to: payload.to, payload }),
+      }).catch((err) => console.warn("Failed to deliver voice signal", err));
     },
     [activeChannel],
   );
@@ -453,63 +445,71 @@ export function useVoiceChannels(
     [userId, createPeerConnection, sendSignal, flushPendingCandidates],
   );
 
-  // Keep a lightweight presence-only subscription open for every channel, for the
-  // entire time this page is mounted, so the channel list shows who's live in each
-  // one -- independent of whether the current user has actually joined any of them.
+  // Poll presence for the visible voice channel list. Joined channels also drain
+  // queued WebRTC signals, replacing the former Supabase Realtime subscriptions.
   useEffect(() => {
     if (!userId) return;
-    for (const id of channelIds) {
-      if (channelsRef.current.has(id)) continue;
-      const channel = supabase.channel(`voice:${id}`, {
-        config: { presence: { key: userId } },
-      });
-      channel.on("presence", { event: "sync" }, () => {
-        const list = readPresence(channel);
+    channelsRef.current = new Set(channelIds);
+    let stopped = false;
+    const refreshPresence = async () => {
+      try {
+        const rows = await apiRequest<(VoiceParticipant & { channel_id: string })[]>(`/voice/presence?channels=${encodeURIComponent(channelIds.join(","))}`);
+        if (stopped) return;
+        const byChannel = new Map<string, VoiceParticipant[]>();
+        for (const row of rows) {
+          const list = byChannel.get(row.channel_id) ?? [];
+          list.push({ id: row.id, username: row.username, muted: row.muted, deafened: row.deafened, streaming: row.streaming });
+          byChannel.set(row.channel_id, list);
+        }
         setOccupants((prev) => {
           const next = new Map(prev);
-          next.set(id, list);
+          for (const id of channelIds) next.set(id, byChannel.get(id) ?? []);
           return next;
         });
-        if (joinedIdRef.current === id) {
+        const joined = joinedIdRef.current;
+        if (joined) {
+          const list = byChannel.get(joined) ?? [];
           setParticipants(list);
-          for (const p of list) {
-            if (p.id === userId) continue;
-            if (!pcsRef.current.has(p.id) && userId < p.id) initiateCall(p.id);
+          const ids = new Set(list.map((p) => p.id));
+          for (const peerId of pcsRef.current.keys()) if (!ids.has(peerId)) cleanupPeer(peerId);
+          for (const participant of list) {
+            if (participant.id !== userId && !pcsRef.current.has(participant.id) && userId < participant.id) {
+              void initiateCall(participant.id).catch((err) => console.warn("[voice] call setup failed", err));
+            }
           }
         }
-      });
-      channel.on("presence", { event: "leave" }, ({ key }: { key: string }) => {
-        if (joinedIdRef.current === id) cleanupPeer(key);
-      });
-      channel.on(
-        "broadcast",
-        { event: "signal" },
-        ({ payload }: { payload: SignalPayload }) => {
-          if (
-            channelsRef.current.get(id) === channel &&
-            joinedIdRef.current === id
-          ) {
-            void handleSignal(payload).catch((err) => {
-              console.error("[voice] signalling failed", err);
-              setError(
-                "A call connection failed. Leave and rejoin the channel to retry.",
-              );
-            });
-          }
-        },
-      );
-      channel.subscribe();
-      channelsRef.current.set(id, channel);
-    }
-
-    return () => {
-      channelsRef.current.forEach((channel) => {
-        supabase.removeChannel(channel);
-      });
-      channelsRef.current.clear();
+      } catch (err) { if (!stopped) console.warn("Failed to refresh voice participants", err); }
     };
+    void refreshPresence();
+    const timer = window.setInterval(refreshPresence, 3000);
+    return () => { stopped = true; window.clearInterval(timer); channelsRef.current.clear(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelIds.join("|"), userId]);
+
+  useEffect(() => {
+    if (!joinedId) return;
+    let stopped = false;
+    const drain = async () => {
+      try {
+        const signals = await apiRequest<SignalPayload[]>(`/voice/${encodeURIComponent(joinedId)}/signals`);
+        for (const signal of signals) {
+          if (stopped || joinedIdRef.current !== joinedId) break;
+          await handleSignal(signal);
+        }
+      } catch (err) { if (!stopped) console.warn("[voice] signalling poll failed", err); }
+    };
+    void drain();
+    const timer = window.setInterval(() => { void drain(); }, 500);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [joinedId, handleSignal]);
+
+  useEffect(() => {
+    if (!joinedId || !username) return;
+    const heartbeat = () => publishPresence(joinedId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: isStreamingRef.current });
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 5000);
+    return () => window.clearInterval(timer);
+  }, [joinedId, username, publishPresence]);
 
   const join = useCallback(
     async (targetId: string) => {
@@ -528,8 +528,7 @@ export function useVoiceChannels(
           leaveRef.current();
         }
         const generation = callGenerationRef.current;
-        const channel = channelsRef.current.get(targetId);
-        if (!channel) return;
+        if (!channelsRef.current.has(targetId)) return;
         setError(null);
         setConnecting(true);
         try {
@@ -559,20 +558,10 @@ export function useVoiceChannels(
           joinedIdRef.current = targetId;
           mutedRef.current = false;
           isStreamingRef.current = false;
-          await channel.track({
-            username,
-            muted: false,
-            deafened: false,
-            streaming: false,
-          });
-          setParticipants(readPresence(channel));
+          publishPresence(targetId, { muted: false, deafened: false, streaming: false });
+          setParticipants((occupants.get(targetId) ?? []).filter((p) => p.id !== userId).concat({ id: userId, username, muted: false, deafened: false, streaming: false }));
           setJoinedId(targetId);
-          supabase
-            .rpc("join_voice_session", { p_channel_id: targetId })
-            .then(({ error: rpcError }) => {
-              if (rpcError)
-                console.error("Failed to record voice session start", rpcError);
-            });
+          void apiRequest<void>(`/voice/${encodeURIComponent(targetId)}/sessions/start`, { method: "POST" }).catch((err) => console.error("Failed to record voice session start", err));
           try {
             sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
           } catch {
@@ -595,27 +584,22 @@ export function useVoiceChannels(
         joinLockRef.current = false;
       }
     },
-    [userId, username, attachAnalyser],
+    [userId, username, attachAnalyser, occupants, publishPresence],
   );
 
   const leave = useCallback(() => {
     callGenerationRef.current += 1;
     const wasConnected = joinedIdRef.current !== null;
-    const channel = joinedIdRef.current
-      ? channelsRef.current.get(joinedIdRef.current)
-      : null;
+    const channelId = joinedIdRef.current;
     if (wasConnected) {
-      supabase.rpc("leave_voice_session").then(({ error: rpcError }) => {
-        if (rpcError)
-          console.error("Failed to record voice session end", rpcError);
-      });
+      void apiRequest<void>("/voice/sessions/stop", { method: "POST" }).catch((err) => console.error("Failed to record voice session end", err));
     }
     for (const peerId of Array.from(pcsRef.current.keys())) cleanupPeer(peerId);
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
-    channel?.untrack();
+    if (channelId) void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, { method: "DELETE" }).catch((err) => console.warn("Failed to leave voice channel", err));
     joinedIdRef.current = null;
     try {
       sessionStorage.removeItem(LAST_CHANNEL_KEY);
@@ -707,13 +691,10 @@ export function useVoiceChannels(
       isStreamingRef.current = true;
       setIsStreaming(true);
       setLocalScreenStream(capture);
-      if (username)
-        void activeChannel()?.track({
-          username,
-          muted: mutedRef.current,
-          deafened: deafenedRef.current,
-          streaming: true,
-        });
+      if (username) {
+        const channelId = activeChannel();
+        if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: true });
+      }
     } catch (err) {
       capture?.getTracks().forEach((t) => t.stop());
       if (generation === callGenerationRef.current) {
@@ -728,7 +709,7 @@ export function useVoiceChannels(
       shareRequestRef.current = false;
       setStartingScreenShare(false);
     }
-  }, [activeChannel, username]);
+  }, [activeChannel, username, publishPresence]);
 
   const stopScreenShare = useCallback(() => {
     const stream = screenStreamRef.current;
@@ -742,14 +723,10 @@ export function useVoiceChannels(
     setIsStreaming(false);
     setLocalScreenStream(null);
     if (username) {
-      activeChannel()?.track({
-        username,
-        muted: mutedRef.current,
-        deafened: deafenedRef.current,
-        streaming: false,
-      });
+      const channelId = activeChannel();
+      if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: false });
     }
-  }, [activeChannel, username]);
+  }, [activeChannel, username, publishPresence]);
 
   const stopScreenShareRef = useRef(stopScreenShare);
   stopScreenShareRef.current = stopScreenShare;
@@ -763,17 +740,13 @@ export function useVoiceChannels(
         track.enabled = !next;
       });
       if (username) {
-        activeChannel()?.track({
-          username,
-          muted: next,
-          deafened: deafenedRef.current,
-          streaming: isStreamingRef.current,
-        });
+        const channelId = activeChannel();
+        if (channelId) publishPresence(channelId, { muted: next, deafened: deafenedRef.current, streaming: isStreamingRef.current });
       }
       playVoiceCue(next ? "mute" : "unmute");
       return next;
     });
-  }, [activeChannel, username]);
+  }, [activeChannel, username, publishPresence]);
 
   const toggleDeafen = useCallback(() => {
     const next = !deafenedRef.current;
@@ -791,14 +764,10 @@ export function useVoiceChannels(
       });
     }
     if (username) {
-      activeChannel()?.track({
-        username,
-        muted: mutedRef.current,
-        deafened: next,
-        streaming: isStreamingRef.current,
-      });
+      const channelId = activeChannel();
+      if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: next, streaming: isStreamingRef.current });
     }
-  }, [activeChannel, username]);
+  }, [activeChannel, username, publishPresence]);
 
   // A real page reload (not a tab switch, which no longer tears anything down)
   // destroys the live call along with everything else in memory -- there's no

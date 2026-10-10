@@ -96,9 +96,7 @@ export function BirthdayEmailSettingsCard() {
     return (
       <Card className="shadow-sm border-dashed">
         <CardContent className="p-4 text-sm text-muted-foreground">
-          Birthday email settings need a database update. Run migration{" "}
-          <code>{settings ? "0024_birthday_emails" : "0014_birthday_email_settings and 0024_birthday_emails"}</code> in
-          Supabase, then reload this page.
+          Birthday email settings are not available yet. The DigitalOcean database setup is still in progress.
         </CardContent>
       </Card>
     );
@@ -145,7 +143,7 @@ export function BirthdayEmailSettingsCard() {
             <h2 className="font-semibold">Birthday Emails</h2>
             <p className="text-xs text-muted-foreground">
               Sent automatically on each birthday at the time below. Nothing is sent until an email is switched on and a
-              sender is set up (verified domain + Resend key, see <code>supabase/BIRTHDAY-EMAILS.md</code>).
+              sender is configured. Email delivery will be enabled after the email provider is set up.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export type HofPodiumEntry = {
   rank: number;
@@ -61,105 +61,38 @@ export function useAwardCategories(department: string) {
   return useQuery({
     queryKey: ["hof-award-categories", department],
     enabled: Boolean(department),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_award_categories")
-        .select("*")
-        .eq("department", department)
-        .order("created_at");
-      if (error) throw error;
-      return data as AwardCategory[];
-    },
+    queryFn: () => apiRequest<AwardCategory[]>(`/hall-of-fame/award-categories?department=${encodeURIComponent(department)}`),
   });
 }
 
 export function useHofDepartmentVisibility() {
   return useQuery({
     queryKey: ["hof-department-visibility"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("org_departments")
-        .select("name, show_in_hall_of_fame")
-        .order("sort");
-
-      if (error) {
-        // Keep the Hall of Fame usable while migration 0050 is being applied.
-        if (
-          error.message.includes("show_in_hall_of_fame")
-        ) {
-          return { configured: false, departments: [] as HofDepartmentVisibility[] };
-        }
-        throw error;
-      }
-
-      return {
-        configured: true,
-        departments: (data ?? []) as HofDepartmentVisibility[],
-      };
-    },
+    queryFn: () => apiRequest<{ configured: boolean; departments: HofDepartmentVisibility[] }>("/hall-of-fame/departments"),
   });
 }
 
 export function useSetHofDepartmentVisibility() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ department, visible }: { department: string; visible: boolean }) => {
-      const { error } = await supabase.rpc("admin_set_hof_department_visibility", {
-        department_name: department,
-        visible,
-      });
-      if (error) throw error;
-    },
+    mutationFn: ({ department, visible }: { department: string; visible: boolean }) =>
+      apiRequest(`/hall-of-fame/departments/${encodeURIComponent(department)}/visibility`, {
+        method: "PUT", body: JSON.stringify({ visible }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hof-department-visibility"] }),
   });
 }
 export function useAwardWinners(month: string) {
   return useQuery({
     queryKey: ["hof-award-winners", month],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_award_winners")
-        .select("*, holder:profiles!user_id(username,role,avatar_url,active_border,active_accessory)")
-        .eq("month", month)
-        .order("rank");
-      if (error) throw error;
-      const rows = data as unknown as (Omit<AwardWinner, "team_members"> & { team_members?: HofTeamMember[] })[];
-      const memberIds = [...new Set(rows.flatMap((winner) => winner.team_member_ids ?? []))];
-      if (memberIds.length === 0) {
-        return rows.map((winner) => ({ ...winner, team_member_ids: winner.team_member_ids ?? [], team_members: [] })) as AwardWinner[];
-      }
-
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .in("id", memberIds);
-      if (profileError) throw profileError;
-
-      const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-      return rows.map((winner) => ({
-        ...winner,
-        team_member_ids: winner.team_member_ids ?? [],
-        team_members: (winner.team_member_ids ?? []).flatMap((user_id) => {
-          const profile = profileById.get(user_id);
-          return profile ? [{ user_id, username: profile.username }] : [];
-        }),
-      })) as AwardWinner[];
-    },
+    queryFn: () => apiRequest<AwardWinner[]>(`/hall-of-fame/award-winners?month=${encodeURIComponent(month)}`),
   });
 }
 export function useDeletionLogs(enabled: boolean) {
   return useQuery({
     queryKey: ["hof-deletion-logs"],
     enabled,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_deletion_logs")
-        .select("*")
-        .order("deleted_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data as DeletionLog[];
-    },
+    queryFn: () => apiRequest<DeletionLog[]>("/hall-of-fame/deletion-logs"),
   });
 }
 export function useManageAwards() {
@@ -177,37 +110,16 @@ export function useManageAwards() {
           },
     ) => {
       if (action.type === "winners") {
-        const { error } = await supabase.rpc("hof_save_winners", {
-          target_category: action.id,
-          target_month: action.month,
-          winners: action.winners,
+        await apiRequest(`/hall-of-fame/award-categories/${encodeURIComponent(action.id)}/winners`, {
+          method: "PUT", body: JSON.stringify({ month: action.month, winners: action.winners }),
         });
-        if (error) throw error;
       } else if (action.type === "delete") {
-        const { data, error } = await supabase
-          .from("hof_award_categories")
-          .delete()
-          .eq("id", action.id)
-          .select("id");
-        if (error) throw error;
-        if (!data?.length)
-          throw new Error(
-            "Category could not be deleted. Check your permissions or refresh.",
-          );
+        await apiRequest(`/hall-of-fame/award-categories/${encodeURIComponent(action.id)}`, { method: "DELETE" });
       } else {
-        const values = {
-          department: action.department,
-          name: action.name.trim(),
-          award_type: action.award_type,
-        };
-        const query = action.id
-          ? supabase
-              .from("hof_award_categories")
-              .update(values)
-              .eq("id", action.id)
-          : supabase.from("hof_award_categories").insert(values);
-        const { error } = await query.select("id").single();
-        if (error) throw error;
+        const body = JSON.stringify({ department: action.department, name: action.name.trim(), award_type: action.award_type });
+        await apiRequest(action.id
+          ? `/hall-of-fame/award-categories/${encodeURIComponent(action.id)}`
+          : "/hall-of-fame/award-categories", { method: action.id ? "PATCH" : "POST", body });
       }
     },
     onSuccess: () => {

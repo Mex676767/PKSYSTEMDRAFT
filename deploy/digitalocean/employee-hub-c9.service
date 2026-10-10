@@ -1,0 +1,24 @@
+[Unit]
+Description=Employee Hub C9 tenant API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=employee-hub-c9
+Group=employee-hub-c9
+WorkingDirectory=/opt/employee-hub/app
+EnvironmentFile=/etc/employee-hub/c9.env
+ExecStart=/usr/bin/node /opt/employee-hub/app/artifacts/api-server/dist/index.mjs
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+StateDirectory=employee-hub/c9
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/employee-hub/c9
+
+[Install]
+WantedBy=multi-user.target

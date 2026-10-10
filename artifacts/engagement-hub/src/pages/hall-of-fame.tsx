@@ -74,7 +74,7 @@ export default function HallOfFame() {
                   </DialogHeader>
                   {!visibility.isLoading && !visibility.data?.configured && (
                     <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
-                      Run migration 0050 in Supabase to enable these controls.
+                      Department visibility settings are not available yet. The DigitalOcean database setup is still in progress.
                     </p>
                   )}
                   <div className="space-y-2">
@@ -155,7 +155,7 @@ export default function HallOfFame() {
           </p>
           {canManage && (
             <p className="text-sm">
-              Apply migrations 0017 and 0057 in Supabase SQL Editor, then reload.
+              Hall of Fame data is not available yet. The DigitalOcean database setup is still in progress.
             </p>
           )}
         </div>

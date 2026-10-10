@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 type Person = {
   id?: string;
@@ -48,36 +47,20 @@ export type LearningShare = {
   author: Person | null;
 };
 
-const PERSON_SELECT = "username,avatar_url,active_border,active_accessory,department";
-
 export function useLearningResources() {
   return useQuery({
     queryKey: ["learning-resources"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("learning_resources")
-        .select(`*, author:profiles!learning_resources_created_by_fkey(${PERSON_SELECT})`)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as LearningResource[];
+      return apiRequest<LearningResource[]>("/learning/resources");
     },
   });
 }
 
 export function useCreateLearningResource() {
-  const { session } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { title: string; description: string; category: string; url?: string }) => {
-      if (!session) throw new Error("Not signed in");
-      const { error } = await supabase.from("learning_resources").insert({
-        title: input.title.trim(),
-        description: input.description.trim(),
-        category: input.category.trim(),
-        url: input.url?.trim() || null,
-        created_by: session.user.id,
-      });
-      if (error) throw error;
+      await apiRequest("/learning/resources", { method: "POST", body: JSON.stringify({ title: input.title.trim(), description: input.description.trim(), category: input.category.trim(), url: input.url?.trim() || null }) });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-resources"] }),
   });
@@ -87,8 +70,7 @@ export function useDeleteLearningResource() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("learning_resources").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/learning/resources/${id}`, { method: "DELETE" });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-resources"] }),
   });
@@ -98,18 +80,12 @@ export function useLearningRequests() {
   return useQuery({
     queryKey: ["learning-requests"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("learning_requests")
-        .select(`*, requester:profiles!learning_requests_user_id_fkey(${PERSON_SELECT}), reviewer:profiles!learning_requests_reviewed_by_fkey(${PERSON_SELECT})`)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as LearningRequest[];
+      return apiRequest<LearningRequest[]>("/learning/requests");
     },
   });
 }
 
 export function useCreateLearningRequest() {
-  const { session } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
@@ -119,37 +95,17 @@ export function useCreateLearningRequest() {
       benefit: string;
       estimatedCost?: number | null;
     }) => {
-      if (!session) throw new Error("Not signed in");
-      const { error } = await supabase.from("learning_requests").insert({
-        user_id: session.user.id,
-        course_name: input.courseName.trim(),
-        course_url: input.courseUrl?.trim() || null,
-        reason: input.reason.trim(),
-        benefit: input.benefit.trim(),
-        estimated_cost: input.estimatedCost ?? null,
-      });
-      if (error) throw error;
+      await apiRequest("/learning/requests", { method: "POST", body: JSON.stringify({ course_name: input.courseName.trim(), course_url: input.courseUrl?.trim() || null, reason: input.reason.trim(), benefit: input.benefit.trim(), estimated_cost: input.estimatedCost ?? null }) });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-requests"] }),
   });
 }
 
 export function useReviewLearningRequest() {
-  const { session } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status, note }: { id: string; status: "sponsored" | "declined"; note?: string }) => {
-      if (!session) throw new Error("Not signed in");
-      const { error } = await supabase
-        .from("learning_requests")
-        .update({
-          status,
-          review_note: note?.trim() || null,
-          reviewed_by: session.user.id,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/learning/requests/${id}`, { method: "PATCH", body: JSON.stringify({ status, review_note: note?.trim() || null }) });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-requests"] }),
   });
@@ -159,8 +115,7 @@ export function useDeleteLearningRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("learning_requests").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/learning/requests/${id}`, { method: "DELETE" });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-requests"] }),
   });
@@ -170,30 +125,16 @@ export function useLearningShares() {
   return useQuery({
     queryKey: ["learning-shares"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("learning_shares")
-        .select(`*, author:profiles!learning_shares_user_id_fkey(${PERSON_SELECT})`)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as LearningShare[];
+      return apiRequest<LearningShare[]>("/learning/shares");
     },
   });
 }
 
 export function useCreateLearningShare() {
-  const { session } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { title: string; learned: string; benefit: string; resourceUrl?: string }) => {
-      if (!session) throw new Error("Not signed in");
-      const { error } = await supabase.from("learning_shares").insert({
-        user_id: session.user.id,
-        title: input.title.trim(),
-        learned: input.learned.trim(),
-        benefit: input.benefit.trim(),
-        resource_url: input.resourceUrl?.trim() || null,
-      });
-      if (error) throw error;
+      await apiRequest("/learning/shares", { method: "POST", body: JSON.stringify({ title: input.title.trim(), learned: input.learned.trim(), benefit: input.benefit.trim(), resource_url: input.resourceUrl?.trim() || null }) });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-shares"] }),
   });
@@ -203,8 +144,7 @@ export function useDeleteLearningShare() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("learning_shares").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/learning/shares/${id}`, { method: "DELETE" });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-shares"] }),
   });

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export type Mentorship = {
   id: string;
@@ -10,19 +10,11 @@ export type Mentorship = {
   mentee: { username: string | null } | null;
 };
 
-const MENTORSHIP_SELECT =
-  "*, mentor:profiles!mentorships_mentor_id_fkey!inner(username), mentee:profiles!mentorships_mentee_id_fkey!inner(username)";
-
 export function useMentorships() {
   return useQuery({
     queryKey: ["mentorships"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mentorships")
-        .select(MENTORSHIP_SELECT)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Mentorship[];
+      return apiRequest<Mentorship[]>("/mentorships");
     },
   });
 }
@@ -43,13 +35,7 @@ export function useDirectory(options?: Partial<UseQueryOptions<DirectoryProfile[
   return useQuery({
     queryKey: ["directory"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username, department, role, avatar_url, active_border, active_accessory, active_title, last_seen_at")
-        .not("username", "is", null)
-        .order("username");
-      if (error) throw error;
-      return data as DirectoryProfile[];
+      return apiRequest<DirectoryProfile[]>("/directory");
     },
     ...options,
   });
@@ -59,8 +45,7 @@ export function useCreateMentorship() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ mentorId, menteeId }: { mentorId: string; menteeId: string }) => {
-      const { error } = await supabase.from("mentorships").insert({ mentor_id: mentorId, mentee_id: menteeId });
-      if (error) throw error;
+      await apiRequest<void>("/mentorships", { method: "POST", body: JSON.stringify({ mentor_id: mentorId, mentee_id: menteeId }) });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mentorships"] }),
   });
@@ -70,8 +55,7 @@ export function useUpdateMentorshipStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "active" | "graduated" }) => {
-      const { error } = await supabase.from("mentorships").update({ status }).eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/mentorships/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mentorships"] }),
   });
@@ -81,8 +65,7 @@ export function useDeleteMentorship() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("mentorships").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/mentorships/${id}`, { method: "DELETE" });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mentorships"] }),
   });
@@ -92,8 +75,7 @@ export function useSetDepartment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ userId, department }: { userId: string; department: string | null }) => {
-      const { error } = await supabase.rpc("set_user_department", { target_user: userId, dept: department });
-      if (error) throw error;
+      await apiRequest<void>(`/admin/users/${userId}/department`, { method: "PATCH", body: JSON.stringify({ department }) });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["directory"] }),
   });

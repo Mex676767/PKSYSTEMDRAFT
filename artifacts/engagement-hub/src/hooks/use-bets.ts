@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export type BetStatus = "open" | "resolved" | "cancelled";
@@ -33,38 +33,21 @@ export type BetWager = {
 export function useBets() {
   return useQuery({
     queryKey: ["bets"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bets")
-        .select("*, creator:profiles(username)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Bet[];
-    },
+    queryFn: () => apiRequest<Bet[]>("/bets"),
   });
 }
 
 export function useBetOptions() {
   return useQuery({
     queryKey: ["bet-options"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("bet_options").select("*");
-      if (error) throw error;
-      return data as BetOption[];
-    },
+    queryFn: () => apiRequest<BetOption[]>("/bets/options"),
   });
 }
 
 export function useBetWagers() {
   return useQuery({
     queryKey: ["bet-wagers"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bet_wagers")
-        .select("*, user:profiles(username)");
-      if (error) throw error;
-      return data as unknown as BetWager[];
-    },
+    queryFn: () => apiRequest<BetWager[]>("/bets/wagers"),
   });
 }
 
@@ -81,12 +64,7 @@ export function useCreateBet() {
   const invalidate = useInvalidateBets();
   return useMutation({
     mutationFn: async ({ title, options, closesAt }: { title: string; options: string[]; closesAt?: string | null }) => {
-      const { error } = await supabase.rpc("create_bet", {
-        title_param: title,
-        options_param: options,
-        closes_at_param: closesAt ?? null,
-      });
-      if (error) throw error;
+      await apiRequest<void>("/bets", { method: "POST", body: JSON.stringify({ title, options, closes_at: closesAt ?? null }) });
     },
     onSuccess: invalidate,
   });
@@ -97,12 +75,7 @@ export function usePlaceWager() {
   const { refetchProfile } = useAuth();
   return useMutation({
     mutationFn: async ({ betId, optionId, amount }: { betId: string; optionId: string; amount: number }) => {
-      const { error } = await supabase.rpc("place_wager", {
-        bet_id_param: betId,
-        option_id_param: optionId,
-        amount_param: amount,
-      });
-      if (error) throw error;
+      await apiRequest<void>(`/bets/${betId}/wagers`, { method: "POST", body: JSON.stringify({ option_id: optionId, amount }) });
     },
     onSuccess: () => {
       invalidate();
@@ -115,11 +88,7 @@ export function useResolveBet() {
   const invalidate = useInvalidateBets();
   return useMutation({
     mutationFn: async ({ betId, winningOptionId }: { betId: string; winningOptionId: string }) => {
-      const { error } = await supabase.rpc("resolve_bet", {
-        bet_id_param: betId,
-        winning_option_id_param: winningOptionId,
-      });
-      if (error) throw error;
+      await apiRequest<void>(`/bets/${betId}/resolve`, { method: "POST", body: JSON.stringify({ winning_option_id: winningOptionId }) });
     },
     onSuccess: invalidate,
   });
@@ -129,8 +98,7 @@ export function useCancelBet() {
   const invalidate = useInvalidateBets();
   return useMutation({
     mutationFn: async (betId: string) => {
-      const { error } = await supabase.rpc("cancel_bet", { bet_id_param: betId });
-      if (error) throw error;
+      await apiRequest<void>(`/bets/${betId}/cancel`, { method: "POST" });
     },
     onSuccess: invalidate,
   });

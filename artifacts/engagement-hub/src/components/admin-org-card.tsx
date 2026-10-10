@@ -29,8 +29,7 @@ export function AdminOrgCard() {
 
         {!managed ? (
           <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-3">
-            Run migrations <code>0027_org_structure</code> and <code>0028_org_structure_admin</code> in Supabase to manage
-            these here.
+            Role and department management is not available yet. The DigitalOcean database setup is still in progress.
           </p>
         ) : (
           <>
