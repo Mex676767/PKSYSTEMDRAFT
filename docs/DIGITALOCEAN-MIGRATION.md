@@ -6,19 +6,18 @@ The target is to remove Supabase from the application completely, including auth
 
 ## Current status (2026-10-10)
 
-This status supersedes the historical planning snapshot and unchecked rollout items below where they conflict. The migration branch is deployed to the two production Workers; final tenant acceptance and Supabase retirement are still outstanding.
+This status reflects production evidence checked on 2026-10-10. It supersedes the historical planning snapshot and rollout checklist below.
 
-- Two isolated PostgreSQL/API tenant stacks run on the existing DigitalOcean Droplet. The tenant data and storage import was completed and recorded in `DIGITALOCEAN-BASELINE.md`.
-- The migration branch was deployed through successful C9 and C6 GitHub Actions runs. Both Cloudflare Workers now proxy `/api` to their corresponding DigitalOcean API origins. The Worker settings show the expected C9 and C6 origins.
-- Google OAuth callback URLs were added to the existing OAuth client while retaining the old callbacks for rollback. C6 sign-in completed and reached the Admin dashboard. C9 sign-in completed but registered `mextest67@gmail.com` as a new pending profile and stopped at “Waiting for approval”; no approval or role change has been made.
-- Existing storage files were copied and counts matched: 122 for C9 and 60 for C6. Tenant API file routes use Droplet storage.
-- Frontend source no longer imports the Supabase client; the package and lockfile do not include `@supabase/supabase-js`. Ported auth, PK, voice, and product routes use the tenant API.
-- `main` still has its old deployment workflows. The deployed migration branch has not yet been merged into `main`, so future main-branch deployments will not use this routing until the changes are reviewed and integrated.
-- C9 account reconciliation remains outstanding: investigate why the verified Google email did not match an imported C9 identity/profile, then complete the approval through an authorized C9 admin. The app's approval gate must remain enforced.
-- Resend remains intentionally unconfigured. Push/VAPID and TURN credentials, and browser voice acceptance, still need end-to-end verification.
-- Supabase projects and services remain active for rollback. The user handles backups separately.
+- The migration was merged into `main` in PR [#1](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/1). A follow-up fix for imported PostgreSQL birthday timestamps was merged in PR [#2](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/2).
+- The C9 and C6 GitHub Actions builds and Cloudflare deployments for both merges succeeded. Both Worker `/api/readyz` routes return `ready` and the matching tenant (`C9` or `C6`); the two public DigitalOcean API readiness routes also return ready.
+- The two isolated PostgreSQL/API tenant stacks, application data, auth identities, approvals, and Storage objects are deployed on the existing Droplet. The storage import counts recorded for the migration are 122 C9 objects and 60 C6 objects. See `DIGITALOCEAN-BASELINE.md` for the applied state.
+- The admin page and Daily mood check-ins results load on both live Workers. The user’s mood response was not submitted as part of this verification. Invalid imported dates no longer crash the page; PostgreSQL date timestamps display as birthdays.
+- C9 password sign-in with the supplied test account succeeded. C9 Google sign-in still needs identity reconciliation: the Google email appeared as a new pending profile. No approval or role change was made. C6’s existing signed-in session reached its Admin page.
+- The frontend and production package manifests/lockfile contain no Supabase browser SDK or direct client calls. Worker `/api` requests go to the tenant DigitalOcean APIs. Legacy SQL migrations and edge-function source remain as historical migration material, not frontend runtime dependencies.
+- Resend remains intentionally unconfigured, as requested. Push/VAPID and TURN credentials and real-browser voice/push acceptance remain outstanding.
+- Supabase services remain available for rollback. Do not retire them until both tenants pass full acceptance and the remaining integrations are verified. The user handles backups separately.
 
-Next: resolve the C9 account mapping through its existing admin workflow, complete C9 core-feature acceptance and verify push/voice integrations where configured, then integrate the migration branch into `main`. Retire Supabase application services only after both tenants pass acceptance and rollback is no longer needed.
+Next: finish independent C9/C6 core-feature acceptance, reconcile C9’s Google identity through the existing approval workflow, configure and verify push and TURN for the voice service, then retire obsolete Supabase application services after rollback is no longer needed. Email stays deferred until Resend is configured.
 
 ## Historical repository baseline (2026-10-07)
 
@@ -26,7 +25,7 @@ Next: resolve the C9 account mapping through its existing admin workflow, comple
 - The worktree already has untracked `.claude/CLAUDE.md`, `alignment-and-birthday-fixes.patch`, and `deliverables/`. They are preserved and have not been staged or changed.
 - No tracked or staged diff was present at the start of this migration.
 - Frontend source is in `artifacts/engagement-hub`; it is a Vite app currently hosted on Cloudflare Workers. Per the latest direction, keep the existing `workers.dev` frontends for the first migration phase and proxy `/api` to the DigitalOcean API. Moving static frontend hosting onto the Droplet can follow after a domain is available.
-- `artifacts/api-server` now has tenant-bound session/authentication and product API routes. The API and frontend changes described below are local implementation only; there is no connected DigitalOcean database/service in this workspace and no production cutover has occurred.
+- `artifacts/api-server` now has tenant-bound session/authentication and product API routes. At the time of this 2026-10-07 snapshot, the API and frontend changes were local only; subsequent deployment and cutover status is recorded above.
 - The repository contains the Supabase schema, seed material, and 57 ordered SQL migrations. No database dump/export was found in the repository. The existing Ubuntu 24.04 Droplet (`165.245.183.45`, 4 vCPU / 8 GB / 160 GB, $56/month) already runs two healthy self-hosted Supabase stacks (C9 and C6, 11 containers each) and Caddy. No new paid resource has been created. User handles backups separately.
 - DigitalOcean Web Console provides root access; SSH rejects the existing local key. The Supabase Compose projects are `/opt/employee-hub/c9` and `/opt/employee-hub/c6`. Their database directories persist under each project's `volumes`, and storage containers mount `/var/lib/storage`. Caddy currently proxies `c9.165-245-183-45.sslip.io` to loopback port 8001 and `c6.165-245-183-45.sslip.io` to port 8002. Existing configuration and data have not been changed.
 - The new generated DigitalOcean baseline combines the captured application schema, later required feature migrations, and API-owned tables. It now has a preamble that replaces hosted Auth identity lookup and removes hosted delivery/storage/realtime setup. It still needs a real PostgreSQL restore and tenant acceptance review before deployment.
@@ -54,7 +53,7 @@ The original direct-reference file audit (paths relative to `artifacts/engagemen
 - **Edge Functions:** `hooks/use-birthday-email-settings.ts` invokes birthday email delivery; `lib/push.ts` invokes push delivery; `lib/turn-credentials.ts` retrieves TURN credentials.
 - **Client setup/configuration:** `lib/supabase.ts`, `lib/brand.ts`, `package.json`, and the Supabase entry in `pnpm-lock.yaml` establish the browser SDK and per-build Supabase URL/key. The configured key is publishable/anon; it is not an admin key, but it must disappear when the browser SDK is removed.
 
-Direct browser SDK feature calls have now been removed. General app invalidation/presence/notification/DM/gratitude, voice presence/signaling, and PK reads/RPCs use tenant API routes. The unused browser SDK, project URL, and publishable key were removed from the frontend source and package manifest. Hosted edge-function source and Supabase SQL history remain as migration/reference material while production still depends on Supabase. The original count of 139 call sites across 32 files is a dated baseline.
+Direct browser SDK feature calls have now been removed. General app invalidation/presence/notification/DM/gratitude, voice presence/signaling, and PK reads/RPCs use tenant API routes. The unused browser SDK, project URL, and publishable key were removed from the frontend source and package manifest. Hosted edge-function source and Supabase SQL history remain as migration/reference material; Supabase remains available only for rollback and not as an application runtime dependency. The original count of 139 call sites across 32 files is a dated baseline.
 
 ## Data and identity risks
 
@@ -66,12 +65,12 @@ Direct browser SDK feature calls have now been removed. General app invalidation
 - Data exports, image downloads, counts, and credential-backed source comparisons are blocked until Droplet and both Supabase projects are made accessible through approved secure channels. No credentials should be pasted into chat.
 - Read-only query sets are prepared in `scripts/migration-audit-source.sql` and `scripts/migration-audit-target.sql`. Run the source file independently on C9 and C6 immediately before export; run the target file independently on `employee_hub_c9` and `employee_hub_c6` after import. Compare the table-count result sets per tenant and verify the profile/approval, storage, password-hash-format, team-member, and individual-tie checks. The source query reports password hash format/count only, never hash values.
 
-## Local implementation milestones
+## Implementation milestones (historical plan)
 
 1. **Foundation (implemented locally):** establish one-tenant-per-API runtime configuration, explicit browser origin allowlist, cookie/session verification, and database readiness probe. Existing Workers keep serving static assets and now have a local `/api` reverse-proxy entrypoint to tenant APIs on DigitalOcean. The GitHub deploy workflows wait until each `C9_DO_API_ORIGIN` / `C6_DO_API_ORIGIN` repository variable is configured.
 2. **Hall of Fame API (implemented locally):** transactional award endpoints, permissions, audit snapshots, and validation for tied Individuals and single-leader Teams. The frontend now calls these API routes directly; the DigitalOcean database and API still need deployment and verification.
 3. **Auth API (implemented locally and wired in the frontend):** scrypt password storage, legacy bcrypt verification with login-time upgrade, password login/change/recovery, Resend delivery, approval-aware sessions, Google OAuth with PKCE, and verified-email account linking. The frontend now uses the DigitalOcean API for login, session restore, logout, password change/reset, username claims, and daily login streaks. OAuth identities and account approval state still need migration and tenant-specific Google OAuth settings.
-4. **Daily mood check-ins (implemented locally):** DigitalOcean PostgreSQL migration, authenticated API writes, and admin-only daily results API. The frontend calls the DigitalOcean API directly. The requested extra daily mood popup still needs product/UI implementation and is not yet part of this migration port.
+4. **Daily mood check-ins (implemented and live):** DigitalOcean PostgreSQL migration, authenticated API writes, a daily popup, and admin-only daily results. Both live admin pages show the results card.
 5. **Additional product API ports (implemented locally and wired directly):** user administration, organization structure, birthdays, achievements, Guinness records, goals, quiz, and Wordle. No Supabase fallback is retained in these features. Each still needs schema/data deployment and verification against both tenants.
 6. **Additional product API ports (implemented locally and wired directly):** account activity history, point history/gifts, profile title/border/accessory customization, and avatar URL updates.
 7. **Additional product API ports (implemented locally and wired directly):** directory and mentorship management, learning resources/requests/shares, gratitude messages, and notifications. Gratitude, notifications, and app-wide invalidation now refresh through bounded polling instead of Supabase Realtime.
@@ -84,41 +83,33 @@ Direct browser SDK feature calls have now been removed. General app invalidation
 14. **Progress photos (implemented locally):** list/add/delete endpoints enforce the same goal-owner, challenge-participant, uploader, and admin checks. The frontend now uses the API and Droplet file storage.
 15. **Birthday email settings (implemented locally):** settings/log reads and settings edits use the API. Test sending returns a clear not-configured response until the user sets up Resend, which remains intentionally deferred.
 16. **Voice service (implemented locally):** authenticated API presence heartbeats, queued WebRTC offer/answer/ICE delivery, and voice-session start/stop replace the browser's Supabase Realtime and RPC usage. New tables are in `lib/db/migrations/0005_voice_realtime_replacement.sql`; deployment and real-browser verification remain.
-17. **PK API (implemented locally):** PK list/detail, approval status, side scores, leaderboards, champions, settings, violations, playbook library, and the currently-used transactional functions now route through the tenant API. Mutating RPCs run inside a transaction with validated, transaction-local user identity so existing PK SQL rules retain their authorization checks. The identity preamble and complete baseline builder are in `scripts/digitalocean-schema-preamble.sql` and `scripts/assemble-digitalocean-baseline.ps1`. No target database has been provisioned or exercised yet.
+17. **PK API (implemented locally):** PK list/detail, approval status, side scores, leaderboards, champions, settings, violations, playbook library, and the currently-used transactional functions now route through the tenant API. Mutating RPCs run inside a transaction with validated, transaction-local user identity so existing PK SQL rules retain their authorization checks. The identity preamble and complete baseline builder are in `scripts/digitalocean-schema-preamble.sql` and `scripts/assemble-digitalocean-baseline.ps1`. Historical note (2026-10-07): no target database had been provisioned at that point; both tenant databases are now deployed and exercised, as recorded above.
 18. **Browser SDK removal (implemented locally):** the frontend no longer imports the Supabase client, and its SDK and embedded project config were removed. Hosted edge-function source and Supabase migrations remain as legacy migration material pending production cutover.
 19. **Scheduled database work (implemented locally):** tenant-bound API processes now run birthday notification creation, PK open expiry, PK auto-settlement, missed-update reminders, and monthly PK season archival without `pg_cron`. PostgreSQL advisory locks prevent duplicate execution if an API tenant has multiple replicas. Birthday email delivery remains deferred until Resend is configured.
-20. Push subscription management, a database delivery queue, VAPID delivery worker, and TURN credential proxy are implemented locally but still need schema deployment, secrets, and end-to-end verification. Existing Supabase file objects still need transfer and URL rewriting. Realtime screens now use bounded polling.
-21. Prepare fresh isolated C9/C6 exports and repeatable count/integrity reports when source access is available. Test each tenant independently while the existing sites stay live.
-22. Present exact production settings and the cutover/rollback checklist for approval. No deployment, production routing change, Supabase shutdown, or deletion is authorized before that approval.
+20. Push subscription management, a database delivery queue, VAPID delivery worker, and TURN credential proxy were implemented locally. The schema is deployed; server secrets and end-to-end verification remain. Existing Supabase file objects have been transferred; confirm existing/new URLs during acceptance. Realtime screens use bounded polling.
+21. Historical preparation milestone: source data and storage were imported for C9/C6; finish tenant acceptance independently.
+22. Historical rollout approval milestone: the user authorized migration and production cutover; Supabase retirement remains pending acceptance.
 
-## Remaining production blockers
+## Remaining production work
 
-- A generated portable PostgreSQL baseline and preamble now exist in `lib/db/digitalocean-baseline.sql` and `scripts/digitalocean-schema-preamble.sql`. They have not been applied or validated on the Droplet; see [`DIGITALOCEAN-BASELINE.md`](DIGITALOCEAN-BASELINE.md). The baseline builder is in `scripts/assemble-digitalocean-baseline.ps1`.
-- PK and voice API replacements and the generated schema baseline are local only and have not been deployed or exercised with real C9/C6 users.
-- The browser SDK is removed from the frontend. Legacy SQL history remains as migration source material; hosted edge-function code remains until production cutover because the current production sites and data still depend on Supabase.
-- No standalone target databases have been created. Public app data, OAuth identities, and existing Storage objects have not moved. Legacy bcrypt login support is implemented locally; account data and identity transfer still need a rehearsal.
-- The DigitalOcean API is not deployed or connected to the Droplet. VAPID/Coturn and OAuth settings are not configured. The user will handle backups separately.
-- The API is not deployed. The existing C9/C6 Supabase containers remain active and serve the current production Workers. Source data and storage objects have not been copied to standalone PostgreSQL and Droplet file storage.
-- Phase one keeps the current Cloudflare Workers frontends and proxies `/api` to tenant APIs on the Droplet. Google OAuth callbacks use the matching Worker URL, which then proxies the callback to the API. Moving static frontend hosting to the Droplet remains a later domain-dependent option.
+- Complete independent C9 and C6 acceptance for login/session/logout, representative core reads and writes, PK transactions and authorization, and file upload/download paths.
+- Reconcile the C9 Google identity using the existing approval process; preserve the approval gate and do not change the test account’s permissions without an authorized administrator action.
+- Configure server-side VAPID and TURN secrets and verify push delivery and browser voice calls through the matching tenant API. Do not expose either secret to the frontend.
+- Resend is intentionally deferred. Password recovery and birthday email delivery remain unavailable until the sender is configured.
+- Keep Supabase available for rollback until the above checks pass. Retire its application services only after post-cutover writes are accounted for and the user’s separate backups are handled.
 
+The initial baseline restore and data/storage import are complete. See [`DIGITALOCEAN-BASELINE.md`](DIGITALOCEAN-BASELINE.md) for the applied state and fresh-target-only restore procedure.
 ## API runtime settings
 
 Run the separate C9/C6 PostgreSQL and API containers from `deploy/digitalocean/docker-compose.yml`. Each tenant has a private Docker network, database, database owner, API process, and uploads directory. PostgreSQL TLS is enabled; only the API port is published, bound to host loopback behind Caddy. Keep Compose and API secrets in root-readable files under `/etc/employee-hub`; never put them in the repository or browser configuration. Password recovery later needs server-side `RESEND_API_KEY` and `EMAIL_FROM`; Resend is intentionally deferred. Google sign-in uses tenant-specific `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and exact `GOOGLE_REDIRECT_URI`. `/api/healthz` reports the configured tenant; `/api/readyz` checks PostgreSQL connectivity without exposing connection details.
 
-## Production cutover checklist (preparation only)
+## Remaining acceptance and retirement checklist
 
-- [ ] Confirm the current Supabase data sizes and source/target PostgreSQL versions, then install two isolated standalone PostgreSQL targets and tenant API services on the existing Droplet. Root access is available through the DigitalOcean Web Console; the existing SSH key still needs repair for routine deployment.
-- [ ] Use separate PostgreSQL databases `employee_hub_c9` and `employee_hub_c6` on the existing Droplet and separate database-owner credentials, one per private tenant API. The current API routes enforce authorization; the owner credentials must stay on loopback/private networking and never be exposed to browser clients.
-- [ ] Deploy two tenant API processes and PostgreSQL to the existing Droplet to avoid adding monthly App Platform service charges. Keep PostgreSQL private to the machine/VPC and expose only the HTTPS API origin.
-- [ ] During phase one, keep both current Workers as static frontends and proxy `/api` to their matching tenant API. Point `C9_DO_API_ORIGIN` and `C6_DO_API_ORIGIN` to the matching HTTPS API origin and use the existing Worker origins in each API's `ALLOWED_ORIGINS`.
-- [ ] Keep the current Worker hostnames for the browser and set each Google OAuth redirect URI to its exact Worker callback URL ending in `/api/auth/google/callback`.
-- [ ] Configure tenant-isolated Google OAuth settings and verify both complete PKCE sign-in flows through the Worker proxies.
-- [ ] Verify the Resend sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM` in each API service’s secret store.
-- [ ] Configure persistent Droplet disk paths and capacity limits for the validated file API; transfer Supabase objects and verify each rewritten URL. User handles backups separately.
-- [ ] Configure server-side VAPID credentials, Coturn credentials, and any voice/push callbacks per tenant. Scheduled database work runs inside each tenant API process. Email remains deferred until Resend is configured.
-- [ ] Rehearse rollback: keep both Supabase projects and existing Worker builds available, record the exact DNS/reverse-proxy changes, restore the previous Worker routing if checks fail, and reconcile any writes made after cutover before retrying. Never dual-write without an explicit consistency design.
-- [ ] After independent C9 and C6 acceptance checks, route the Workers to the new APIs, verify login and core writes, then stop the obsolete Supabase application services while retaining the user's separately managed backups.
-
+- [ ] Verify C9 Google identity mapping and approval through the existing authorized admin workflow.
+- [ ] Verify representative C9 and C6 product writes, PK settlement/authorization, and existing and new file URLs against their own tenant databases.
+- [ ] Configure per-tenant VAPID and TURN secrets on the Droplet; verify push and voice end to end.
+- [ ] Keep Resend disabled until the user configures it.
+- [ ] Retire Supabase application services only after both tenants pass acceptance and any writes since cutover are reconciled. The user handles backups separately.
 ## Verification so far
 
 - `pnpm run typecheck` passed across the workspace.
@@ -126,4 +117,4 @@ Run the separate C9/C6 PostgreSQL and API containers from `deploy/digitalocean/d
 - Hall of Fame routes and frontend API helper pass their TypeScript checks.
 - API unit tests: 13 passed for password hashing/verification, C9/C6 database binding, OAuth/bridge configuration, and Hall of Fame individual/team rules.
 - API production build passed. Engagement Hub production build passed with local `PORT` and `BASE_PATH` values; Vite reported existing sourcemap and large-chunk warnings.
-- No live API, tenant database, source export, or remote service was accessed or changed.
+- Both tenant APIs and both Worker `/api/readyz` routes returned `ready` for their matching tenant. Both live Admin pages and Daily mood results loaded after the successful `main` deployments. This confirms service routing/readiness, not full feature acceptance.

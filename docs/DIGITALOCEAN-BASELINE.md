@@ -10,7 +10,7 @@ ready over HTTPS. Public application rows, Google identity subjects, legacy
 bcrypt password identities, account approvals, and Storage objects have been
 imported for each tenant. Do not rerun the initial baseline restore or import
 scripts against these populated databases; those scripts are for a fresh empty
-target only. The current Workers still route production traffic to Supabase.
+target only. Both production Workers now proxy application API traffic to their matching DigitalOcean tenant APIs.
 
 ## Fresh-target restore procedure
 
@@ -24,7 +24,7 @@ databases.
 4. Run `scripts/assemble-digitalocean-baseline.ps1` to regenerate the combined baseline after any source migration changes.
 5. Restore `lib/db/digitalocean-baseline.sql` into each empty database while connected as that tenant's database owner. Do not point it at a live Supabase project or an existing database.
 
-The API's PostgreSQL credentials grant access to the full tenant database, so keep the database bound to loopback/private networking and expose only the API. Application authorization remains in the authenticated API routes and PK database functions. This restore plan has not yet been applied or validated against an actual DigitalOcean PostgreSQL server.
+The API's PostgreSQL credentials grant access to the full tenant database, so keep the database bound to loopback/private networking and expose only the API. Application authorization remains in the authenticated API routes and PK database functions. The production restore has been applied to both tenant databases on the Droplet. The procedure above is only for a fresh empty target; it is not an update procedure.
 
 ## Contents and exclusions
 
