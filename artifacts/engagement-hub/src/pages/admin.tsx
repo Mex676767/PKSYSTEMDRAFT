@@ -113,6 +113,20 @@ export default function Admin() {
   );
 }
 
+function formatBirthday(value: string | null) {
+  if (!value) return "No birthday set";
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return "Birthday needs review";
+
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(2000, month - 1, day);
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) return "Birthday needs review";
+
+  return format(date, "MMMM d");
+}
+
 function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const { roles, departments } = useOrgStructure();
   const setAdmin = useSetUserAdmin();
@@ -375,7 +389,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             </>
           ) : (
             <>
-              <span>{row.birthday ? format(new Date(2000, Number(row.birthday.split("-")[1]) - 1, Number(row.birthday.split("-")[2])), "MMMM d") : "No birthday set"}</span>
+              <span>{formatBirthday(row.birthday)}</span>
               <button onClick={() => setEditingBirthday(true)} className="text-primary hover:underline">
                 {row.birthday ? "Change" : "Set"}
               </button>

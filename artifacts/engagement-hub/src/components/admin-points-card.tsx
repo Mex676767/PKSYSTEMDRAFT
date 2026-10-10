@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date-format";
 import { Coins, Plus, Pencil, Trash2, Check, X, Target, Gift, Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,7 +125,7 @@ function Approvals() {
                 <span className="flex-1 min-w-0">
                   <span className="font-semibold">@{r.user?.username ?? "someone"}</span> redeemed <span className="font-semibold">{r.reward_name}</span>
                 </span>
-                <span className="text-xs text-muted-foreground shrink-0">{r.cost} pts · {format(new Date(r.created_at), "d MMM")}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{r.cost} pts · {safeFormatDate(r.created_at, "d MMM")}</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
@@ -157,7 +157,7 @@ function Approvals() {
             <div key={c.id} className="rounded-lg border border-border p-3 flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="flex-1 min-w-0 text-sm">
                 <span className="font-semibold">@{c.user?.username ?? "someone"}</span> says they did <span className="font-semibold">{c.mission?.title ?? "a mission"}</span>
-                <span className="text-xs text-muted-foreground"> · +{c.points} pts · {format(new Date(c.created_at), "d MMM")}</span>
+                <span className="text-xs text-muted-foreground"> · +{c.points} pts · {safeFormatDate(c.created_at, "d MMM")}</span>
               </span>
               <div className="flex gap-2 shrink-0">
                 <Button size="sm" className="h-8" disabled={reviewClaim.isPending} onClick={() => reviewClaim.mutate({ id: c.id, approve: true })}>
@@ -179,7 +179,7 @@ function Approvals() {
             <p key={r.id} className="text-xs text-muted-foreground">
               <span className={r.status === "fulfilled" ? "text-emerald-500" : "text-destructive"}>{r.status === "fulfilled" ? "Approved" : "Declined"}</span>
               {" · "}@{r.user?.username ?? "someone"} · {r.reward_name} · {r.cost} pts
-              {r.reviewed_at && ` · ${format(new Date(r.reviewed_at), "d MMM")}`}
+              {r.reviewed_at && ` · ${safeFormatDate(r.reviewed_at, "d MMM")}`}
             </p>
           ))}
         </div>
@@ -203,7 +203,7 @@ const EMPTY_MISSION: MissionInput = {
 };
 
 function toLocalInput(iso: string | null) {
-  return iso ? format(new Date(iso), "yyyy-MM-dd'T'HH:mm") : "";
+  return iso ? safeFormatDate(iso, "yyyy-MM-dd'T'HH:mm", "") : "";
 }
 
 function MissionsManager() {
@@ -241,7 +241,7 @@ function MissionRow({ mission: m, onEdit, onToggle, onDelete }: { mission: Missi
         <p className="text-xs text-muted-foreground">
           {CADENCE_LABEL[m.cadence]} · {missionKindLabel(m.kind)}
           {m.kind !== "manual" && ` × ${m.target_count} ${missionUnit(m.kind, m.target_count)}`} · +{m.points} pts
-          {m.cadence === "special" && m.ends_at && ` · ends ${format(new Date(m.ends_at), "d MMM")}`}
+          {m.cadence === "special" && m.ends_at && ` · ends ${safeFormatDate(m.ends_at, "d MMM")}`}
         </p>
       </div>
       <Switch checked={m.active} onCheckedChange={onToggle} title={m.active ? "Active" : "Hidden"} />

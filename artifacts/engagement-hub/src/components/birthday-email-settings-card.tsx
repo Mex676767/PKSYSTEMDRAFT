@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date-format";
 import { Mail, Save, Eye, Pencil, Send, Users, Cake, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -319,7 +320,7 @@ export function BirthdayEmailSettingsCard() {
               <p key={r.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
                 {r.status === "sent" ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-px" /> : r.status === "failed" ? <XCircle className="w-3.5 h-3.5 text-destructive shrink-0 mt-px" /> : <Clock className="w-3.5 h-3.5 shrink-0 mt-px" />}
                 <span>
-                  {format(new Date(r.birthday_on + "T12:00:00"), "d MMM yyyy")} · @{r.person?.username ?? "someone"} ·{" "}
+                  {safeFormatDate(`${r.birthday_on}T12:00:00`, "d MMM yyyy")} · @{r.person?.username ?? "someone"} ·{" "}
                   {r.kind === "personal" ? "birthday person email" : `team announcement to ${r.recipients}`}
                   {r.status === "failed" && r.error ? ` · ${r.error}` : ""}
                 </span>
