@@ -28,7 +28,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/digitalocean/Dockerfile.api
-    image: employee-hub-api:${API_IMAGE_TAG:-latest}
+    image: employee-hub-c9-api:${API_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: /etc/employee-hub/c9.env
     depends_on:
@@ -37,6 +37,7 @@ services:
     ports: ["127.0.0.1:4101:4101"]
     volumes:
       - /var/lib/employee-hub/c9/uploads:/var/lib/employee-hub/c9/uploads
+      - /etc/employee-hub/tls/c9/server.crt:/etc/employee-hub/tls/db-ca.crt:ro
     networks: [c9-private]
 
   c6-db:
@@ -68,7 +69,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/digitalocean/Dockerfile.api
-    image: employee-hub-api:${API_IMAGE_TAG:-latest}
+    image: employee-hub-c6-api:${API_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: /etc/employee-hub/c6.env
     depends_on:
@@ -77,6 +78,7 @@ services:
     ports: ["127.0.0.1:4102:4102"]
     volumes:
       - /var/lib/employee-hub/c6/uploads:/var/lib/employee-hub/c6/uploads
+      - /etc/employee-hub/tls/c6/server.crt:/etc/employee-hub/tls/db-ca.crt:ro
     networks: [c6-private]
 
 volumes:
