@@ -86,7 +86,7 @@ export function LiveDataSync() {
 
   useEffect(() => {
     if (!session) return;
-    // Supabase Realtime is being replaced with periodic API refreshes. Only
+    // Periodic API refreshes replace database Realtime subscriptions. Only
     // active queries refetch, keeping the cost bounded while preserving updates.
     const timer = window.setInterval(() => {
       const keys = new Set(LIVE_SYNC_TABLES.flatMap((table) => LIVE_SYNC_QUERY_KEYS[table]));

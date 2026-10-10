@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 
-// Temporary cross-backend refresh mechanism while the app moves off Supabase
-// Realtime. TanStack only refetches active queries, and the interval is modest
-// to avoid multiplying requests across mounted pages.
+// Poll active queries because the DigitalOcean API does not provide database
+// Realtime subscriptions. The modest interval avoids multiplying requests
+// across mounted pages.
 export function useRealtimeInvalidate(_table: string, queryKeys: QueryKey[]) {
   const qc = useQueryClient();
   useEffect(() => {
