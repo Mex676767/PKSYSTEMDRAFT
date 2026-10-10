@@ -1,5 +1,4 @@
-// Minimal Web Push sender built on WebCrypto only (runs in Deno / Supabase
-// Edge Functions, and in Node 20+ for testing).
+// Minimal Web Push sender built on WebCrypto for the Node 20+ API runtime.
 //   - Payload encryption: RFC 8291 (aes128gcm content coding, RFC 8188)
 //   - Sender identification: VAPID, RFC 8292 (ES256 JWT)
 

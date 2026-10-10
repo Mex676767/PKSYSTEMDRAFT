@@ -11,8 +11,7 @@ export function apiAssetUrl(path: string): string {
         const key = url.pathname.slice(storageIndex + storagePrefix.length);
         // Existing Storage object keys can contain nested paths (for example,
         // owner/avatar.jpg/<object-id>). Send every object from this bucket to
-        // the DigitalOcean file API; it validates each path segment and never
-        // falls back to the old Supabase URL.
+        // the DigitalOcean file API, which validates each path segment.
         return `${API_BASE}/api/files/${key}${url.search}`;
       }
       if (url.pathname.startsWith("/api/files/")) return `${API_BASE}${url.pathname}${url.search}`;
