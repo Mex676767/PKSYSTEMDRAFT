@@ -22,7 +22,7 @@ test("tenant config rejects a C6 database on the C9 API", () => {
 });
 
 test("tenant config requires SSL and explicit origins", () => {
-  assert.throws(() => parseRuntimeConfig({ ...base, TENANT_DATABASE_URL: base.TENANT_DATABASE_URL.replace("?sslmode=require", "") }), /SSL enabled/);
+  assert.throws(() => parseRuntimeConfig({ ...base, TENANT_DATABASE_URL: base.TENANT_DATABASE_URL.replace("?sslmode=require", "") }), /must use SSL/);
   assert.throws(() => parseRuntimeConfig({ ...base, ALLOWED_ORIGINS: "*" }), /wildcards are not allowed/);
   assert.throws(() => parseRuntimeConfig({ ...base, ALLOWED_ORIGINS: "https://c9.example.com/path" }), /invalid origin/);
 });
