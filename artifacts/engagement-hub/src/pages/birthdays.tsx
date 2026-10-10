@@ -14,8 +14,8 @@ import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/
 import { SendBirthdayWish } from "@/components/send-birthday-wish";
 
 function displayDate(birthday: string) {
-  const [, month, day] = birthday.split("-").map(Number);
-  return new Date(2000, month - 1, day);
+  const [year, month, day] = birthday.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 export default function Birthdays() {

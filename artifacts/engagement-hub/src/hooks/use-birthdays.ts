@@ -15,7 +15,13 @@ export type BirthdayEntry = {
 };
 
 function monthDayOf(dateStr: string) {
-  const [, month, day] = dateStr.split("-").map(Number);
+  // PostgreSQL/JSON responses can represent DATE values either as YYYY-MM-DD
+  // or as a midnight timestamp. Only the calendar portion is relevant here.
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (!match) return { month: -1, day: -1 };
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return { month: -1, day: -1 };
   return { month: month - 1, day };
 }
 

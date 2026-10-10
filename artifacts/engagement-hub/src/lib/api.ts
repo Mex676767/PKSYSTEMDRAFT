@@ -2,6 +2,9 @@ const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? "";
 const API_BASE = configuredApiUrl.replace(/\/$/, "");
 
 export function apiAssetUrl(path: string): string {
+  // Inline generated avatars are already complete browser URLs. Treat other
+  // non-HTTP schemes the same way instead of turning them into API paths.
+  if (/^(?:data|blob):/i.test(path)) return path;
   if (/^https?:\/\//i.test(path)) {
     try {
       const url = new URL(path);
