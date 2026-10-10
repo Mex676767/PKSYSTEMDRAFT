@@ -93,10 +93,10 @@ export default function Birthdays() {
         </h2>
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcomingBdays.map((b) => (
-            <motion.div variants={slideUp} whileHover={{ y: -2 }} key={b.id}>
-              <Card className="render-when-visible hover:border-secondary/40 hover:shadow-md transition-all bg-gradient-to-br from-secondary/10 to-card">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-4">
+            <motion.div variants={slideUp} whileHover={{ y: -2 }} key={b.id} className="h-full">
+              <Card className="render-when-visible h-44 hover:border-secondary/40 hover:shadow-md transition-all bg-gradient-to-br from-secondary/10 to-card">
+                <CardContent className="h-full p-4 flex flex-col">
+                  <div className="flex h-[68px] shrink-0 items-center gap-4">
                     <div className="flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-xl w-14 h-14 shrink-0 text-center shadow-sm">
                       <span className="text-xs font-bold uppercase opacity-90">{format(displayDate(b.birthday), "MMM")}</span>
                       <span className="text-lg font-black leading-none">{format(displayDate(b.birthday), "d")}</span>
@@ -115,7 +115,7 @@ export default function Birthdays() {
                       </p>
                     </div>
                   </div>
-                  <div className="pt-1 border-t border-border/50">
+                  <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-border/50 pt-1">
                     <ReactionBar targetType="birthday" targetId={b.id} reactions={reactionsByBirthday.get(b.id) ?? []} />
                   </div>
                 </CardContent>
