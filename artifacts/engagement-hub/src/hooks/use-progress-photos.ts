@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 
 export type ProgressPhotoTargetType = "goal" | "challenge";
 
@@ -16,22 +16,15 @@ export type ProgressPhoto = {
 };
 
 export function getProgressPhotoUrl(path: string) {
-  return supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+  const [owner,name]=path.split("/",2);
+  return apiAssetUrl(`/files/${encodeURIComponent(owner??"")}/${encodeURIComponent(name??"")}`);
 }
 
 export function useProgressPhotos(targetType: ProgressPhotoTargetType, targetId: string) {
   return useQuery({
     queryKey: ["progress-photos", targetType, targetId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("progress_photos")
-        .select("*, uploader:profiles(username)")
-        .eq("target_type", targetType)
-        .eq("target_id", targetId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as unknown as ProgressPhoto[];
-    },
+    queryFn: () => apiRequest<ProgressPhoto[]>(`/progress-photos/${encodeURIComponent(targetType)}/${encodeURIComponent(targetId)}`),
+    refetchInterval: 30_000,
   });
 }
 
@@ -50,19 +43,10 @@ export async function uploadProgressPhoto(
     caption?: string;
   }
 ) {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${userId}/progress-${targetType}-${targetId}-${Date.now()}.${ext}`;
-  const { error: uploadError } = await supabase.storage.from("post-images").upload(path, file);
-  if (uploadError) throw uploadError;
-
-  const { error } = await supabase.from("progress_photos").insert({
-    target_type: targetType,
-    target_id: targetId,
-    uploader_id: userId,
-    image_path: path,
-    caption: caption?.trim() || null,
-  });
-  if (error) throw error;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const name = `progress-${targetType}-${targetId}-${Date.now()}.${ext}`;
+  const stored = await uploadImage(`/files/${encodeURIComponent(userId)}/${encodeURIComponent(name)}`,file);
+  await apiRequest<void>(`/progress-photos/${encodeURIComponent(targetType)}/${encodeURIComponent(targetId)}`,{method:"POST",body:JSON.stringify({image_path:stored.path,caption:caption?.trim()||null})});
 }
 
 export function useAddProgressPhoto(targetType: ProgressPhotoTargetType, targetId: string) {
@@ -81,8 +65,7 @@ export function useDeleteProgressPhoto(targetType: ProgressPhotoTargetType, targ
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (photoId: string) => {
-      const { error } = await supabase.from("progress_photos").delete().eq("id", photoId);
-      if (error) throw error;
+      await apiRequest<void>(`/progress-photos/${encodeURIComponent(photoId)}`,{method:"DELETE"});
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["progress-photos", targetType, targetId] }),
   });

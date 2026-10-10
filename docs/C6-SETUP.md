@@ -1,105 +1,58 @@
-# C6 hub setup
+# C6 Employee Hub deployment
 
-C6 runs the same code as the C9MYR hub, on its own domain, with its **own
-Supabase project** so the two organisations' data can never mix. Every push to
-`main` redeploys both sites:
+C6 and C9 share the frontend source but use separate tenant APIs and databases.
+The public frontend remains at `https://c6.mextest67.workers.dev`; its API
+requests are intended to proxy to the C6 DigitalOcean API.
 
-| | C9MYR | C6 |
-|---|---|---|
-| Code | this repo, `main` | this repo, `main` |
-| Hosting | Cloudflare Worker `c9` (`deploy-c9-worker.yml`); the old GitHub Pages address redirects | Cloudflare Worker `c6` (`deploy-c6.yml`) |
-| Database | Supabase project "C9MYR" | Supabase project "C6MYR" |
-| Name in the nav pill and titles | C9MYR | `C6_BRAND_NAME` (default `C6`) |
+## Current migration state
 
-How the switch works: `src/lib/brand.ts` reads `VITE_BRAND_NAME`,
-`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` at build time. With none set,
-the build is C9MYR, exactly as before. `vite.config.ts` also swaps the name in
-`index.html`, `privacy.html` and `push-sw.js`.
+- The C6 DigitalOcean API and PostgreSQL tenant are deployed on the existing
+  Droplet. The API readiness endpoint is
+  `https://api-c6.165-245-183-45.sslip.io/api/readyz`.
+- The C6 production Cloudflare Worker still serves its current frontend. Its
+  `/api` proxy has not yet been enabled, so the live app still uses Supabase.
+- Production cutover is pending. Keep the existing Supabase project available
+  until sign-in and the app's core flows have been checked through the Worker.
+- Resend is intentionally unconfigured; password recovery email is not ready.
 
-## 1. Copy C9MYR's database structure (no data)
+## GitHub Actions settings
 
-The migrations folder only has changes from `0001` onwards, not the original
-tables, so C6 needs a structure export. On your computer, with Docker Desktop
-running:
+The `Deploy C6 hub to Cloudflare` workflow builds the C6-branded frontend and
+deploys the Worker. It runs on pushes to `main` and can also be started manually.
+It skips deployment until `C6_DO_API_ORIGIN` is set.
 
-```
-cd artifacts\engagement-hub
-npx supabase db dump --db-url "C9MYR_SESSION_POOLER_CONNECTION_STRING" -f supabase\schema.sql
-git add supabase\schema.sql
-git commit -m "Add baseline schema"
-git push
-```
+In **GitHub → repository Settings → Secrets and variables → Actions**, configure:
 
-Get the connection string from the C9MYR project: **Connect** → **Session pooler**.
-It contains the database password, so never paste it into a chat or commit it.
-`schema.sql` holds only tables and functions, no employee data.
+**Variables**
 
-## 2. Set up C6's database
+- `C6_DO_API_ORIGIN` = `https://api-c6.165-245-183-45.sslip.io`
+- `C6_BRAND_NAME` = `C6` (or the desired C6 display name)
+- `C6_WORKER_NAME` = `c6` unless the Cloudflare Worker has another name
 
-In the **C6MYR** project's SQL editor, run these in order. Open each file in a
-text editor (e.g. Notepad), select all and paste, rather than copying from a
-preview that may cut it short:
+**Secrets**
 
-1. `supabase/schema.sql`
-2. `supabase/c6-seed.sql`: settings rows, default roles, the Management
-   department, built-in achievements, scheduled jobs and live updates.
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
 
-From then on, **every new migration must be run on both projects.**
+The matching API's `ALLOWED_ORIGINS` must include
+`https://c6.mextest67.workers.dev`. The C9 deployment uses its own
+`C9_DO_API_ORIGIN` and must never point at the C6 API.
 
-## 3. C6 project settings
+## Google sign-in
 
-- **Authentication → Sign In / Providers:** turn on the same methods as C9MYR.
-  Google sign-in needs its own OAuth client with C6's domain.
-- **Authentication → URL Configuration:** Site URL = C6's domain; add it to the
-  redirect URLs too.
-- **Storage:** nothing to do; `c6-seed.sql` creates the `post-images` bucket and its rules.
-- **Edge functions**, from `artifacts\engagement-hub`, with C6's project ref:
-  ```
-  npx supabase functions deploy send-push --project-ref C6_REF --no-verify-jwt
-  npx supabase functions deploy get-turn-credentials --project-ref C6_REF
-  npx supabase functions deploy send-birthday-emails --project-ref C6_REF --no-verify-jwt
-  ```
-  Then set the function secrets for C6 as in `supabase/PUSH-NOTIFICATIONS.md`,
-  using **new** VAPID keys, plus `APP_NAME` = `C6MYR Hub` (or whatever the name
-  is). The Cloudflare voice-call keys can be the same as C9MYR's.
-- **Vault** (SQL editor): add `project_url` and `push_webhook_secret` for C6,
-  as in `supabase/PUSH-NOTIFICATIONS.md`.
+The C6 Google OAuth client must allow this exact redirect URI:
 
-## 4. Cloudflare
+`https://c6.mextest67.workers.dev/api/auth/google/callback`
 
-The site is a Cloudflare **Worker** named `c6` that serves the static build
-(`wrangler.jsonc` in the repo root). GitHub Actions builds and deploys it, so
-Cloudflare's own Git builds aren't used.
+Keep the currently configured Supabase callback until the production cutover
+has been verified. Do not rotate or remove OAuth client secrets as part of this
+deployment.
 
-1. Free Cloudflare account. **Workers & Pages → Create** a Worker named `c6`
-   (any starter). If you connected it to GitHub, disconnect that under the
-   Worker's **Settings → Build**, since the GitHub Action does the building.
-2. **Account ID:** the long code in the dashboard URL
-   (`dash.cloudflare.com/<account id>/...`), or Account home → the **⋯** next
-   to the account name → **Copy account ID**.
-3. **API token:** My Profile → API Tokens → Create token → **Edit Cloudflare
-   Workers** template.
-4. After the first deploy: the Worker's **Settings → Domains & Routes** →
-   enable `workers.dev` (for a test URL) and add C6's custom domain.
+## Cutover checks
 
-## 5. GitHub settings
+After the Worker is deployed, verify `/api/readyz` through the Worker, password
+login, Google sign-in, session restore/logout, and representative employee and
+admin writes. Check C6 only against the C6 tenant. Keep the existing Supabase
+service intact until both C6 and C9 pass their checks and rollback is no longer
+needed. The user handles backups separately.
 
-Repo → **Settings → Secrets and variables → Actions**:
-
-- **Secrets:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-- **Variables:**
-  - `C6_SUPABASE_URL`: C6MYR's Project URL (`https://xxxx.supabase.co`)
-  - `C6_SUPABASE_ANON_KEY`: C6MYR's publishable key (`sb_publishable_…`)
-  - `C6_BRAND_NAME`: the name to show, e.g. `C6` or `C6MYR`
-  - `C6_WORKER_NAME`: only if the Worker isn't called `c6`
-
-The workflow does nothing until `C6_SUPABASE_URL` is set. After setting
-everything, run it once from **Actions → Deploy C6 hub → Run workflow**.
-
-## 6. Domain and first admin
-
-- Cloudflare → Worker `c6` → **Settings → Domains & Routes** → add C6's domain.
-- Sign up on the C6 site, then in C6's SQL editor:
-  ```sql
-  update profiles set is_admin = true where email = 'you@example.com';
-  ```

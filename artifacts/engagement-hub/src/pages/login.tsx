@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { BRAND_FULL_NAME, BRAND_LOGO } from "@/lib/brand";
+import { apiRequest } from "@/lib/api";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -24,6 +25,11 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const resetToken = new URLSearchParams(window.location.search).get("token");
+  const [screen, setScreen] = useState<"login" | "forgot" | "reset">(resetToken ? "reset" : "login");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
@@ -46,6 +52,46 @@ export default function Login() {
     const { error } = await signInWithPassword(email.trim(), password);
     if (error) {
       setError(error);
+      setStatus("error");
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("sending");
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await apiRequest<{ message: string }>("/auth/password/forgot", {
+        method: "POST", body: JSON.stringify({ email: email.trim() }),
+      });
+      setNotice(result.message);
+      setStatus("idle");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not request a password reset.");
+      setStatus("error");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetToken) { setError("This reset link is missing or invalid."); return; }
+    if (newPassword !== confirmPassword) { setError("The passwords do not match."); return; }
+    setStatus("sending");
+    setError(null);
+    try {
+      await apiRequest("/auth/password/reset", {
+        method: "POST", body: JSON.stringify({ token: resetToken, password: newPassword }),
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+      setScreen("login");
+      setPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setNotice("Password updated. Sign in with your new password.");
+      setStatus("idle");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The reset link could not be used.");
       setStatus("error");
     }
   };
@@ -77,6 +123,7 @@ export default function Login() {
 
         <Card className="border-primary/20 shadow-lg bg-gradient-to-br from-primary/10 via-card to-secondary/10">
           <CardContent className="pt-8 pb-8">
+            {screen === "login" && <>
             <Button
               type="button"
               variant="outline"
@@ -126,18 +173,32 @@ export default function Login() {
                 />
               </div>
 
-              {status === "error" && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-
               <Button type="submit" className="w-full h-11" disabled={status === "sending"}>
                 {status === "sending" ? "Signing in..." : "Sign in"}
               </Button>
+
+              <button type="button" className="block mx-auto text-xs text-primary hover:underline" onClick={() => { setScreen("forgot"); setError(null); setNotice(null); }}>Forgot password?</button>
 
               <p className="text-center text-xs text-muted-foreground">
                 No account yet? Use Google above. Password sign-in is for existing accounts only.
               </p>
             </form>
+            </>}
+            {screen === "forgot" && <form onSubmit={handleForgotPassword} className="space-y-4">
+              <h2 className="text-xl font-semibold text-center">Reset your password</h2>
+              <p className="text-sm text-center text-muted-foreground">We’ll email a secure reset link if an account matches.</p>
+              <label className="block space-y-2 text-sm font-medium"><span>Email address</span><input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>
+              <Button type="submit" className="w-full" disabled={status === "sending"}>{status === "sending" ? "Sending..." : "Send reset link"}</Button>
+              <button type="button" className="block mx-auto text-xs text-primary hover:underline" onClick={() => setScreen("login")}>Back to sign in</button>
+            </form>}
+            {screen === "reset" && <form onSubmit={handleResetPassword} className="space-y-4">
+              <h2 className="text-xl font-semibold text-center">Choose a new password</h2>
+              <label className="block space-y-2 text-sm font-medium"><span>New password</span><input type="password" required minLength={12} autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>
+              <label className="block space-y-2 text-sm font-medium"><span>Confirm password</span><input type="password" required minLength={12} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>
+              <Button type="submit" className="w-full" disabled={status === "sending"}>{status === "sending" ? "Updating..." : "Set new password"}</Button>
+            </form>}
+            {notice && <p role="status" className="mt-4 rounded-md bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">{notice}</p>}
+            {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
           </CardContent>
         </Card>
       </motion.div>

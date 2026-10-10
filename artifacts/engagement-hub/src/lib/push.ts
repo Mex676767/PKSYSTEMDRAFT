@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export const PUSH_SW_FILE = "push-sw.js";
 
@@ -32,10 +32,9 @@ function urlBase64ToUint8Array(base64: string) {
 }
 
 async function fetchVapidPublicKey(): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("send-push", { method: "GET" });
-  if (error) throw new Error("Push notifications aren't set up on the server yet.");
-  if (!data?.publicKey) throw new Error("Push notifications aren't set up on the server yet.");
-  return data.publicKey as string;
+  const { publicKey } = await apiRequest<{ publicKey:string }>("/push/public-key");
+  if (!publicKey) throw new Error("Push notifications aren't set up on the server yet.");
+  return publicKey;
 }
 
 /** Asks for permission, subscribes this browser and saves it for the signed-in user. */
@@ -62,13 +61,7 @@ export async function enablePush(): Promise<PushState> {
   sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
 
   const json = sub.toJSON();
-  const { error } = await supabase.rpc("save_push_subscription", {
-    endpoint_param: sub.endpoint,
-    p256dh_param: json.keys?.p256dh ?? "",
-    auth_param: json.keys?.auth ?? "",
-    user_agent_param: navigator.userAgent.slice(0, 300),
-  });
-  if (error) throw error;
+  await apiRequest<void>("/push/subscriptions", { method:"POST", body:JSON.stringify({ endpoint:sub.endpoint,p256dh:json.keys?.p256dh??"",auth:json.keys?.auth??"",user_agent:navigator.userAgent.slice(0,300) }) });
   return "on";
 }
 
@@ -78,7 +71,7 @@ export async function disablePush(): Promise<PushState> {
   const reg = await pushRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (sub) {
-    await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    await apiRequest<void>("/push/subscriptions", { method:"DELETE", body:JSON.stringify({endpoint:sub.endpoint}) });
     await sub.unsubscribe();
   }
   return Notification.permission === "denied" ? "denied" : "off";

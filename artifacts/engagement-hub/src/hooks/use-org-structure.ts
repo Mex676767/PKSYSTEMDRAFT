@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { DEFAULT_DEPARTMENTS, DEFAULT_ROLES } from "@/lib/roles";
+import { apiRequest } from "@/lib/api";
 
 export type OrgKind = "role" | "department";
 
@@ -9,18 +9,7 @@ export function useOrgStructure() {
   const query = useQuery({
     queryKey: ["org-structure"],
     staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const [roles, departments] = await Promise.all([
-        supabase.from("org_roles").select("name").order("rank"),
-        supabase.from("org_departments").select("name").order("name"),
-      ]);
-      // Before migration 0027 runs these tables don't exist: use the old lists.
-      return {
-        roles: roles.error ? [...DEFAULT_ROLES] : (roles.data ?? []).map((r) => r.name as string),
-        departments: departments.error ? [...DEFAULT_DEPARTMENTS] : (departments.data ?? []).map((d) => d.name as string),
-        managed: !roles.error && !departments.error,
-      };
-    },
+    queryFn: () => apiRequest<{ roles: string[]; departments: string[]; managed: boolean }>("/org-structure"),
   });
   return {
     roles: query.data?.roles ?? [...DEFAULT_ROLES],
@@ -31,12 +20,11 @@ export function useOrgStructure() {
   };
 }
 
-function useOrgMutation<T>(fn: (args: T) => PromiseLike<{ error: unknown }>) {
+function useOrgMutation<T>(fn: (args: T) => Promise<unknown>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: T) => {
-      const { error } = await fn(args);
-      if (error) throw error;
+      await fn(args);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["org-structure"] });
@@ -48,18 +36,18 @@ function useOrgMutation<T>(fn: (args: T) => PromiseLike<{ error: unknown }>) {
 
 export function useSaveOrgItem() {
   return useOrgMutation((a: { kind: OrgKind; oldName: string | null; newName: string }) =>
-    supabase.rpc("admin_org_save", { kind: a.kind, old_name: a.oldName, new_name: a.newName })
+    apiRequest("/admin/org-structure", { method: "POST", body: JSON.stringify({ kind: a.kind, old_name: a.oldName, new_name: a.newName }) })
   );
 }
 
 export function useMoveOrgItem() {
   return useOrgMutation((a: { kind: OrgKind; name: string; direction: -1 | 1 }) =>
-    supabase.rpc("admin_org_move", { kind: a.kind, item_name: a.name, direction: a.direction })
+    apiRequest("/admin/org-structure/order", { method: "PUT", body: JSON.stringify(a) })
   );
 }
 
 export function useDeleteOrgItem() {
   return useOrgMutation((a: { kind: OrgKind; name: string }) =>
-    supabase.rpc("admin_org_delete", { kind: a.kind, item_name: a.name })
+    apiRequest(`/admin/org-structure/${encodeURIComponent(a.kind)}/${encodeURIComponent(a.name)}`, { method: "DELETE" })
   );
 }

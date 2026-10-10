@@ -12,23 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { GOAL_TERM_META, useGoalTermCoverage } from "@/hooks/use-goals";
-
-function localDateKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function hasMoodCheckInToday(profileId: string) {
-  try {
-    const saved = window.localStorage.getItem(`daily-mood-checkin:${profileId}`);
-    return saved ? JSON.parse(saved).date === localDateKey() : false;
-  } catch {
-    return false;
-  }
-}
+import { localMoodDateKey, useMyMoodCheckIn, useSubmitMoodCheckIn, type Mood } from "@/hooks/use-mood-checkins";
 
 export function DailyGoalReminder() {
   const { profile } = useAuth();
@@ -38,20 +22,27 @@ export function DailyGoalReminder() {
   const [moodOpen, setMoodOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [confirmPostpone, setConfirmPostpone] = useState(false);
+  const submitMood = useSubmitMoodCheckIn();
+  const myMoodCheckIn = useMyMoodCheckIn(profile?.id);
 
   const reminderKey = profile ? `daily-goal-reminder:${profile.id}` : null;
 
   const finishForToday = () => {
-    if (reminderKey) window.localStorage.setItem(reminderKey, localDateKey());
+    if (reminderKey) window.localStorage.setItem(reminderKey, localMoodDateKey());
     setConfirmPostpone(false);
     setOpen(false);
-    if (profile && !hasMoodCheckInToday(profile.id)) setMoodOpen(true);
+    if (profile && myMoodCheckIn.isSuccess && !myMoodCheckIn.data) setMoodOpen(true);
   };
 
-  const saveMood = () => {
+  const saveMood = async () => {
     if (!profile || !selectedMood) return;
-    window.localStorage.setItem(`daily-mood-checkin:${profile.id}`, JSON.stringify({ date: localDateKey(), mood: selectedMood }));
-    setMoodOpen(false);
+    try {
+      await submitMood.mutateAsync({ mood: selectedMood as Mood });
+      window.localStorage.setItem(`daily-mood-checkin:${profile.id}`, JSON.stringify({ date: localMoodDateKey(), mood: selectedMood }));
+      setMoodOpen(false);
+    } catch {
+      // Keep the check-in open so the user can retry if it could not be saved.
+    }
   };
 
   useEffect(() => {
@@ -60,19 +51,19 @@ export function DailyGoalReminder() {
     if (coverage?.complete) {
       setOpen(false);
       setConfirmPostpone(false);
-      if (!hasMoodCheckInToday(profile.id)) setMoodOpen(true);
+      if (myMoodCheckIn.isSuccess && !myMoodCheckIn.data) setMoodOpen(true);
       return;
     }
 
     const key = `daily-goal-reminder:${profile.id}`;
-    const today = localDateKey();
+    const today = localMoodDateKey();
     if (window.localStorage.getItem(key) === today) {
-      if (!hasMoodCheckInToday(profile.id)) setMoodOpen(true);
+      if (myMoodCheckIn.isSuccess && !myMoodCheckIn.data) setMoodOpen(true);
       return;
     }
 
     if (location !== "/goals") setOpen(true);
-  }, [coverage?.complete, isSuccess, location, profile?.id, profile?.is_approved]);
+  }, [coverage?.complete, isSuccess, location, myMoodCheckIn.data, myMoodCheckIn.isSuccess, profile?.id, profile?.is_approved]);
 
   const missingLabels = coverage?.missing.map((term) => GOAL_TERM_META[term].label) ?? [];
   const missingText = missingLabels.length === 0
@@ -159,7 +150,7 @@ export function DailyGoalReminder() {
               </button>
             ))}
           </div>
-          <Button className="h-11 w-full text-sm font-semibold" disabled={!selectedMood} onClick={saveMood}>Save check-in <CheckCircle2 className="ml-2 h-4 w-4" /></Button>
+          <Button className="h-11 w-full text-sm font-semibold" disabled={!selectedMood || submitMood.isPending} onClick={saveMood}>{submitMood.isPending ? "Saving..." : submitMood.isError ? "Retry save" : "Save check-in"} <CheckCircle2 className="ml-2 h-4 w-4" /></Button>
         </div>
       </DialogContent>
     </Dialog>

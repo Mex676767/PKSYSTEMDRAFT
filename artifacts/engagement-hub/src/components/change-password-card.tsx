@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -35,18 +35,10 @@ export function ChangePasswordCard() {
     }
     setPending(true);
     try {
-      // Supabase verifies the current password and applies its password policy.
-      // No reset email is needed, including for accounts with .local addresses.
-      const { error: updateError } = await supabase.auth.updateUser({
-        current_password: currentPassword,
-        password,
+      await apiRequest("/auth/password/change", {
+        method: "POST",
+        body: JSON.stringify({ current_password: currentPassword, new_password: password }),
       });
-      if (updateError) {
-        setError(updateError.code === "reauthentication_needed"
-          ? "Please sign out and sign in again with your current password, then retry."
-          : updateError.message);
-        return;
-      }
       setCurrentPassword("");
       setPassword("");
       setConfirmation("");
@@ -74,12 +66,12 @@ export function ChangePasswordCard() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-password">New password</Label>
-              <Input id="new-password" type="password" autoComplete="new-password" required minLength={8} aria-describedby="password-help" value={password} onChange={event => setPassword(event.target.value)} />
-              <p id="password-help" className="text-xs text-muted-foreground">Use at least 8 characters.</p>
+            <Input id="new-password" type="password" autoComplete="new-password" required minLength={12} aria-describedby="password-help" value={password} onChange={event => setPassword(event.target.value)} />
+              <p id="password-help" className="text-xs text-muted-foreground">Use at least 12 characters.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm new password</Label>
-              <Input id="confirm-password" type="password" autoComplete="new-password" required minLength={8} value={confirmation} onChange={event => setConfirmation(event.target.value)} />
+            <Input id="confirm-password" type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={event => setConfirmation(event.target.value)} />
             </div>
             <Button type="submit">{pending ? "Updating password…" : "Update password"}</Button>
           </fieldset>

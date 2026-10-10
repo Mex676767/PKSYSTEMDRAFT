@@ -23,7 +23,7 @@ SET row_security = off;
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA public;
+CREATE SCHEMA IF NOT EXISTS public;
 
 
 --
@@ -8380,4 +8380,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 --
 
 \unrestrict ZNGcg2LSqIekA2icUsJqFvwvpUoIxNGp2gtPl3aNMZ7sJ5PO0YSjvZjyIG5sbSa
-

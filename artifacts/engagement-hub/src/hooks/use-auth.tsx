@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { disablePush } from "@/lib/push";
+import { ApiError, apiRequest } from "@/lib/api";
 
 export type Profile = {
   id: string;
@@ -28,6 +26,14 @@ export type Profile = {
   is_approved: boolean;
 };
 
+export type AuthSession = {
+  user: {
+    id: string;
+    email: string;
+    identities: { provider: string }[];
+  };
+};
+
 const AVATAR_COLORS = [
   "bg-blue-500", "bg-purple-500", "bg-pink-500",
   "bg-emerald-500", "bg-amber-500", "bg-indigo-500", "bg-rose-500",
@@ -46,10 +52,9 @@ export function initialsForUsername(username: string) {
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
 
 type AuthState = {
-  session: Session | null;
+  session: AuthSession | null;
   profile: Profile | null;
   loading: boolean;
-  signInWithEmail: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -63,187 +68,106 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-const AUTH_STARTUP_TIMEOUT_MS = 10_000;
+type CurrentUserResponse = {
+  tenant: string;
+  user: Profile & { identities: { provider: string }[] };
+};
 
-function withStartupTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(
-      () => reject(new Error(`${label} timed out after ${AUTH_STARTUP_TIMEOUT_MS}ms`)),
-      AUTH_STARTUP_TIMEOUT_MS,
-    );
+async function getCurrentUser() {
+  return apiRequest<CurrentUserResponse>("/auth/me", { headers: { "Cache-Control": "no-store" } });
+}
 
-    promise.then(
-      (value) => {
-        window.clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        window.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+function toSession(user: CurrentUserResponse["user"]): AuthSession {
+  return { user: { id: user.id, email: user.email, identities: user.identities ?? [] } };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [deactivatedNotice, setDeactivatedNotice] = useState(false);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const [{ data, error }, { data: isApproved, error: approvalError }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.rpc("get_my_approval_status"),
-    ]);
-
-    if (error) {
-      console.error("Failed to load profile", error);
-      return null;
-    }
-    if (approvalError && approvalError.code !== "PGRST202") {
-      console.error("Failed to load account approval", approvalError);
-      return null;
-    }
-    // Keep existing deployments usable while migration 0049 is being applied.
-    // Once the RPC exists, only its explicit true result grants app access.
-    return { ...data, is_approved: approvalError?.code === "PGRST202" || isApproved === true } as Profile;
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    withStartupTimeout(supabase.auth.getSession(), "Session check")
-      .then(({ data }) => {
-        if (cancelled) return;
-        setSession(data.session);
-        if (!data.session) setLoading(false);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        console.error("Failed to restore saved session", error);
-        // Never hold the whole app behind an endless splash screen. A stale or
-        // unreachable saved session can be replaced from the normal login page.
-        setSession(null);
-        setProfile(null);
-        setLoading(false);
-      });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (!newSession) {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!session) return;
-
-    let cancelled = false;
-    setLoading(true);
-
-    withStartupTimeout(fetchProfile(session.user.id), "Profile check")
-      .then((p) => {
-        if (cancelled) return;
-        if (p?.is_deleted) {
-          setDeactivatedNotice(true);
-          setProfile(null);
-          setLoading(false);
-          supabase.auth.signOut();
-          return;
-        }
-        setProfile(p);
-        setLoading(false);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        console.error("Failed to finish account startup", error);
-        // Returning to login is recoverable; leaving loading=true is not.
-        setSession(null);
-        setProfile(null);
-        setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-    // Supabase silently refreshes the session (a new object, same user) whenever
-    // the tab regains focus. Keying off session.user.id instead of the whole
-    // session object means that refresh doesn't retrigger the loading spinner
-    // and remount the app -- which was tearing down things like an active call.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id, fetchProfile]);
-
-  useEffect(() => {
-    if (!session || !profile?.username) return;
-
-    let cancelled = false;
-    supabase.rpc("claim_daily_login_bonus").then(({ data: claimed, error }) => {
-      if (cancelled || error) return;
-      if (claimed) {
-        fetchProfile(session.user.id).then((p) => {
-          if (!cancelled && p) setProfile(p);
-        });
-        queryClient.invalidateQueries({ queryKey: ["point-history", session.user.id] });
-      }
-    });
-
-    return () => { cancelled = true; };
-  }, [session?.user.id, !!profile?.username]);
-
   const refetchProfile = useCallback(async () => {
-    if (!session) return;
-    const p = await fetchProfile(session.user.id);
-    if (p) setProfile(p);
-  }, [session, fetchProfile]);
-
-  const signInWithEmail = async (email: string) => {
     try {
-      const { error } = await withStartupTimeout(supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin + import.meta.env.BASE_URL,
-        },
-      }), "Email sign-in");
-      return { error: error?.message ?? null };
-    } catch {
-      return { error: "The sign-in service is taking too long to respond. Please try again shortly." };
+      const current = await getCurrentUser();
+      setSession(toSession(current.user));
+      setProfile(current.user);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setSession(null);
+        setProfile(null);
+        return;
+      }
+      throw error;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser()
+      .then(({ user }) => {
+        if (cancelled) return;
+        setSession(toSession(user));
+        setProfile(user);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (!(error instanceof ApiError && error.status === 401)) {
+          console.error("Could not restore the DigitalOcean session", error);
+        }
+        setSession(null);
+        setProfile(null);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user.id || !profile?.username || !profile.is_approved) return;
+    let cancelled = false;
+    apiRequest<{ claimed: boolean }>("/auth/daily-login", { method: "POST" })
+      .then(({ claimed }) => {
+        if (!cancelled && claimed) {
+          void refetchProfile();
+          queryClient.invalidateQueries({ queryKey: ["point-history", session.user.id] });
+        }
+      })
+      .catch((error) => console.error("Could not update the daily login streak", error));
+    return () => { cancelled = true; };
+  }, [profile?.is_approved, profile?.username, queryClient, refetchProfile, session?.user.id]);
 
   const signInWithPassword = async (email: string, password: string) => {
     try {
-      const { error } = await withStartupTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        "Password sign-in",
-      );
-      return { error: error?.message ?? null };
-    } catch {
-      return { error: "The sign-in service is taking too long to respond. Please try again shortly." };
+      await apiRequest("/auth/password/login", {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      await refetchProfile();
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Sign-in failed. Please try again." };
     }
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + import.meta.env.BASE_URL,
-      },
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { authorization_url } = await apiRequest<{ authorization_url: string }>("/auth/google/start", { method: "POST" });
+      window.location.assign(authorization_url);
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Google sign-in failed. Please try again." };
+    }
   };
 
   const signOut = async () => {
-    // Stop this device's push notifications first, while still signed in to
-    // delete the subscription, so the next person here doesn't get them.
-    await disablePush().catch(() => {});
-    await supabase.auth.signOut();
+    try {
+      await apiRequest("/auth/logout", { method: "POST" });
+    } finally {
+      setSession(null);
+      setProfile(null);
+      queryClient.clear();
+    }
   };
 
   const claimUsername = async (username: string) => {
@@ -251,50 +175,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!USERNAME_PATTERN.test(username)) {
       return { error: "Username must be 3-20 characters: letters, numbers, or underscore only." };
     }
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .update({ username })
-      .eq("id", session.user.id)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === "23505") {
-        return { error: "That username is already taken. Try another." };
-      }
-      return { error: error.message };
+    try {
+      await apiRequest("/auth/username", { method: "PUT", body: JSON.stringify({ username }) });
+      await refetchProfile();
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Could not update username." };
     }
-
-    setProfile(data as Profile);
-    return { error: null };
   };
 
   const isAdmin = profile?.is_admin ?? false;
   const hasPermission = useCallback(
     (perm: string) => isAdmin || (profile?.permissions?.includes(perm) ?? false),
-    [isAdmin, profile]
+    [isAdmin, profile],
   );
   const dismissDeactivatedNotice = useCallback(() => setDeactivatedNotice(false), []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        profile,
-        loading,
-        signInWithEmail,
-        signInWithPassword,
-        signInWithGoogle,
-        signOut,
-        claimUsername,
-        refetchProfile,
-        isAdmin,
-        hasPermission,
-        deactivatedNotice,
-        dismissDeactivatedNotice,
-      }}
-    >
+    <AuthContext.Provider value={{
+      session, profile, loading, signInWithPassword, signInWithGoogle, signOut,
+      claimUsername, refetchProfile, isAdmin, hasPermission, deactivatedNotice, dismissDeactivatedNotice,
+    }}>
       {children}
     </AuthContext.Provider>
   );

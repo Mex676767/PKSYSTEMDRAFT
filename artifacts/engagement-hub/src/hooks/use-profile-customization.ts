@@ -1,13 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export function useSetActiveAccessory() {
   const { refetchProfile } = useAuth();
   return useMutation({
     mutationFn: async (accessoryKey: string | null) => {
-      const { error } = await supabase.rpc("set_active_accessory", { accessory_key: accessoryKey });
-      if (error) throw error;
+      await apiRequest<void>("/profile/customization/accessory", { method: "PATCH", body: JSON.stringify({ value: accessoryKey }) });
     },
     onSuccess: () => refetchProfile(),
   });
@@ -17,8 +16,7 @@ export function useSetActiveTitle() {
   const { refetchProfile } = useAuth();
   return useMutation({
     mutationFn: async (titleKey: string | null) => {
-      const { error } = await supabase.rpc("set_active_title", { title_key: titleKey });
-      if (error) throw error;
+      await apiRequest<void>("/profile/customization/title", { method: "PATCH", body: JSON.stringify({ value: titleKey }) });
     },
     onSuccess: () => refetchProfile(),
   });
@@ -28,8 +26,7 @@ export function useSetActiveBorder() {
   const { refetchProfile } = useAuth();
   return useMutation({
     mutationFn: async (borderKey: string | null) => {
-      const { error } = await supabase.rpc("set_active_border", { border_key: borderKey });
-      if (error) throw error;
+      await apiRequest<void>("/profile/customization/border", { method: "PATCH", body: JSON.stringify({ value: borderKey }) });
     },
     onSuccess: () => refetchProfile(),
   });
@@ -40,22 +37,11 @@ export function useUploadAvatar() {
   return useMutation({
     mutationFn: async (file: File) => {
       if (!session) throw new Error("Not signed in");
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${session.user.id}/avatar.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("post-images")
-        .upload(path, file, { upsert: true, cacheControl: "3600" });
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(path);
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: avatarUrl })
-        .eq("id", session.user.id);
-      if (updateError) throw updateError;
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const stored = await uploadImage(`/files/${encodeURIComponent(session.user.id)}/${encodeURIComponent(`avatar.${ext}`)}`, file);
+      const [owner, name] = stored.path.split("/", 2);
+      const avatarUrl = `${apiAssetUrl(`/files/${encodeURIComponent(owner ?? "")}/${encodeURIComponent(name ?? "")}`)}?t=${Date.now()}`;
+      await apiRequest<void>("/profile/avatar-url", { method: "PATCH", body: JSON.stringify({ avatar_url: avatarUrl }) });
 
       return avatarUrl;
     },
@@ -68,8 +54,7 @@ export function useSetAvatarUrl() {
   return useMutation({
     mutationFn: async (avatarUrl: string | null) => {
       if (!session) throw new Error("Not signed in");
-      const { error } = await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", session.user.id);
-      if (error) throw error;
+      await apiRequest<void>("/profile/avatar-url", { method: "PATCH", body: JSON.stringify({ avatar_url: avatarUrl }) });
     },
     onSuccess: () => refetchProfile(),
   });

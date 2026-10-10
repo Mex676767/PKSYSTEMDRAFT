@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
+import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 
 export type PostCategory = "general" | "desk_setup";
 
@@ -18,22 +17,16 @@ export type Post = {
 const POST_SELECT = "*, author:profiles!inner(username, avatar_url, active_border, active_accessory)";
 
 export function usePostsFeed() {
-  useRealtimeInvalidate("posts", [["posts-feed"], ["desk-setup-entries"]]);
   return useQuery({
     queryKey: ["posts-feed"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select(POST_SELECT)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Post[];
-    },
+    queryFn: () => apiRequest<Post[]>("/posts"),
+    refetchInterval: 30_000,
   });
 }
 
 export function getPostImageUrl(path: string) {
-  return supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+  const [owner, name] = path.split("/", 2);
+  return apiAssetUrl(`/files/${encodeURIComponent(owner ?? "")}/${encodeURIComponent(name ?? "")}`);
 }
 
 export function useCreatePost() {
@@ -53,20 +46,11 @@ export function useCreatePost() {
 
       let image_path: string | null = null;
       if (imageFile) {
-        const ext = imageFile.name.split(".").pop() ?? "jpg";
-        const path = `${session.user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("post-images").upload(path, imageFile);
-        if (uploadError) throw uploadError;
-        image_path = path;
+        const ext = imageFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        image_path = (await uploadImage(`/files/${encodeURIComponent(session.user.id)}/${encodeURIComponent(`${Date.now()}.${ext}`)}`, imageFile)).path;
       }
 
-      const { data, error } = await supabase
-        .from("posts")
-        .insert({ author_id: session.user.id, body: body || null, image_path, category })
-        .select(POST_SELECT)
-        .single();
-      if (error) throw error;
-      return data as unknown as Post;
+      return apiRequest<Post>("/posts", { method: "POST", body: JSON.stringify({ body: body || null, image_path, category }) });
     },
     onSuccess: (post) => {
       qc.invalidateQueries({ queryKey: ["posts-feed"] });
@@ -81,8 +65,7 @@ export function useDeletePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("posts").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["posts-feed"] });
@@ -94,39 +77,9 @@ export function useDeletePost() {
 export type DeskSetupEntry = Post & { vote_count: number };
 
 export function useDeskSetupEntries() {
-  useRealtimeInvalidate("posts", [["desk-setup-entries"]]);
-  useRealtimeInvalidate("reactions", [["desk-setup-entries"]]);
   return useQuery({
     queryKey: ["desk-setup-entries"],
-    queryFn: async () => {
-      const { data: posts, error } = await supabase
-        .from("posts")
-        .select(POST_SELECT)
-        .eq("category", "desk_setup")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-
-      const ids = (posts ?? []).map((p) => p.id);
-      const counts: Record<string, number> = {};
-
-      if (ids.length > 0) {
-        const { data: reactions, error: reactionsError } = await supabase
-          .from("reactions")
-          .select("target_id")
-          .eq("target_type", "post")
-          .in("target_id", ids);
-        if (reactionsError) throw reactionsError;
-        for (const r of reactions ?? []) {
-          counts[r.target_id] = (counts[r.target_id] ?? 0) + 1;
-        }
-      }
-
-      const entries = (posts as unknown as Post[]).map((p) => ({
-        ...p,
-        vote_count: counts[p.id] ?? 0,
-      }));
-      entries.sort((a, b) => b.vote_count - a.vote_count);
-      return entries as DeskSetupEntry[];
-    },
+    queryFn: () => apiRequest<DeskSetupEntry[]>("/posts/desk-setup"),
+    refetchInterval: 30_000,
   });
 }

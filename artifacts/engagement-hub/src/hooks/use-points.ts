@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export type PointTransaction = {
@@ -15,14 +15,7 @@ export function usePointHistory() {
     queryKey: ["point-history", session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("point_transactions")
-        .select("*")
-        .eq("user_id", session!.user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data as PointTransaction[];
+      return apiRequest<PointTransaction[]>("/points/history");
     },
   });
 }
@@ -34,13 +27,8 @@ export function useGiftableProfiles() {
   return useQuery({
     queryKey: ["giftable-profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .not("username", "is", null)
-        .order("username");
-      if (error) throw error;
-      return (data as GiftableProfile[]).filter((p) => p.id !== session?.user.id);
+      const profiles = await apiRequest<GiftableProfile[]>("/points/giftable-profiles");
+      return profiles.filter((profile) => profile.id !== session?.user.id);
     },
   });
 }
@@ -58,12 +46,7 @@ export function useGiftPoints() {
       amount: number;
       note?: string;
     }) => {
-      const { error } = await supabase.rpc("gift_points", {
-        recipient_id: recipientId,
-        amount,
-        note: note || null,
-      });
-      if (error) throw error;
+      await apiRequest<void>("/points/gift", { method: "POST", body: JSON.stringify({ recipient_id: recipientId, amount, note: note || null }) });
     },
     onSuccess: async () => {
       await refetchProfile();

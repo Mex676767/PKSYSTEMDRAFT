@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date-format";
 import { Mail, Save, Eye, Pencil, Send, Users, Cake, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,9 +97,7 @@ export function BirthdayEmailSettingsCard() {
     return (
       <Card className="shadow-sm border-dashed">
         <CardContent className="p-4 text-sm text-muted-foreground">
-          Birthday email settings need a database update. Run migration{" "}
-          <code>{settings ? "0024_birthday_emails" : "0014_birthday_email_settings and 0024_birthday_emails"}</code> in
-          Supabase, then reload this page.
+          Birthday email settings are not available yet. The DigitalOcean database setup is still in progress.
         </CardContent>
       </Card>
     );
@@ -145,7 +144,7 @@ export function BirthdayEmailSettingsCard() {
             <h2 className="font-semibold">Birthday Emails</h2>
             <p className="text-xs text-muted-foreground">
               Sent automatically on each birthday at the time below. Nothing is sent until an email is switched on and a
-              sender is set up (verified domain + Resend key, see <code>supabase/BIRTHDAY-EMAILS.md</code>).
+              sender is configured. Email delivery will be enabled after the email provider is set up.
             </p>
           </div>
         </div>
@@ -321,7 +320,7 @@ export function BirthdayEmailSettingsCard() {
               <p key={r.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
                 {r.status === "sent" ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-px" /> : r.status === "failed" ? <XCircle className="w-3.5 h-3.5 text-destructive shrink-0 mt-px" /> : <Clock className="w-3.5 h-3.5 shrink-0 mt-px" />}
                 <span>
-                  {format(new Date(r.birthday_on + "T12:00:00"), "d MMM yyyy")} · @{r.person?.username ?? "someone"} ·{" "}
+                  {safeFormatDate(`${r.birthday_on}T12:00:00`, "d MMM yyyy")} · @{r.person?.username ?? "someone"} ·{" "}
                   {r.kind === "personal" ? "birthday person email" : `team announcement to ${r.recipients}`}
                   {r.status === "failed" && r.error ? ` · ${r.error}` : ""}
                 </span>

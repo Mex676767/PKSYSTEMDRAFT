@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { addYears, endOfYear } from "date-fns";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
-import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export type GoalTerm = "short" | "mid" | "long";
 
@@ -52,39 +51,20 @@ export type GoalUpdate = {
   author: { username: string | null; avatar_url: string | null; active_border?: string | null; active_accessory?: string | null } | null;
 };
 
-const GOAL_SELECT = "*, owner:profiles!inner(username, role, avatar_url, active_border, active_accessory)";
-const GOAL_UPDATE_SELECT = "*, author:profiles!inner(username, avatar_url, active_border, active_accessory)";
-
 export function useGoalsFeed() {
-  useRealtimeInvalidate("goals", [["goals-feed"], ["my-goals"]]);
   return useQuery({
     queryKey: ["goals-feed"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("goals")
-        .select(GOAL_SELECT)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Goal[];
-    },
+    queryFn: () => apiRequest<Goal[]>("/goals"),
+    refetchInterval: 30_000,
   });
 }
 
 export function useMyGoals() {
   const { session } = useAuth();
-  useRealtimeInvalidate("goals", [["my-goals"], ["goals-feed"]]);
   return useQuery({
     queryKey: ["my-goals", session?.user.id],
     enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("goals")
-        .select(GOAL_SELECT)
-        .eq("owner_id", session!.user.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Goal[];
-    },
+    queryFn: () => apiRequest<Goal[]>("/goals/mine"),
   });
 }
 
@@ -93,20 +73,10 @@ export function useMyGoals() {
  * category is intentionally irrelevant. */
 export function useGoalTermCoverage() {
   const { session } = useAuth();
-  useRealtimeInvalidate("goals", [["my-goals"]]);
   return useQuery({
     queryKey: ["my-goals", session?.user.id, "term-coverage"],
     enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("goals")
-        .select("term")
-        .eq("owner_id", session!.user.id);
-      if (error) throw error;
-      const present = new Set((data as { term: GoalTerm }[]).map((goal) => goal.term));
-      const missing = (["short", "mid", "long"] as GoalTerm[]).filter((term) => !present.has(term));
-      return { complete: missing.length === 0, missing };
-    },
+    queryFn: () => apiRequest<{ complete: boolean; missing: GoalTerm[] }>("/goals/mine/term-coverage"),
   });
 }
 
@@ -124,13 +94,7 @@ export function useCreateGoal() {
       target_date: string | null;
     }) => {
       if (!session) throw new Error("Not signed in");
-      const { data, error } = await supabase
-        .from("goals")
-        .insert({ ...input, owner_id: session.user.id })
-        .select(GOAL_SELECT)
-        .single();
-      if (error) throw error;
-      return data as unknown as Goal;
+      return apiRequest<Goal>("/goals", { method: "POST", body: JSON.stringify(input) });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals-feed"] });
@@ -143,8 +107,7 @@ export function useDeleteGoal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("goals").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest(`/goals/${encodeURIComponent(id)}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals-feed"] });
@@ -176,14 +139,7 @@ export function useUpdateGoal() {
         >
       >;
     }) => {
-      const { data, error } = await supabase
-        .from("goals")
-        .update(updates)
-        .eq("id", id)
-        .select(GOAL_SELECT)
-        .single();
-      if (error) throw error;
-      return data as unknown as Goal;
+      return apiRequest<Goal>(`/goals/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(updates) });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals-feed"] });
@@ -193,19 +149,11 @@ export function useUpdateGoal() {
 }
 
 export function useGoalUpdates(goalId: string | null) {
-  useRealtimeInvalidate("goal_updates", [["goal-updates", goalId]]);
   return useQuery({
     queryKey: ["goal-updates", goalId],
     enabled: !!goalId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("goal_updates")
-        .select(GOAL_UPDATE_SELECT)
-        .eq("goal_id", goalId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as GoalUpdate[];
-    },
+    queryFn: () => apiRequest<GoalUpdate[]>(`/goals/${encodeURIComponent(goalId!)}/updates`),
+    refetchInterval: 30_000,
   });
 }
 
@@ -215,14 +163,7 @@ export function useGoalUpdateStats(goalId: string) {
     queryKey: ["goal-updates", goalId, "stats"],
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, count, error } = await supabase
-        .from("goal_updates")
-        .select("created_at", { count: "exact" })
-        .eq("goal_id", goalId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      return { count: count ?? 0, last: (data?.[0]?.created_at as string | undefined) ?? null };
+      return apiRequest<{ count: number; last: string | null }>(`/goals/${encodeURIComponent(goalId)}/updates/stats`);
     },
   });
 }
@@ -244,16 +185,9 @@ export function useAddGoalUpdate() {
     }) => {
       if (!session) throw new Error("Not signed in");
 
-      const { error: updateError } = await supabase
-        .from("goals")
-        .update({ progress, completed })
-        .eq("id", goalId);
-      if (updateError) throw updateError;
-
-      const { error: insertError } = await supabase
-        .from("goal_updates")
-        .insert({ goal_id: goalId, author_id: session.user.id, progress, note: note.trim() || null });
-      if (insertError) throw insertError;
+      await apiRequest(`/goals/${encodeURIComponent(goalId)}/updates`, {
+        method: "POST", body: JSON.stringify({ progress, completed, note }),
+      });
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["goals-feed"] });
@@ -267,8 +201,7 @@ export function useDeleteGoalUpdate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; goalId: string }) => {
-      const { error } = await supabase.from("goal_updates").delete().eq("id", id);
-      if (error) throw error;
+      await apiRequest(`/goal-updates/${encodeURIComponent(id)}`, { method: "DELETE" });
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["goal-updates", vars.goalId] });

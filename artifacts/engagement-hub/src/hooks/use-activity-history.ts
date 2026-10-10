@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export type LoginSession = {
   id: string;
@@ -20,26 +20,7 @@ export function useActivityHistory(userId: string | undefined) {
     queryKey: ["activity-history", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const [loginRes, voiceRes] = await Promise.all([
-        supabase
-          .from("login_sessions")
-          .select("id, started_at, last_heartbeat_at, ended_at")
-          .eq("user_id", userId!)
-          .order("started_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("voice_sessions")
-          .select("id, channel_id, joined_at, left_at")
-          .eq("user_id", userId!)
-          .order("joined_at", { ascending: false })
-          .limit(20),
-      ]);
-      if (loginRes.error) throw loginRes.error;
-      if (voiceRes.error) throw voiceRes.error;
-      return {
-        logins: loginRes.data as LoginSession[],
-        voiceSessions: voiceRes.data as VoiceSession[],
-      };
+      return apiRequest<{ logins: LoginSession[]; voiceSessions: VoiceSession[] }>("/activity-history/me");
     },
   });
 }

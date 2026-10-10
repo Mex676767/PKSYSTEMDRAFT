@@ -1,10 +1,9 @@
 name: Deploy C6 hub to Cloudflare
 
-# Same code as the C9MYR site, built with C6's name and Supabase project and
-# deployed to a Cloudflare Worker (wrangler.jsonc) on every push to main. Does nothing until the
-# repository has the C6 settings below. See docs/C6-SETUP.md.
+# C6 static frontend stays on its existing workers.dev origin during
+# migration. /api requests are reverse-proxied to the C6 DigitalOcean API.
 #
-#   Variables: C6_BRAND_NAME, C6_SUPABASE_URL, C6_SUPABASE_ANON_KEY, C6_WORKER_NAME (default c6)
+#   Variables: C6_BRAND_NAME, C6_DO_API_ORIGIN, C6_WORKER_NAME (default c6)
 #   Secrets:   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
 
 on:
@@ -21,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ vars.C6_SUPABASE_URL != '' }}
+    if: ${{ vars.C6_DO_API_ORIGIN != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +44,12 @@ jobs:
           # Served from the root of its own domain.
           BASE_PATH: /
           VITE_BRAND_NAME: ${{ vars.C6_BRAND_NAME || 'C6' }}
-          VITE_SUPABASE_URL: ${{ vars.C6_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.C6_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ""
 
       - name: Deploy to Cloudflare
         # Plain npx rather than cloudflare/wrangler-action, which tries to
         # `pnpm add` wrangler into the workspace root and fails.
-        run: npx --yes wrangler@4 deploy --name "${{ vars.C6_WORKER_NAME || 'c6' }}"
+        run: npx --yes wrangler@4 deploy --name "${{ vars.C6_WORKER_NAME || 'c6' }}" --var "DO_API_ORIGIN:${{ vars.C6_DO_API_ORIGIN }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

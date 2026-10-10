@@ -1,0 +1,90 @@
+services:
+  c9-db:
+    image: postgres:17.6
+    container_name: employee-hub-c9-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${C9_POSTGRES_ADMIN_PASSWORD:?Set C9_POSTGRES_ADMIN_PASSWORD in the private Compose env file}
+      TENANT_DATABASE_NAME: employee_hub_c9
+      TENANT_DATABASE_USER: employee_hub_c9
+      TENANT_DATABASE_PASSWORD: ${C9_DATABASE_PASSWORD:?Set C9_DATABASE_PASSWORD in the private Compose env file}
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/etc/postgresql/server.crt", "-c", "ssl_key_file=/etc/postgresql/server.key"]
+    volumes:
+      - c9-postgres-data:/var/lib/postgresql/data
+      - ./init-tenant-db.sh:/docker-entrypoint-initdb.d/10-create-tenant-db.sh:ro
+      - ${C9_POSTGRES_CERT:?Set C9_POSTGRES_CERT in the private Compose env file}:/etc/postgresql/server.crt:ro
+      - ${C9_POSTGRES_KEY:?Set C9_POSTGRES_KEY in the private Compose env file}:/etc/postgresql/server.key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [c9-private]
+
+  c9-api:
+    container_name: employee-hub-c9-api
+    build:
+      context: ../..
+      dockerfile: deploy/digitalocean/Dockerfile.api
+    image: employee-hub-c9-api:${API_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: /etc/employee-hub/c9.env
+    depends_on:
+      c9-db:
+        condition: service_healthy
+    ports: ["127.0.0.1:4101:4101"]
+    volumes:
+      - /var/lib/employee-hub/c9/uploads:/var/lib/employee-hub/c9/uploads
+      - /etc/employee-hub/tls/c9/server.crt:/etc/employee-hub/tls/db-ca.crt:ro
+    networks: [c9-private]
+
+  c6-db:
+    image: postgres:17.6
+    container_name: employee-hub-c6-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${C6_POSTGRES_ADMIN_PASSWORD:?Set C6_POSTGRES_ADMIN_PASSWORD in the private Compose env file}
+      TENANT_DATABASE_NAME: employee_hub_c6
+      TENANT_DATABASE_USER: employee_hub_c6
+      TENANT_DATABASE_PASSWORD: ${C6_DATABASE_PASSWORD:?Set C6_DATABASE_PASSWORD in the private Compose env file}
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/etc/postgresql/server.crt", "-c", "ssl_key_file=/etc/postgresql/server.key"]
+    volumes:
+      - c6-postgres-data:/var/lib/postgresql/data
+      - ./init-tenant-db.sh:/docker-entrypoint-initdb.d/10-create-tenant-db.sh:ro
+      - ${C6_POSTGRES_CERT:?Set C6_POSTGRES_CERT in the private Compose env file}:/etc/postgresql/server.crt:ro
+      - ${C6_POSTGRES_KEY:?Set C6_POSTGRES_KEY in the private Compose env file}:/etc/postgresql/server.key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [c6-private]
+
+  c6-api:
+    container_name: employee-hub-c6-api
+    build:
+      context: ../..
+      dockerfile: deploy/digitalocean/Dockerfile.api
+    image: employee-hub-c6-api:${API_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: /etc/employee-hub/c6.env
+    depends_on:
+      c6-db:
+        condition: service_healthy
+    ports: ["127.0.0.1:4102:4102"]
+    volumes:
+      - /var/lib/employee-hub/c6/uploads:/var/lib/employee-hub/c6/uploads
+      - /etc/employee-hub/tls/c6/server.crt:/etc/employee-hub/tls/db-ca.crt:ro
+    networks: [c6-private]
+
+volumes:
+  c9-postgres-data:
+  c6-postgres-data:
+
+networks:
+  c9-private:
+  c6-private:

@@ -1,11 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import type { Pk, PkSettings, PkViolation, PkChampion, PkDebt, PkLeaderRow, PkLibraryEntry, PkPerson, PkPlaybook, PkTerminateReason, PkTerms } from "@/lib/pk";
-
-const PERSON = "username, role, avatar_url, active_border, active_accessory";
-const PK_SELECT = `*, participants:challenge_participants(*, profile:profiles(${PERSON}))`;
 
 export type PkEvent = {
   id: string;
@@ -38,21 +35,13 @@ export type PkScoreUpdate = {
 export type PkSideScore = { side: "A" | "B"; score: number | null };
 
 const PK_KEYS = [["pk"], ["pk-detail"], ["pk-approvals"], ["pk-leaderboard"], ["pk-champions"], ["pk-money"], ["pk-library"], ["pk-can-approve"]];
-const DEBT_SELECT = "*, debtor:profiles!pk_money_debts_debtor_id_fkey(username), creditor:profiles!pk_money_debts_creditor_id_fkey(username)";
-
 export function usePkList() {
   useRealtimeInvalidate("challenges", PK_KEYS);
   useRealtimeInvalidate("challenge_participants", PK_KEYS);
   return useQuery({
     queryKey: ["pk"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("challenges")
-        .select(PK_SELECT)
-        .eq("pk_version", 1)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Pk[];
+      return apiRequest<Pk[]>("/pk");
     },
   });
 }
@@ -64,33 +53,7 @@ export function usePk(id: string | undefined) {
     queryKey: ["pk-detail", id],
     enabled: !!id,
     queryFn: async () => {
-      const [pk, events, terms, scores, sides, playbook, debts] = await Promise.all([
-        supabase.from("challenges").select(PK_SELECT).eq("id", id!).eq("pk_version", 1).maybeSingle(),
-        supabase.from("challenge_events").select("*").eq("challenge_id", id!).order("created_at", { ascending: false }),
-        supabase
-          .from("challenge_terms_history")
-          .select("*, actor:profiles(username)")
-          .eq("challenge_id", id!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("challenge_score_updates")
-          .select(`*, profile:profiles(${PERSON})`)
-          .eq("challenge_id", id!)
-          .order("created_at", { ascending: false }),
-        supabase.rpc("pk_side_scores", { cid: id! }),
-        supabase.from("pk_playbooks").select("*").eq("challenge_id", id!).maybeSingle(),
-        supabase.from("pk_money_debts").select(DEBT_SELECT).eq("challenge_id", id!),
-      ]);
-      for (const r of [pk, events, terms, scores, sides, playbook, debts]) if (r.error) throw r.error;
-      return {
-        pk: pk.data as unknown as Pk | null,
-        events: (events.data ?? []) as PkEvent[],
-        terms: (terms.data ?? []) as unknown as PkTermsVersion[],
-        scores: (scores.data ?? []) as unknown as PkScoreUpdate[],
-        sides: (sides.data ?? []) as PkSideScore[],
-        playbook: (playbook.data ?? null) as PkPlaybook | null,
-        debts: (debts.data ?? []) as unknown as PkDebt[],
-      };
+      return apiRequest<{ pk: Pk | null; events: PkEvent[]; terms: PkTermsVersion[]; scores: PkScoreUpdate[]; sides: PkSideScore[]; playbook: PkPlaybook | null; debts: PkDebt[] }>(`/pk/${encodeURIComponent(id!)}`);
     },
   });
 }
@@ -101,9 +64,7 @@ export function usePkSideScores(id: string, enabled: boolean) {
     queryKey: ["pk-detail", id, "sides"],
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pk_side_scores", { cid: id });
-      if (error) throw error;
-      return (data ?? []) as PkSideScore[];
+      return apiRequest<PkSideScore[]>("/pk/rpc/pk_side_scores", { method: "POST", body: JSON.stringify({ cid: id }) });
     },
   });
 }
@@ -114,10 +75,8 @@ export function usePkApprovals() {
     queryKey: ["pk-approvals", session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pk_pending_approvals");
-      if (error) throw error;
-      return new Set(((data ?? []) as unknown as (string | { pk_pending_approvals: string })[]).map((r) =>
-        typeof r === "string" ? r : r.pk_pending_approvals));
+      const data = await apiRequest<string[]>("/pk/rpc/pk_pending_approvals", { method: "POST", body: "{}" });
+      return new Set(data ?? []);
     },
   });
 }
@@ -127,9 +86,7 @@ export function usePkSettings() {
     queryKey: ["pk-settings"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("pk_settings").select("*").eq("id", 1).maybeSingle();
-      if (error) throw error;
-      return data as PkSettings | null;
+      return apiRequest<PkSettings | null>("/pk/settings");
     },
   });
 }
@@ -147,13 +104,7 @@ export function usePkViolations(enabled: boolean) {
     queryKey: ["pk-violations"],
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pk_violations")
-        .select("*, person:profiles!pk_violations_user_id_fkey(username), challenge:challenges(topic)")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return (data ?? []) as unknown as PkViolation[];
+      return apiRequest<PkViolation[]>("/pk/violations");
     },
   });
 }
@@ -189,9 +140,7 @@ function useRpc<TArgs, TResult = unknown>(fn: (args: TArgs) => Promise<TResult>)
 }
 
 async function call<T = unknown>(name: string, args: Record<string, unknown>) {
-  const { data, error } = await supabase.rpc(name, args);
-  if (error) throw error;
-  return data as T;
+  return apiRequest<T>(`/pk/rpc/${encodeURIComponent(name)}`, { method: "POST", body: JSON.stringify(args) });
 }
 
 export const useCreatePk = () => useRpc((terms: PkTerms) => call<string>("pk_create", { terms: termsPayload(terms) }));
@@ -222,14 +171,14 @@ export function useUpdatePkScore() {
     if (!session) throw new Error("Sign in first.");
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${session.user.id}/pk-proof-${id}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("post-images").upload(path, file);
-    if (error) throw error;
+    await uploadImage(`/files/${encodeURIComponent(session.user.id)}/${encodeURIComponent(path.split("/").at(-1)!)}`, file);
     return call("pk_update_score", { cid: id, new_value: value, proof: path, note: comment.trim() || null });
   });
 }
 
 export function getPkProofUrl(path: string) {
-  return supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+  const [owner, name] = path.split("/", 2);
+  return apiAssetUrl(`/files/${encodeURIComponent(owner ?? "")}/${encodeURIComponent(name ?? "")}`);
 }
 
 export const useRequestSettlement = () => useRpc((id: string) => call("pk_request_settlement", { cid: id }));
@@ -256,9 +205,7 @@ export function usePkLeaderboard(period: string, department: string | null) {
   return useQuery({
     queryKey: ["pk-leaderboard", period, department],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pk_leaderboard", { period, dept: department });
-      if (error) throw error;
-      return (data ?? []) as PkLeaderRow[];
+      return apiRequest<PkLeaderRow[]>("/pk/rpc/pk_leaderboard", { method: "POST", body: JSON.stringify({ period, dept: department }) });
     },
   });
 }
@@ -267,9 +214,7 @@ export function usePkChampions(department: string | null) {
   return useQuery({
     queryKey: ["pk-champions", department],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pk_champions", { dept: department });
-      if (error) throw error;
-      return (data ?? []) as PkChampion[];
+      return apiRequest<PkChampion[]>("/pk/rpc/pk_champions", { method: "POST", body: JSON.stringify({ dept: department }) });
     },
   });
 }
@@ -281,9 +226,7 @@ export function usePkCanApprove(id: string | undefined) {
     queryKey: ["pk-can-approve", id, session?.user.id],
     enabled: !!id && !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pk_can_approve", { cid: id!, user_id_param: session!.user.id });
-      if (error) throw error;
-      return !!data;
+      return apiRequest<boolean>("/pk/rpc/pk_can_approve", { method: "POST", body: JSON.stringify({ cid: id }) });
     },
   });
 }
@@ -297,13 +240,7 @@ export function usePlaybookLibrary() {
   return useQuery({
     queryKey: ["pk-library"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pk_playbooks")
-        .select(`*, author:profiles(${PERSON}), challenge:challenges!inner(id, topic, metric, department, pk_type, format, scoring, direction, settled_at, final_score_a, final_score_b, winner_side, status)`)
-        .eq("challenge.status", "settled")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as PkLibraryEntry[];
+      return apiRequest<PkLibraryEntry[]>("/pk/library");
     },
   });
 }

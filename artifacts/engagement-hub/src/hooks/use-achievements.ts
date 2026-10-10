@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { TITLE_CATALOG } from "@/lib/titles";
+import { apiRequest } from "@/lib/api";
 
 export type Achievement = { key: string; label: string; description: string; builtin: boolean };
 
@@ -11,12 +11,7 @@ export function useAchievements() {
   const query = useQuery({
     queryKey: ["achievements"],
     staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("achievements").select("key, label, description, builtin").order("created_at");
-      // Before migration 0029 runs the table doesn't exist: use the built-in list.
-      if (error) return { list: FALLBACK, managed: false };
-      return { list: data as Achievement[], managed: true };
-    },
+    queryFn: async () => ({ list: await apiRequest<Achievement[]>("/achievements"), managed: true }),
   });
   const list = query.data?.list ?? FALLBACK;
   const byKey = new Map(list.map((a) => [a.key, a]));
@@ -28,12 +23,11 @@ export function useAchievements() {
   };
 }
 
-function useAchievementMutation<T>(fn: (args: T) => PromiseLike<{ error: unknown }>) {
+function useAchievementMutation<T>(fn: (args: T) => Promise<unknown>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: T) => {
-      const { error } = await fn(args);
-      if (error) throw error;
+      await fn(args);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["achievements"] });
@@ -47,20 +41,21 @@ function slug(label: string) {
 }
 
 export function useSaveAchievement() {
-  return useAchievementMutation((a: { key?: string; label: string; description: string }) =>
-    a.key
-      ? supabase.from("achievements").update({ label: a.label.trim(), description: a.description.trim() }).eq("key", a.key)
-      : supabase.from("achievements").insert({ key: `${slug(a.label)}_${Date.now().toString(36)}`, label: a.label.trim(), description: a.description.trim() })
-  );
+  return useAchievementMutation((a: { key?: string; label: string; description: string }) => {
+    const body = JSON.stringify({ label: a.label.trim(), description: a.description.trim() });
+    return a.key
+      ? apiRequest(`/admin/achievements/${encodeURIComponent(a.key)}`, { method: "PATCH", body })
+      : apiRequest("/admin/achievements", { method: "POST", body: JSON.stringify({ key: `${slug(a.label)}_${Date.now().toString(36)}`, label: a.label.trim(), description: a.description.trim() }) });
+  });
 }
 
 export function useDeleteAchievement() {
-  return useAchievementMutation((key: string) => supabase.from("achievements").delete().eq("key", key));
+  return useAchievementMutation((key: string) => apiRequest(`/admin/achievements/${encodeURIComponent(key)}`, { method: "DELETE" }));
 }
 
 export function useSetAchievement() {
   return useAchievementMutation((a: { userId: string; key: string; hasIt: boolean }) =>
-    supabase.rpc("admin_set_achievement", { target_user: a.userId, achievement_key: a.key, has_it: a.hasIt })
+    apiRequest(`/admin/profiles/${encodeURIComponent(a.userId)}/achievements`, { method: "PUT", body: JSON.stringify({ key: a.key, has_it: a.hasIt }) })
   );
 }
 
@@ -71,14 +66,6 @@ export function useAchievementHolders(enabled: boolean) {
   return useQuery({
     queryKey: ["achievement-holders"],
     enabled,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username, avatar_url, unlocked_titles")
-        .not("username", "is", null)
-        .order("username");
-      if (error) throw error;
-      return data as AchievementHolder[];
-    },
+    queryFn: () => apiRequest<AchievementHolder[]>("/admin/achievement-holders"),
   });
 }

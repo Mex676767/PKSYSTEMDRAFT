@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date-format";
 import { Swords, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -147,9 +147,9 @@ export function AdminPkCard() {
                   <span className="font-medium">@{v.person?.username ?? "someone"}</span> · {v.note ?? v.kind}{" "}
                   <Link href={`/challenges/${v.challenge_id}`} className="text-xs text-secondary hover:underline">{v.challenge?.topic ?? "View PK"}</Link>
                 </p>
-                <span className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "MMM d, h:mm a")}</span>
+                <span className="text-[11px] text-muted-foreground">{safeFormatDate(v.created_at, "MMM d, h:mm a")}</span>
               </div>
-              {v.kind === "stopped_updates" && <p className="text-[11px] text-muted-foreground">Required: {v.required_update ?? "agreed schedule"} · Monthly count: {v.monthly_count ?? 1} · {v.consequence ?? "Loss and no completion point"}{v.ban_end ? ` · Banned until ${format(new Date(v.ban_end), "MMM d, yyyy")}` : ""}</p>}
+              {v.kind === "stopped_updates" && <p className="text-[11px] text-muted-foreground">Required: {v.required_update ?? "agreed schedule"} · Monthly count: {v.monthly_count ?? 1} · {v.consequence ?? "Loss and no completion point"}{v.ban_end ? ` · Banned until ${safeFormatDate(v.ban_end, "MMM d, yyyy")}` : ""}</p>}
               <div className="flex gap-2">
                 <Input value={notes[v.id] ?? ""} onChange={(e) => setNotes({ ...notes, [v.id]: e.target.value })} placeholder="How it was handled, e.g. excused, on leave" className="h-8 text-xs" />
                 <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" disabled={resolve.isPending}

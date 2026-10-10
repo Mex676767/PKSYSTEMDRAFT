@@ -1,159 +1,92 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { activityLabelForPath } from "@/lib/presence";
 
 const HEARTBEAT_INTERVAL_MS = 60_000;
-const RECONNECT_BASE_DELAY_MS = 3_000;
-const RECONNECT_MAX_DELAY_MS = 60_000;
-
+const POLL_INTERVAL_MS = 15_000;
 export type AppPresenceEntry = { path: string; activity: string };
-
 type AppPresenceState = Map<string, AppPresenceEntry>;
-
+type PresenceResponse = { user_id: string; path: string; activity: string };
 const AppPresenceContext = createContext<AppPresenceState>(new Map());
 
 function isPageActive() {
   return document.visibilityState === "visible" && document.hasFocus();
 }
 
+function getClientId() {
+  const key = "eh-presence-client-id";
+  const existing = sessionStorage.getItem(key);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  sessionStorage.setItem(key, created);
+  return created;
+}
+
 export function AppPresenceProvider({ userId, children }: { userId: string | undefined; children: ReactNode }) {
   const [location] = useLocation();
   const [presenceMap, setPresenceMap] = useState<AppPresenceState>(new Map());
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const clientId = useMemo(() => typeof window === "undefined" ? "" : getClientId(), []);
   const isActiveRef = useRef(false);
   const locationRef = useRef(location);
   locationRef.current = location;
 
   useEffect(() => {
-    if (!userId) return;
-
+    if (!userId || !clientId) return;
     let cancelled = false;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-    let channel: RealtimeChannel | null = null;
-    let subscribed = false;
-    let reconnectAttempt = 0;
 
-    // We always know our own presence -- reflect it locally right away instead
-    // of waiting on the realtime round-trip, so a slow/dropped/erroring
-    // subscription never leaves us showing as offline to ourselves.
-    const markSelfPresent = () => {
-      setPresenceMap((prev) => {
-        const next = new Map(prev);
-        next.set(userId, { path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
-        return next;
-      });
-    };
+    const setSelf = (present: boolean) => setPresenceMap((current) => {
+      const next = new Map(current);
+      if (present) next.set(userId, { path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
+      else next.delete(userId);
+      return next;
+    });
 
-    const markSelfAbsent = () => {
-      setPresenceMap((prev) => {
-        const next = new Map(prev);
-        next.delete(userId);
-        return next;
-      });
-    };
-
-    const touchPresence = () => {
-      supabase.rpc("touch_presence").then(({ error }) => {
-        if (error) console.error("Failed to touch presence", error);
-      });
+    const publishPresence = () => {
+      if (!isActiveRef.current || cancelled) return;
+      void apiRequest<void>("/presence/me", {
+        method: "PUT",
+        body: JSON.stringify({ client_id: clientId, path: locationRef.current, activity: activityLabelForPath(locationRef.current) }),
+      }).catch((error) => console.error("Failed to update app presence", error));
     };
 
     const startHeartbeat = () => {
       if (heartbeatTimer) return;
-      touchPresence();
-      heartbeatTimer = setInterval(touchPresence, HEARTBEAT_INTERVAL_MS);
+      publishPresence();
+      heartbeatTimer = setInterval(publishPresence, HEARTBEAT_INTERVAL_MS);
     };
 
     const stopHeartbeat = () => {
-      if (!heartbeatTimer) return;
-      clearInterval(heartbeatTimer);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
       heartbeatTimer = null;
+      void apiRequest<void>(`/presence/me/${clientId}`, { method: "DELETE" }).catch(() => undefined);
     };
 
     const updateActivity = () => {
-      if (cancelled) return;
       const active = isPageActive();
       if (active === isActiveRef.current) return;
       isActiveRef.current = active;
+      setSelf(active);
+      if (active) startHeartbeat(); else stopHeartbeat();
+    };
 
-      if (active) {
-        markSelfPresent();
-        startHeartbeat();
-        if (subscribed) {
-          channel?.track({ path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
-        }
-      } else {
-        markSelfAbsent();
-        stopHeartbeat();
-        if (subscribed) channel?.untrack();
+    const poll = async () => {
+      try {
+        const remote = await apiRequest<PresenceResponse[]>("/presence");
+        if (cancelled) return;
+        const next = new Map(remote.map((entry) => [entry.user_id, { path: entry.path, activity: entry.activity }]));
+        if (isActiveRef.current) next.set(userId, { path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
+        setPresenceMap(next);
+      } catch {
+        // Keep the latest presence view during a brief API interruption.
       }
     };
 
-    const scheduleReconnect = () => {
-      if (cancelled || reconnectTimer) return;
-      const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttempt, RECONNECT_MAX_DELAY_MS);
-      reconnectAttempt += 1;
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        connect();
-      }, delay);
-    };
-
-    const connect = () => {
-      if (cancelled) return;
-
-      const nextChannel = supabase.channel("app-presence", { config: { presence: { key: userId } } });
-      channel = nextChannel;
-      channelRef.current = nextChannel;
-
-      nextChannel.on("presence", { event: "sync" }, () => {
-        const state = nextChannel.presenceState() as Record<string, AppPresenceEntry[]>;
-        const map: AppPresenceState = new Map();
-        for (const [id, entries] of Object.entries(state)) {
-          if (entries[0]) map.set(id, entries[0]);
-        }
-        // The synced state is authoritative for everyone else. Only keep our
-        // local entry while this tab is visible and focused.
-        if (isActiveRef.current) {
-          map.set(userId, { path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
-        } else {
-          map.delete(userId);
-        }
-        setPresenceMap(map);
-      });
-
-      nextChannel.subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          if (channel !== nextChannel || cancelled) return;
-          subscribed = true;
-          reconnectAttempt = 0;
-          if (isActiveRef.current) {
-            markSelfPresent();
-            await nextChannel.track({ path: locationRef.current, activity: activityLabelForPath(locationRef.current) });
-          }
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          if (channel !== nextChannel) return;
-          subscribed = false;
-          channel = null;
-          if (channelRef.current === nextChannel) channelRef.current = null;
-          void supabase.removeChannel(nextChannel);
-          scheduleReconnect();
-        }
-      });
-    };
-
     isActiveRef.current = isPageActive();
-    connect();
-    if (isActiveRef.current) {
-      markSelfPresent();
-      startHeartbeat();
-    } else {
-      markSelfAbsent();
-    }
-
+    if (isActiveRef.current) { setSelf(true); startHeartbeat(); }
+    void poll();
+    const pollTimer = setInterval(() => void poll(), POLL_INTERVAL_MS);
     document.addEventListener("visibilitychange", updateActivity);
     window.addEventListener("focus", updateActivity);
     window.addEventListener("blur", updateActivity);
@@ -161,29 +94,29 @@ export function AppPresenceProvider({ userId, children }: { userId: string | und
     return () => {
       cancelled = true;
       isActiveRef.current = false;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      stopHeartbeat();
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      clearInterval(pollTimer);
       document.removeEventListener("visibilitychange", updateActivity);
       window.removeEventListener("focus", updateActivity);
       window.removeEventListener("blur", updateActivity);
-      supabase.rpc("end_my_session").then(({ error }) => {
-        if (error) console.error("Failed to end session", error);
-      });
-      if (channel) supabase.removeChannel(channel);
-      channelRef.current = null;
+      void apiRequest<void>(`/presence/me/${clientId}`, { method: "DELETE" }).catch(() => undefined);
     };
-  }, [userId]);
+  }, [userId, clientId]);
 
   useEffect(() => {
     if (!userId || !isActiveRef.current) return;
-    const entry = { path: location, activity: activityLabelForPath(location) };
-    setPresenceMap((prev) => {
-      const next = new Map(prev);
-      next.set(userId, entry);
+    setPresenceMap((current) => {
+      const next = new Map(current);
+      next.set(userId, { path: location, activity: activityLabelForPath(location) });
       return next;
     });
-    channelRef.current?.track(entry);
-  }, [location, userId]);
+    if (clientId) {
+      void apiRequest<void>("/presence/me", {
+        method: "PUT",
+        body: JSON.stringify({ client_id: clientId, path: location, activity: activityLabelForPath(location) }),
+      }).catch(() => undefined);
+    }
+  }, [location, userId, clientId]);
 
   return <AppPresenceContext.Provider value={presenceMap}>{children}</AppPresenceContext.Provider>;
 }

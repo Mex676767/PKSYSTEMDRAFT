@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 
 export type HofCategory = {
   id: string;
@@ -20,75 +20,39 @@ export type HofRecord = {
   holder: { username: string | null; avatar_url: string | null; active_border: string | null; active_accessory?: string | null; department: string | null } | null;
 };
 
-const RECORD_SELECT = "*, holder:profiles(username, avatar_url, active_border, active_accessory, department)";
-
 export function useHofCategories() {
   return useQuery({
     queryKey: ["hof-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_categories")
-        .select("*")
-        .order("sort_order")
-        .order("created_at");
-      if (error) throw error;
-      return data as HofCategory[];
-    },
+    queryFn: () => apiRequest<HofCategory[]>("/guinness/categories"),
   });
 }
 
 export function useCurrentHofRecords() {
   return useQuery({
     queryKey: ["hof-current-records"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_records")
-        .select(RECORD_SELECT)
-        .eq("is_current", true);
-      if (error) throw error;
-      return data as unknown as HofRecord[];
-    },
+    queryFn: () => apiRequest<HofRecord[]>("/guinness/records/current"),
   });
 }
 
 export function useHofRecordHistory(categoryId: string) {
   return useQuery({
     queryKey: ["hof-history", categoryId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hof_records")
-        .select(RECORD_SELECT)
-        .eq("category_id", categoryId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as HofRecord[];
-    },
+    queryFn: () => apiRequest<HofRecord[]>(`/guinness/records/history/${encodeURIComponent(categoryId)}`),
   });
 }
 
 export function useAllUsernames() {
   return useQuery({
     queryKey: ["all-usernames"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .not("username", "is", null)
-        .order("username");
-      if (error) throw error;
-      return data as { id: string; username: string }[];
-    },
+    queryFn: () => apiRequest<{ id: string; username: string }[]>("/guinness/usernames"),
   });
 }
 
 export function useCreateHofCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description: string; icon: string }) => {
-      const { data, error } = await supabase.from("hof_categories").insert(input).select().single();
-      if (error) throw error;
-      return data as HofCategory;
-    },
+    mutationFn: (input: { name: string; description: string; icon: string }) =>
+      apiRequest<HofCategory>("/guinness/categories", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hof-categories"] }),
   });
 }
@@ -96,22 +60,8 @@ export function useCreateHofCategory() {
 export function useSubmitHofRecord(categoryId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ achievement, holderId }: { achievement: string; holderId: string }) => {
-      const { error: retireError } = await supabase
-        .from("hof_records")
-        .update({ is_current: false })
-        .eq("category_id", categoryId)
-        .eq("is_current", true);
-      if (retireError) throw retireError;
-
-      const { data, error } = await supabase
-        .from("hof_records")
-        .insert({ category_id: categoryId, holder_id: holderId, achievement, is_current: true })
-        .select(RECORD_SELECT)
-        .single();
-      if (error) throw error;
-      return data as unknown as HofRecord;
-    },
+    mutationFn: ({ achievement, holderId }: { achievement: string; holderId: string }) =>
+      apiRequest<HofRecord>("/guinness/records", { method: "POST", body: JSON.stringify({ category_id: categoryId, holder_id: holderId, achievement }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hof-current-records"] });
       qc.invalidateQueries({ queryKey: ['hof-deletion-logs'] });
@@ -123,11 +73,7 @@ export function useSubmitHofRecord(categoryId: string) {
 export function useDeleteHofRecord(categoryId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (recordId: string) => {
-      const { error } = await supabase.rpc("hof_delete_record", { target_record: recordId });
-      if (error) throw error;
-
-    },
+    mutationFn: (recordId: string) => apiRequest(`/guinness/records/${encodeURIComponent(recordId)}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hof-current-records"] });
       qc.invalidateQueries({ queryKey: ['hof-deletion-logs'] });
@@ -139,10 +85,7 @@ export function useDeleteHofRecord(categoryId: string) {
 export function useDeleteHofCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (categoryId: string) => {
-      const { error } = await supabase.rpc("hof_delete_category", { target_category: categoryId });
-      if (error) throw error;
-    },
+    mutationFn: (categoryId: string) => apiRequest(`/guinness/categories/${encodeURIComponent(categoryId)}`, { method: "DELETE" }),
     onSuccess: () => {
       for (const key of ["hof-categories", "hof-current-records", "hof-history", "hof-deletion-logs"]) {
         qc.invalidateQueries({ queryKey: [key] });

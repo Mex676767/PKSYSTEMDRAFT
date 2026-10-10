@@ -105,7 +105,7 @@ export default function Gratitude() {
         </div>
 
         {error ? (
-          <Card className="border-amber-500/30 bg-amber-500/5"><CardContent className="p-5 text-sm text-amber-800 dark:text-amber-200">Shoutouts are not ready yet. Apply migration <strong>0052_learning_hub_and_gratitude.sql</strong> to this organisation’s Supabase project.</CardContent></Card>
+          <Card className="border-amber-500/30 bg-amber-500/5"><CardContent className="p-5 text-sm text-amber-800 dark:text-amber-200">Shoutouts are not available yet. The DigitalOcean database setup is still in progress.</CardContent></Card>
         ) : isLoading ? (
           <div className="grid gap-4 md:grid-cols-2"><div className="h-52 animate-pulse rounded-2xl bg-muted" /><div className="h-52 animate-pulse rounded-2xl bg-muted" /></div>
         ) : shoutouts.length === 0 ? (

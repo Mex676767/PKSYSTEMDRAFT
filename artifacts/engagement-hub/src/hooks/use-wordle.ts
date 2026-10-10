@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export type LetterStatus = "correct" | "present" | "absent";
@@ -37,16 +37,7 @@ export function useTodayWordleAttempts() {
   return useQuery({
     queryKey: ["wordle-attempts", session?.user.id, todayStr()],
     enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wordle_attempts")
-        .select("*")
-        .eq("user_id", session!.user.id)
-        .eq("play_date", todayStr())
-        .order("guess_number");
-      if (error) throw error;
-      return data as WordleAttempt[];
-    },
+    queryFn: () => apiRequest<WordleAttempt[]>("/wordle/attempts/today"),
   });
 }
 
@@ -55,16 +46,7 @@ export function useTodayWordleResult() {
   return useQuery({
     queryKey: ["wordle-result", session?.user.id, todayStr()],
     enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wordle_results")
-        .select("*")
-        .eq("user_id", session!.user.id)
-        .eq("play_date", todayStr())
-        .maybeSingle();
-      if (error) throw error;
-      return data as WordleResult | null;
-    },
+    queryFn: () => apiRequest<WordleResult | null>("/wordle/result/today"),
   });
 }
 
@@ -72,11 +54,7 @@ export function useSubmitWordleGuess() {
   const { session, refetchProfile } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (guess: string) => {
-      const { data, error } = await supabase.rpc("wordle_guess", { guess_word: guess });
-      if (error) throw error;
-      return data as GuessResponse;
-    },
+    mutationFn: (guess: string) => apiRequest<GuessResponse>("/wordle/guess", { method: "POST", body: JSON.stringify({ guess }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["wordle-attempts", session?.user.id, todayStr()] });
       qc.invalidateQueries({ queryKey: ["wordle-result", session?.user.id, todayStr()] });
@@ -96,16 +74,6 @@ export type WordleLeaderboardEntry = {
 export function useWordleLeaderboard() {
   return useQuery({
     queryKey: ["wordle-leaderboard", todayStr()],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wordle_results")
-        .select("user_id, guess_count, duration_seconds, profile:profiles(username)")
-        .eq("play_date", todayStr())
-        .eq("solved", true)
-        .order("duration_seconds", { ascending: true })
-        .limit(10);
-      if (error) throw error;
-      return data as unknown as WordleLeaderboardEntry[];
-    },
+    queryFn: () => apiRequest<WordleLeaderboardEntry[]>("/wordle/leaderboard"),
   });
 }

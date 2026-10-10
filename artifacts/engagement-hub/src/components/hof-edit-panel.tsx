@@ -494,7 +494,7 @@ export function AwardEditPanel({
             {getErrorMessage(mutation.error)}
           </p>
         )}
-        {!ready && <p role="status" className="text-sm text-muted-foreground">Waiting for category and winner data. If loading failed, apply migrations 0017 and 0057 in Supabase, then reload before editing winners.</p>}
+        {!ready && <p role="status" className="text-sm text-muted-foreground">Waiting for category and winner data. If this continues, the DigitalOcean database setup may still be in progress.</p>}
         {ready && categories.map((category) => (
           <CategoryEditor
             key={`${category.id}-${month}`}

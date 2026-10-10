@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/api";
 
 export type NotificationType =
   | "comment"
@@ -28,69 +27,33 @@ export type AppNotification = {
 
 export function useNotifications() {
   const { session } = useAuth();
-  const qc = useQueryClient();
   const queryKey = ["notifications", session?.user.id];
 
-  const query = useQuery({
+  return useQuery({
     queryKey,
     enabled: !!session,
-    queryFn: async () => {
-      // DMs show as the unread badge on the Messages button instead of in
-      // the bell. Their push notifications are unaffected.
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .neq("type", "dm")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data as AppNotification[];
-    },
+    queryFn: () => apiRequest<AppNotification[]>("/notifications"),
     refetchInterval: 5 * 60_000,
     refetchIntervalInBackground: false,
   });
 
-  useEffect(() => {
-    if (!session) return;
-    const channel = supabase
-      .channel(`notifications-${session.user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` },
-        () => qc.invalidateQueries({ queryKey })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [session?.user.id]);
-
-  return query;
 }
 
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
-      if (error) throw error;
+      await apiRequest<void>(`/notifications/${id}/read`, { method: "PATCH" });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
 
 export function useMarkAllNotificationsRead() {
-  const { session } = useAuth();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!session) return;
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", session.user.id)
-        .eq("read", false);
-      if (error) throw error;
+      await apiRequest<void>("/notifications/read-all", { method: "PATCH" });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
