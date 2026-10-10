@@ -1,6 +1,6 @@
-// Cloudflare Worker that serves the C6 hub's static build. Deployed by
-// .github/workflows/deploy-c6.yml; see docs/C6-SETUP.md. The C9MYR site is
-// on GitHub Pages and doesn't use this.
+// Cloudflare Worker that serves the C9/C6 hub static builds and proxies /api
+// to the matching DigitalOcean API. The deploy workflows override the Worker
+// name and tenant-specific DO_API_ORIGIN.
 {
   "name": "c6",
   "main": "./artifacts/engagement-hub/worker.ts",
