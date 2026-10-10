@@ -5111,9 +5111,7 @@ CREATE TRIGGER on_hof_record_insert AFTER INSERT ON public.hof_records FOR EACH 
 -- Name: notifications on_notification_push; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER on_notification_push AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.push_new_notification();
-
-
+-- Hosted push trigger is replaced by the API-owned outbox migration.
 --
 -- Name: point_transactions on_point_transaction_insert; Type: TRIGGER; Schema: public; Owner: -
 --
@@ -7550,11 +7548,6 @@ GRANT ALL ON FUNCTION public.protect_role_department_fields() TO service_role;
 -- Name: FUNCTION push_new_notification(); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.push_new_notification() TO anon;
-GRANT ALL ON FUNCTION public.push_new_notification() TO authenticated;
-GRANT ALL ON FUNCTION public.push_new_notification() TO service_role;
-
-
 --
 -- Name: FUNCTION reactivate_user(target_user uuid); Type: ACL; Schema: public; Owner: -
 --
@@ -7720,10 +7713,6 @@ GRANT ALL ON FUNCTION public.touch_presence() TO service_role;
 --
 -- Name: FUNCTION trigger_birthday_emails(); Type: ACL; Schema: public; Owner: -
 --
-
-REVOKE ALL ON FUNCTION public.trigger_birthday_emails() FROM PUBLIC;
-GRANT ALL ON FUNCTION public.trigger_birthday_emails() TO service_role;
-
 
 --
 -- Name: FUNCTION update_challenge_score(challenge_id_param uuid, score_param integer); Type: ACL; Schema: public; Owner: -

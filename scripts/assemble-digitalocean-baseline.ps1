@@ -17,6 +17,16 @@ foreach ($obsoleteFunction in @("push_new_notification", "trigger_birthday_email
   $schema = [regex]::Replace($schema, $functionPattern, "-- $obsoleteFunction is supplied by the DigitalOcean API worker.")
 }
 
+# The captured schema also has a trigger and ACL statements for the hosted
+# push function. Drop these with the function itself; the API-owned outbox
+# migration installs the replacement trigger later in the baseline.
+$hostedPushTrigger = '(?m)^CREATE TRIGGER on_notification_push AFTER INSERT ON public\.notifications FOR EACH ROW EXECUTE FUNCTION public\.push_new_notification\(\);\s*'
+if (-not [regex]::IsMatch($schema, $hostedPushTrigger)) {
+  throw "The captured schema's hosted push trigger was not found; refusing to build an incomplete baseline."
+}
+$schema = [regex]::Replace($schema, $hostedPushTrigger, "-- Hosted push trigger is replaced by the API-owned outbox migration.`r`n")
+$schema = [regex]::Replace($schema, '(?m)^(?:GRANT|REVOKE) ALL ON FUNCTION public\.(?:push_new_notification\(\)|trigger_birthday_emails\(\)) (?:TO|FROM) [^;]+;\s*', "")
+
 # DigitalOcean owns employee identity in public.profiles plus app-managed
 # credentials. Remove only the Auth-managed FK from the portable copy.
 $profileAuthForeignKey = '(?s)--\s*\r?\n-- Name: profiles profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -\r?\n--\s*\r?\nALTER TABLE ONLY public\.profiles\s+ADD CONSTRAINT profiles_id_fkey FOREIGN KEY \(id\) REFERENCES auth\.users\(id\) ON DELETE CASCADE;\s*'
