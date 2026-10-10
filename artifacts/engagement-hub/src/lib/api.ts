@@ -9,10 +9,11 @@ export function apiAssetUrl(path: string): string {
       const storageIndex = url.pathname.indexOf(storagePrefix);
       if (storageIndex >= 0) {
         const key = url.pathname.slice(storageIndex + storagePrefix.length);
-        const parts = key.split("/").map((part) => decodeURIComponent(part));
-        if (parts.length === 2 && /^[0-9a-f-]{36}$/i.test(parts[0]) && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}$/.test(parts[1])) {
-          return `${API_BASE}/api/files/${parts.map(encodeURIComponent).join("/")}${url.search}`;
-        }
+        // Existing Storage object keys can contain nested paths (for example,
+        // owner/avatar.jpg/<object-id>). Send every object from this bucket to
+        // the DigitalOcean file API; it validates each path segment and never
+        // falls back to the old Supabase URL.
+        return `${API_BASE}/api/files/${key}${url.search}`;
       }
       if (url.pathname.startsWith("/api/files/")) return `${API_BASE}${url.pathname}${url.search}`;
     } catch {
