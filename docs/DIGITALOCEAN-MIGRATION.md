@@ -12,7 +12,7 @@ This status supersedes the historical planning snapshot and unchecked rollout it
 - Imported application data currently includes C9: 61 profiles, 8 password identities, 53 Google identities, and 61 account approvals; C6: 56 profiles, no password identities, 56 Google identities, and 56 account approvals.
 - Existing storage files were copied and counts matched: 122 for C9 and 60 for C6. Tenant API file routes use Droplet storage.
 - Frontend source no longer imports the Supabase client; the package and lockfile do not include `@supabase/supabase-js`. Ported auth, PK, voice, and product routes use the tenant API.
-- Cloudflare's production C9 Worker is a static-assets-only deployment. The repository has API-proxy code and C9/C6 deploy workflows, but GitHub Actions variables `C9_DO_API_ORIGIN` and `C6_DO_API_ORIGIN` are not configured. Production traffic has not switched.
+- Both Cloudflare production Workers are static-assets-only deployments; their settings pages confirm runtime variables cannot be added to the current assets-only versions. GitHub Actions still has the legacy `C9_SUPABASE_*` / `C6_SUPABASE_*` build variables, while `C9_DO_API_ORIGIN` and `C6_DO_API_ORIGIN` are absent. The migration-branch workflows contain the proxy deploy path, but production traffic has not switched.
 - The existing Google OAuth client has not been updated with the new `/api/auth/google/callback` redirect URIs. Existing callbacks and client secrets remain in place; Google sign-in is not ready to cut over.
 - Resend remains intentionally unconfigured. Push/VAPID, TURN/Coturn, and browser voice acceptance still need end-to-end verification.
 - Supabase projects and services remain active for rollback. The user handles backups separately.

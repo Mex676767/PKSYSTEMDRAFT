@@ -2,7 +2,21 @@
 
 `lib/db/digitalocean-baseline.sql` is generated from the checked-in application schema, the later learning/gratitude, PK v3.43, and team Hall of Fame migrations, plus the API-owned schema migrations. The builder removes the Supabase Auth foreign key, hosted push/birthday delivery functions, storage policies, hosted realtime setup, Supabase-only default grants, and hosted cron scheduling. It keeps the SQL authorization rules used by PK; the tenant API supplies a validated transaction-local user ID when invoking those functions.
 
-## Build and apply
+## Applied state (2026-10-10)
+
+The baseline has been restored into the isolated `employee_hub_c9` and
+`employee_hub_c6` databases on the existing Droplet. Both tenant APIs report
+ready over HTTPS. Public application rows, Google identity subjects, legacy
+bcrypt password identities, account approvals, and Storage objects have been
+imported for each tenant. Do not rerun the initial baseline restore or import
+scripts against these populated databases; those scripts are for a fresh empty
+target only. The current Workers still route production traffic to Supabase.
+
+## Fresh-target restore procedure
+
+The following steps describe initial provisioning for a fresh target only.
+They are not a repair or update procedure for the populated production
+databases.
 
 1. Create two new, empty PostgreSQL databases, `employee_hub_c9` and `employee_hub_c6`, on the existing Droplet. Keep the databases private on the server.
 2. Create a separate database owner/login for each tenant. Use the matching tenant owner only in that tenant's API process. The owner credential must stay on the Droplet and must never be put in browser configuration or chat.
