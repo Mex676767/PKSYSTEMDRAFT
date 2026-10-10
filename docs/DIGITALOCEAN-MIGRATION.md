@@ -6,18 +6,19 @@ The target is to remove Supabase from the application completely, including auth
 
 ## Current status (2026-10-10)
 
-This status supersedes the historical planning snapshot and unchecked rollout items below where they conflict. Production Workers still use Supabase; the cutover is not complete.
+This status supersedes the historical planning snapshot and unchecked rollout items below where they conflict. The migration branch is deployed to the two production Workers; final tenant acceptance and Supabase retirement are still outstanding.
 
-- Two isolated standalone PostgreSQL/API tenant stacks run on the existing DigitalOcean Droplet. Both API readiness endpoints pass over public HTTPS: `https://api-c9.165-245-183-45.sslip.io/api/readyz` and `https://api-c6.165-245-183-45.sslip.io/api/readyz`.
-- Imported application data currently includes C9: 61 profiles, 8 password identities, 53 Google identities, and 61 account approvals; C6: 56 profiles, no password identities, 56 Google identities, and 56 account approvals.
+- Two isolated PostgreSQL/API tenant stacks run on the existing DigitalOcean Droplet. The tenant data and storage import was completed and recorded in `DIGITALOCEAN-BASELINE.md`.
+- The migration branch was deployed through successful C9 and C6 GitHub Actions runs. Both Cloudflare Workers now proxy `/api` to their corresponding DigitalOcean API origins. The Worker settings show the expected C9 and C6 origins.
+- Google OAuth callback URLs were added to the existing OAuth client while retaining the old callbacks for rollback. C6 sign-in completed and reached the Admin dashboard. C9 sign-in completed but registered `mextest67@gmail.com` as a new pending profile and stopped at “Waiting for approval”; no approval or role change has been made.
 - Existing storage files were copied and counts matched: 122 for C9 and 60 for C6. Tenant API file routes use Droplet storage.
 - Frontend source no longer imports the Supabase client; the package and lockfile do not include `@supabase/supabase-js`. Ported auth, PK, voice, and product routes use the tenant API.
-- Both Cloudflare production Workers are static-assets-only deployments; their settings pages confirm runtime variables cannot be added to the current assets-only versions. GitHub Actions still has the legacy `C9_SUPABASE_*` / `C6_SUPABASE_*` build variables, while `C9_DO_API_ORIGIN` and `C6_DO_API_ORIGIN` are absent. The migration branch has the proxy deploy path, but `main` still has its old deployment workflows. Production traffic has not switched; integrating the branch without the DO origin variables will leave the deploy jobs skipped.
-- The existing Google OAuth client has not been updated with the new `/api/auth/google/callback` redirect URIs. Existing callbacks and client secrets remain in place; Google sign-in is not ready to cut over.
-- Resend remains intentionally unconfigured. Push/VAPID, TURN/Coturn, and browser voice acceptance still need end-to-end verification.
+- `main` still has its old deployment workflows. The deployed migration branch has not yet been merged into `main`, so future main-branch deployments will not use this routing until the changes are reviewed and integrated.
+- C9 account reconciliation remains outstanding: investigate why the verified Google email did not match an imported C9 identity/profile, then complete the approval through an authorized C9 admin. The app's approval gate must remain enforced.
+- Resend remains intentionally unconfigured. Push/VAPID and TURN credentials, and browser voice acceptance, still need end-to-end verification.
 - Supabase projects and services remain active for rollback. The user handles backups separately.
 
-Next: add the exact Google callback URIs and configure/deploy each Worker to its matching DigitalOcean API, then verify both tenants before stopping the old application services.
+Next: resolve the C9 account mapping through its existing admin workflow, complete C9 core-feature acceptance and verify push/voice integrations where configured, then integrate the migration branch into `main`. Retire Supabase application services only after both tenants pass acceptance and rollback is no longer needed.
 
 ## Historical repository baseline (2026-10-07)
 
