@@ -81,6 +81,20 @@ services:
       - /etc/employee-hub/tls/c6/server.crt:/etc/employee-hub/tls/db-ca.crt:ro
     networks: [c6-private]
 
+  turn:
+    # Opt in until the Coturn secret and DigitalOcean firewall rules have been
+    # provisioned. Uses the host network so the configured UDP relay range
+    # reaches Coturn without Docker's port-range NAT overhead.
+    profiles: [voice]
+    image: coturn/coturn:4.18.0-r0
+    container_name: employee-hub-turn
+    restart: unless-stopped
+    network_mode: host
+    env_file: /etc/employee-hub/turn.env
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - ': "$${TURN_SHARED_SECRET:?Set TURN_SHARED_SECRET in /etc/employee-hub/turn.env}"; : "$${TURN_PUBLIC_IPV4:?Set TURN_PUBLIC_IPV4 in /etc/employee-hub/turn.env}"; exec turnserver -n --log-file=stdout --fingerprint --use-auth-secret --static-auth-secret="$${TURN_SHARED_SECRET}" --realm=employee-hub --listening-port=3478 --min-port=49160 --max-port=49200 --external-ip="$${TURN_PUBLIC_IPV4}" --no-tls --no-multicast-peers'
+
 volumes:
   c9-postgres-data:
   c6-postgres-data:

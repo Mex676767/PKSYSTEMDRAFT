@@ -16,8 +16,8 @@ export async function getIceServers(): Promise<RTCIceServer[]> {
     const data = await apiRequest<{iceServers?:RTCIceServer[]}>("/voice/turn-credentials");
     const servers = data?.iceServers;
     if (!Array.isArray(servers) || servers.length === 0) throw new Error("Empty TURN credential response");
-    // Credentials are valid for 24h server-side; refresh a bit early to be safe.
-    cached = { servers, expiresAt: Date.now() + 12 * 60 * 60 * 1000 };
+    // Coturn credentials are valid for 10 minutes; refresh after 8 minutes.
+    cached = { servers, expiresAt: Date.now() + 8 * 60 * 1000 };
     return servers;
   } catch (err) {
     console.error("Failed to fetch TURN credentials, falling back to STUN-only", err);

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
-    "test": "node --experimental-strip-types --test src/lib/passwords.test.ts src/lib/hof-validation.test.ts src/lib/runtime-config.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/passwords.test.ts src/lib/hof-validation.test.ts src/lib/runtime-config.test.ts src/lib/turn-rest.test.ts",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
