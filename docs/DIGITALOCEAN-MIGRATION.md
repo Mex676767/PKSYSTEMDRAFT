@@ -12,7 +12,7 @@ This status reflects production evidence checked on 2026-10-11. It supersedes th
 - DigitalOcean access is available through the existing account and existing Droplet; no new infrastructure was created. The tenant APIs and PostgreSQL databases run on the Droplet, and both public Worker `/api/readyz` routes returned `ready` on 2026-10-11.
 - Separate P-256 VAPID key pairs were generated for C9 and C6 on the Droplet, and the shared Coturn REST secret was installed server-side. Secret-bearing env files have restrictive permissions and no key material was copied into the repository. Both tenant API containers were recreated and returned ready afterward.
 - Coturn is running on the Droplet. Host UFW allows TCP/UDP 3478 and UDP 49160–49200; listeners were confirmed. No push subscriptions existed in either tenant database when VAPID was provisioned. Real-browser push and voice acceptance is still outstanding.
-- The former self-hosted `c9-supabase-*` and `c6-supabase-*` containers are stopped. Their persistent data has not been deleted. The hosted Supabase projects are still present; they have not been paused or deleted.
+- The former self-hosted `c9-supabase-*` and `c6-supabase-*` containers are stopped. Their persistent data has not been deleted. Pause requests were submitted for both hosted Supabase projects. C6 is confirmed paused: its settings now offer “Resume project.” The C9 settings page became a loading/disabled state after the pause request, but a paused status could not be independently confirmed because its dashboard stopped returning project details. Pausing retains project data and can be reversed for up to one year.
 
 - The migration and follow-up fixes were merged into `main` in PRs [#1](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/1), [#2](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/2), [#4](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/4), and [#6](https://github.com/Mex676767/PKSYSTEMDRAFT/pull/6). PR #4 fixes Profile rendering for migrated PostgreSQL birthday timestamps. PR #6 fixes nested legacy Storage URL rewriting and file serving.
 - The C9 and C6 GitHub Actions builds and Cloudflare deployments for these merges succeeded. Both Worker `/api/readyz` routes return `ready` and the matching tenant (`C9` or `C6`); the two public DigitalOcean API readiness routes also return ready. The PR #6 nested-file fix was built into the C9/C6 API containers; representative legacy nested images return HTTP 200 with `image/jpeg` from both tenant APIs.
@@ -22,9 +22,9 @@ This status reflects production evidence checked on 2026-10-11. It supersedes th
 - A previous C9 password sign-in succeeded with the credential supplied at that time, but the user has since corrected the test credential; the corrected password has not been independently verified. The currently open C9 browser session is not proof of a fresh password sign-in. A read-only target audit reports 62 C9 profiles, 62 approval rows, 8 password credentials, and 54 Google identity records; C6 has 56 profiles, 56 approval rows, 0 password credentials, and 56 Google identity records. Neither tenant has profiles missing approval rows, Hall of Fame leaders missing profiles, or team members missing profiles. C9 Google sign-in still needs identity reconciliation: the Google email appeared as a new pending profile. No approval or role change was made. C6’s existing signed-in session reached its Admin page.
 - The frontend and production package manifests/lockfile contain no Supabase browser SDK or direct client calls. Worker `/api` requests go to the tenant DigitalOcean APIs. Legacy SQL migrations and edge-function source remain as historical migration material, not application runtime dependencies. A current source and manifest scan found no Supabase SDK imports, project keys, or direct client calls outside that historical folder.
 - Resend remains intentionally unconfigured, as requested. VAPID and Coturn are provisioned on the Droplet; real-browser voice/push acceptance remains outstanding.
-- The DigitalOcean app runtime has no Supabase SDK/client dependency. Self-hosted Supabase containers are stopped and hosted projects remain present for now; complete tenant acceptance and reconcile post-cutover writes before pausing or deleting those hosted projects. The user handles backups separately.
+- The DigitalOcean app runtime has no Supabase SDK/client dependency. Self-hosted Supabase containers are stopped. C6’s hosted project is paused; C9’s pause request is processing or complete, but its final state needs a dashboard check. Permanent deletion was not performed. The user handles backups separately.
 
-Next: finish independent C9/C6 core-feature acceptance and reconcile C9’s Google identity through the existing approval workflow. Then pause or retire the hosted Supabase projects after confirming the acceptance/write-reconciliation gate. Resend remains deferred.
+Next: confirm C9’s hosted project has finished pausing, then finish independent C9/C6 core-feature acceptance and reconcile C9’s Google identity through the existing approval workflow. Resend remains deferred.
 
 ## Historical repository baseline (2026-10-07)
 
@@ -103,7 +103,7 @@ Direct browser SDK feature calls have now been removed. General app invalidation
 - Reconcile the C9 Google identity through the existing approval process; no profile approval or role change has been made.
 - Complete real-browser push delivery and voice-call acceptance. VAPID and Coturn are configured; no push permission was granted and no user mood/check-in data was submitted during verification.
 - Resend is intentionally deferred. Password recovery and birthday email delivery remain unavailable until the sender is configured.
-- The self-hosted Supabase containers are stopped, but their data remains on disk. Hosted Supabase projects are still present and have not been paused or deleted. Retire the hosted projects after both tenants pass acceptance and post-cutover writes are reconciled. The user handles backups separately.
+- The self-hosted Supabase containers are stopped, but their data remains on disk. Pause requests have been submitted for both hosted projects; confirm both reach the paused state. Permanent deletion was not performed. Pausing retains data and can be reversed for up to one year. The user handles backups separately.
 
 The initial baseline restore and data/storage import are complete. See [`DIGITALOCEAN-BASELINE.md`](DIGITALOCEAN-BASELINE.md) for the applied state and fresh-target-only restore procedure.
 ## API runtime settings
@@ -116,7 +116,7 @@ Run the separate C9/C6 PostgreSQL and API containers from `deploy/digitalocean/d
 - [ ] Verify representative C9 and C6 product writes, PK settlement/authorization, and existing and new file URLs against their own tenant databases.
 - [x] Configure per-tenant VAPID keys and the shared Coturn secret on the Droplet; open the required ports and confirm service listeners. Real-browser push and voice acceptance remains pending.
 - [ ] Keep Resend disabled until the user configures it.
-- [ ] Stop/remove the hosted Supabase projects after both tenants pass acceptance and any writes since cutover are reconciled. The user handles backups separately.
+- [x] Submit pause requests for both hosted Supabase projects. Confirm processing completes; permanent deletion is not part of this migration step. The user handles backups separately.
 ## Verification so far
 
 - `pnpm run typecheck` passed across the workspace.
