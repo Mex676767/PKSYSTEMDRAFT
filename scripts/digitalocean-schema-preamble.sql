@@ -28,3 +28,14 @@ AS $$
 $$;
 GRANT USAGE ON SCHEMA auth TO PUBLIC;
 GRANT EXECUTE ON FUNCTION auth.uid() TO PUBLIC;
+
+-- The API authenticates and authorizes every application request. Keep the
+-- legacy RLS expressions parseable during schema restore; the API database
+-- role has BYPASSRLS and stays private to its tenant network.
+CREATE OR REPLACE FUNCTION public.is_approved_user()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT true;
+$$;
