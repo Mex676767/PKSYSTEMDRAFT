@@ -25,8 +25,10 @@ export function usePostsFeed() {
 }
 
 export function getPostImageUrl(path: string) {
-  const [owner, name] = path.split("/", 2);
-  return apiAssetUrl(`/files/${encodeURIComponent(owner ?? "")}/${encodeURIComponent(name ?? "")}`);
+  const [owner, ...objectKey] = path.split("/");
+  if (!owner || objectKey.length === 0) return "";
+  const encodedKey = objectKey.map((segment) => encodeURIComponent(segment)).join("/");
+  return apiAssetUrl(`/files/${encodeURIComponent(owner)}/${encodedKey}`);
 }
 
 export function useCreatePost() {
