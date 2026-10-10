@@ -16,6 +16,7 @@ export type BirthdayEmailSettings = {
   send_hour: number;
   timezone: string;
   updated_at: string;
+  delivery_configured?: boolean;
 };
 
 export type BirthdayEmailKind = "announcement" | "personal";

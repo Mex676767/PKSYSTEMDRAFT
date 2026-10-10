@@ -1,5 +1,6 @@
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
+import { runBirthdayEmails } from "./birthday-emails";
 
 type ScheduledJob = {
   name: string;
@@ -64,6 +65,8 @@ async function tick(): Promise<void> {
       lastRunSlot.set(job.name, slot);
       await runJob(job, slot);
     }
+    try { await runBirthdayEmails(now); }
+    catch (error) { logger.error({ err: error }, "Birthday email scheduler check failed"); }
   } finally {
     running = false;
   }

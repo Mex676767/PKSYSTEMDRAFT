@@ -22,7 +22,15 @@ import {
 import { cn, getErrorMessage } from "@/lib/utils";
 import { BRAND_HUB_NAME } from "@/lib/brand";
 
-type Draft = Omit<BirthdayEmailSettings, "updated_at">;
+type Draft = Omit<BirthdayEmailSettings, "updated_at" | "delivery_configured">;
+const DRAFT_FIELDS: (keyof Draft)[] = [
+  "enabled", "from_name", "from_email", "reply_to", "subject", "body", "personal_enabled",
+  "personal_subject", "personal_body", "site_url", "send_hour", "timezone",
+];
+
+function editableSettings(settings: BirthdayEmailSettings): Draft {
+  return Object.fromEntries(DRAFT_FIELDS.map((key) => [key, settings[key]])) as Draft;
+}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,8 +86,7 @@ export function BirthdayEmailSettingsCard() {
 
   useEffect(() => {
     if (settings && migrated && !draft) {
-      const { updated_at: _updatedAt, ...rest } = settings as BirthdayEmailSettings;
-      setDraft(rest);
+      setDraft(editableSettings(settings as BirthdayEmailSettings));
     }
   }, [settings, migrated, draft]);
 
@@ -115,7 +122,7 @@ export function BirthdayEmailSettingsCard() {
   const complete = (k: BirthdayEmailKind) =>
     String(draft[EMAILS[k].subject]).trim() !== "" && String(draft[EMAILS[k].body]).trim() !== "";
   const invalidEnabled = (["announcement", "personal"] as const).filter((k) => draft[EMAILS[k].enabled] && (!hasSender || !complete(k)));
-  const dirty = (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== (settings as BirthdayEmailSettings)[k]);
+  const dirty = DRAFT_FIELDS.some((k) => draft[k] !== (settings as BirthdayEmailSettings)[k]);
   const canSave = dirty && fromEmailValid && replyToValid && invalidEnabled.length === 0 && !save.isPending;
 
   const siteUrl = draft.site_url.trim() || hubUrl;
@@ -124,7 +131,7 @@ export function BirthdayEmailSettingsCard() {
   const onSave = () =>
     save.mutate(
       {
-        ...draft,
+        ...editableSettings(draft as BirthdayEmailSettings),
         from_name: draft.from_name.trim(),
         from_email: draft.from_email.trim(),
         reply_to: draft.reply_to.trim(),
@@ -144,8 +151,9 @@ export function BirthdayEmailSettingsCard() {
             <h2 className="font-semibold">Birthday Emails</h2>
             <p className="text-xs text-muted-foreground">
               Sent automatically on each birthday at the time below. Nothing is sent until an email is switched on and a
-              sender is configured. Email delivery will be enabled after the email provider is set up.
+              sender is configured. {settings.delivery_configured ? "Resend is connected." : "Resend is not configured on this server yet."}
             </p>
+            {!settings.delivery_configured && <p className="text-xs text-destructive mt-1">Add RESEND_API_KEY to this site’s API environment before turning birthday emails on.</p>}
           </div>
         </div>
 
@@ -236,8 +244,8 @@ export function BirthdayEmailSettingsCard() {
                 id={`bday-${kind}-on`}
                 checked={draft[e.enabled] as boolean}
                 onCheckedChange={(v) => set(e.enabled, v as never)}
-                disabled={!(draft[e.enabled] as boolean) && (!hasSender || !complete(kind))}
-                title={!hasSender ? "Add a sender email first" : undefined}
+                disabled={!(draft[e.enabled] as boolean) && (!settings.delivery_configured || !hasSender || !complete(kind))}
+                title={!settings.delivery_configured ? "Resend is not configured on this server" : !hasSender ? "Add a sender email first" : undefined}
               />
             </div>
           </div>
