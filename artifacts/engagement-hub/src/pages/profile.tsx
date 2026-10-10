@@ -408,10 +408,20 @@ function BirthdayField({ birthday }: { birthday: string | null }) {
   const [error, setError] = useState<string | null>(null);
 
   if (birthday) {
-    const [, month, day] = birthday.split("-").map(Number);
+    // PostgreSQL date values may be serialized as ISO timestamps by the API.
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(birthday);
+    if (!match) {
+      return <p className="text-sm font-medium">🎂 Birthday needs review</p>;
+    }
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(2000, month - 1, day);
+    if (date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return <p className="text-sm font-medium">🎂 Birthday needs review</p>;
+    }
     return (
       <p className="text-sm font-medium">
-        🎂 {format(new Date(2000, month - 1, day), "MMMM d")}
+        🎂 {format(date, "MMMM d")}
       </p>
     );
   }

@@ -12,6 +12,7 @@ This status reflects production evidence checked on 2026-10-10. It supersedes th
 - The C9 and C6 GitHub Actions builds and Cloudflare deployments for both merges succeeded. Both Worker `/api/readyz` routes return `ready` and the matching tenant (`C9` or `C6`); the two public DigitalOcean API readiness routes also return ready.
 - The two isolated PostgreSQL/API tenant stacks, application data, auth identities, approvals, and Storage objects are deployed on the existing Droplet. The storage import counts recorded for the migration are 122 C9 objects and 60 C6 objects. See `DIGITALOCEAN-BASELINE.md` for the applied state.
 - The admin page and Daily mood check-ins results load on both live Workers. The user’s mood response was not submitted as part of this verification. Invalid imported dates no longer crash the page; PostgreSQL date timestamps display as birthdays.
+- Fresh browser loads of the C9 and C6 Profile routes reproduce the production error boundary (“Something went wrong”), while each tenant’s Admin route loads. Profile-page acceptance is incomplete until the root cause is identified and both routes render successfully.
 - C9 password sign-in with the supplied test account succeeded. C9 Google sign-in still needs identity reconciliation: the Google email appeared as a new pending profile. No approval or role change was made. C6’s existing signed-in session reached its Admin page.
 - The frontend and production package manifests/lockfile contain no Supabase browser SDK or direct client calls. Worker `/api` requests go to the tenant DigitalOcean APIs. Legacy SQL migrations and edge-function source remain as historical migration material, not frontend runtime dependencies.
 - Resend remains intentionally unconfigured, as requested. Push/VAPID and TURN credentials and real-browser voice/push acceptance remain outstanding.
@@ -92,7 +93,7 @@ Direct browser SDK feature calls have now been removed. General app invalidation
 
 ## Remaining production work
 
-- Complete independent C9 and C6 acceptance for login/session/logout, representative core reads and writes, PK transactions and authorization, and file upload/download paths.
+- Diagnose and fix the Profile route runtime error in both tenants, then verify Profile, login/session/logout, representative core reads and writes, PK transactions and authorization, and file upload/download paths independently for C9 and C6.
 - Reconcile the C9 Google identity using the existing approval process; preserve the approval gate and do not change the test account’s permissions without an authorized administrator action.
 - Configure server-side VAPID and TURN secrets and verify push delivery and browser voice calls through the matching tenant API. Do not expose either secret to the frontend.
 - Resend is intentionally deferred. Password recovery and birthday email delivery remain unavailable until the sender is configured.
