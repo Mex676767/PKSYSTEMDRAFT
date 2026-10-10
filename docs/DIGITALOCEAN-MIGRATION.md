@@ -4,7 +4,22 @@
 
 The target is to remove Supabase from the application completely, including authentication, database access, file storage, realtime, and scheduled functions. New or migrated frontend features must use the DigitalOcean API and PostgreSQL; do not add Supabase fallbacks or a Supabase auth bridge. Keep production routing unchanged until all feature APIs, tenant databases, data, and integrations are ready and verified.
 
-## Repository baseline (2026-10-07)
+## Current status (2026-10-10)
+
+This status supersedes the historical planning snapshot and unchecked rollout items below where they conflict. Production Workers still use Supabase; the cutover is not complete.
+
+- Two isolated standalone PostgreSQL/API tenant stacks run on the existing DigitalOcean Droplet. Both API readiness endpoints pass over public HTTPS: `https://api-c9.165-245-183-45.sslip.io/api/readyz` and `https://api-c6.165-245-183-45.sslip.io/api/readyz`.
+- Imported application data currently includes C9: 61 profiles, 8 password identities, 53 Google identities, and 61 account approvals; C6: 56 profiles, no password identities, 56 Google identities, and 56 account approvals.
+- Existing storage files were copied and counts matched: 122 for C9 and 60 for C6. Tenant API file routes use Droplet storage.
+- Frontend source no longer imports the Supabase client; the package and lockfile do not include `@supabase/supabase-js`. Ported auth, PK, voice, and product routes use the tenant API.
+- Cloudflare's production C9 Worker is a static-assets-only deployment. The repository has API-proxy code and C9/C6 deploy workflows, but GitHub Actions variables `C9_DO_API_ORIGIN` and `C6_DO_API_ORIGIN` are not configured. Production traffic has not switched.
+- The existing Google OAuth client has not been updated with the new `/api/auth/google/callback` redirect URIs. Existing callbacks and client secrets remain in place; Google sign-in is not ready to cut over.
+- Resend remains intentionally unconfigured. Push/VAPID, TURN/Coturn, and browser voice acceptance still need end-to-end verification.
+- Supabase projects and services remain active for rollback. The user handles backups separately.
+
+Next: add the exact Google callback URIs and configure/deploy each Worker to its matching DigitalOcean API, then verify both tenants before stopping the old application services.
+
+## Historical repository baseline (2026-10-07)
 
 - Branch `main` is two local commits ahead of `origin/main` (`a223287`, `1a715f6`). Both commits are preserved.
 - The worktree already has untracked `.claude/CLAUDE.md`, `alignment-and-birthday-fixes.patch`, and `deliverables/`. They are preserved and have not been staged or changed.
@@ -15,7 +30,7 @@ The target is to remove Supabase from the application completely, including auth
 - DigitalOcean Web Console provides root access; SSH rejects the existing local key. The Supabase Compose projects are `/opt/employee-hub/c9` and `/opt/employee-hub/c6`. Their database directories persist under each project's `volumes`, and storage containers mount `/var/lib/storage`. Caddy currently proxies `c9.165-245-183-45.sslip.io` to loopback port 8001 and `c6.165-245-183-45.sslip.io` to port 8002. Existing configuration and data have not been changed.
 - The new generated DigitalOcean baseline combines the captured application schema, later required feature migrations, and API-owned tables. It now has a preamble that replaces hosted Auth identity lookup and removes hosted delivery/storage/realtime setup. It still needs a real PostgreSQL restore and tenant acceptance review before deployment.
 
-## Supabase dependency inventory
+## Supabase dependency inventory (pre-port baseline)
 
 The Supabase client is initialized in `artifacts/engagement-hub/src/lib/supabase.ts`. A source scan found 139 direct Supabase call sites across 32 frontend source files. The app includes 57 migration files and the consolidated schema contains a large body of database functions/RPCs. These are active application dependencies, not just setup artifacts.
 
