@@ -18,4 +18,5 @@ The API's PostgreSQL credentials grant access to the full tenant database, so ke
 - PK v3.43 rules, learning and gratitude tables, and team Hall of Fame support.
 - API sessions, mood check-ins, app presence, push delivery queue, and voice signaling tables.
 - No source employee data, Auth password hashes, or Supabase Storage objects; those require independent tenant exports and import checks.
+- The server migration scripts `scripts/digitalocean-import-tenant.sh` and `scripts/digitalocean-copy-tenant-storage.sh` copy public rows, Google identity subjects, legacy bcrypt hashes, and the local `post-images` files into an empty matching tenant target. They do not print hashes or object names and refuse to import into a target that already has profile/identity rows.
 - No hosted realtime, object storage, email provider, VAPID secret, or TURN secret. Scheduled DB work runs in the tenant API process; email remains disabled until Resend is configured.

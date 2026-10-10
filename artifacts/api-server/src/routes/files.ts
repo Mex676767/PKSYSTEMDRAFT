@@ -6,6 +6,7 @@ import { assertAllowedBrowserOrigin, requireApprovedSession, requireSession } fr
 
 const router: IRouter = Router();
 const root = path.resolve(process.env.UPLOADS_DIR?.trim() || "./data/uploads");
+const legacyRoot = path.resolve(process.env.LEGACY_STORAGE_DIR?.trim() || path.join(root, "legacy", "post-images"));
 const ownerPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const filePattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}$/;
 type ImageKind = { mime: string; extension: string; prefix: number[] };
@@ -20,6 +21,13 @@ const resolveImage = (owner: string, name: string) => {
   if (!ownerPattern.test(owner) || !filePattern.test(name) || name.includes("..")) return null;
   const file = path.resolve(root, owner, name);
   if (!file.startsWith(`${root}${path.sep}`)) return null;
+  return file;
+};
+
+const resolveLegacyImage = (owner: string, name: string) => {
+  if (!ownerPattern.test(owner) || !filePattern.test(name) || name.includes("..")) return null;
+  const file = path.resolve(legacyRoot, owner, name);
+  if (!file.startsWith(`${legacyRoot}${path.sep}`)) return null;
   return file;
 };
 
@@ -43,7 +51,15 @@ router.get("/files/:owner/:name",async(req,res,next)=>{
   const file=resolveImage(owner,name);
   if(!file){res.status(404).end();return;}
   try{
-    const contents=await readFile(file);
+    let contents: Buffer;
+    try {
+      contents = await readFile(file);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      const legacyFile = resolveLegacyImage(owner, name);
+      if (!legacyFile) { res.status(404).end(); return; }
+      contents = await readFile(legacyFile);
+    }
     const image=imageKinds.find((kind)=>kind.prefix.every((value,index)=>contents[index]===value));
     if(!image||(image.mime==="image/webp"&&contents.toString("ascii",8,12)!=="WEBP")){res.status(404).end();return;}
     res.setHeader("Content-Type",image.mime);res.setHeader("Cache-Control","public, max-age=3600");res.setHeader("X-Content-Type-Options","nosniff");res.send(contents);

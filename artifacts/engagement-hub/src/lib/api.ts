@@ -2,7 +2,26 @@ const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? "";
 const API_BASE = configuredApiUrl.replace(/\/$/, "");
 
 export function apiAssetUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      const url = new URL(path);
+      const storagePrefix = "/storage/v1/object/public/post-images/";
+      const storageIndex = url.pathname.indexOf(storagePrefix);
+      if (storageIndex >= 0) {
+        const key = url.pathname.slice(storageIndex + storagePrefix.length);
+        const parts = key.split("/").map((part) => decodeURIComponent(part));
+        if (parts.length === 2 && /^[0-9a-f-]{36}$/i.test(parts[0]) && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}$/.test(parts[1])) {
+          return `${API_BASE}/api/files/${parts.map(encodeURIComponent).join("/")}${url.search}`;
+        }
+      }
+      if (url.pathname.startsWith("/api/files/")) return `${API_BASE}${url.pathname}${url.search}`;
+    } catch {
+      return path;
+    }
+    return path;
+  }
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (normalizedPath.startsWith("/api/files/")) return `${API_BASE}${normalizedPath}`;
   return `${API_BASE}/api${normalizedPath}`;
 }
 

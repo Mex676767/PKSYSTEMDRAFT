@@ -1,6 +1,7 @@
 services:
   c9-db:
     image: postgres:17.6
+    container_name: employee-hub-c9-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -23,6 +24,7 @@ services:
     networks: [c9-private]
 
   c9-api:
+    container_name: employee-hub-c9-api
     build:
       context: ../..
       dockerfile: deploy/digitalocean/Dockerfile.api
@@ -39,6 +41,7 @@ services:
 
   c6-db:
     image: postgres:17.6
+    container_name: employee-hub-c6-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -61,6 +64,7 @@ services:
     networks: [c6-private]
 
   c6-api:
+    container_name: employee-hub-c6-api
     build:
       context: ../..
       dockerfile: deploy/digitalocean/Dockerfile.api
