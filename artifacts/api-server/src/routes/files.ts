@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import express from "express";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assertAllowedBrowserOrigin, requireApprovedSession, requireSession } from "../middleware/session-auth";
 
@@ -25,10 +25,24 @@ const resolveImage = (owner: string, name: string) => {
 };
 
 const resolveLegacyImage = (owner: string, name: string) => {
-  if (!ownerPattern.test(owner) || !filePattern.test(name) || name.includes("..")) return null;
-  const file = path.resolve(legacyRoot, owner, name);
-  if (!file.startsWith(`${legacyRoot}${path.sep}`)) return null;
+  const segments = name.split("/");
+  if (!ownerPattern.test(owner) || segments.some((segment) => !filePattern.test(segment) || segment.includes(".."))) return null;
+  const ownerRoot = path.resolve(legacyRoot, owner);
+  const file = path.resolve(ownerRoot, ...segments);
+  if (!file.startsWith(`${ownerRoot}${path.sep}`)) return null;
   return file;
+};
+
+const readContainedImage = async (file: string, allowedRoot: string): Promise<Buffer | null> => {
+  try {
+    const [realRoot, realFile] = await Promise.all([realpath(allowedRoot), realpath(file)]);
+    if (!realFile.startsWith(`${realRoot}${path.sep}`)) return null;
+    return await readFile(realFile);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "EISDIR") return null;
+    throw error;
+  }
 };
 
 router.post("/files/:owner/:name", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, express.raw({ type:"image/*", limit:"10mb" }), async(req,res,next)=>{
@@ -45,21 +59,19 @@ router.post("/files/:owner/:name", requireSession, requireApprovedSession, asser
   catch(error){next(error);}
 });
 
-router.get("/files/:owner/:name",async(req,res,next)=>{
-  const owner=Array.isArray(req.params.owner)?req.params.owner[0]:req.params.owner;
-  const name=Array.isArray(req.params.name)?req.params.name[0]:req.params.name;
-  const file=resolveImage(owner,name);
-  if(!file){res.status(404).end();return;}
+router.get(/^\/files\/([^/]+)\/(.+)$/,async(req,res,next)=>{
+  const owner = req.params[0] ?? "";
+  const name = req.params[1] ?? "";
+  if (!ownerPattern.test(owner)) { res.status(404).end(); return; }
   try{
-    let contents: Buffer;
-    try {
-      contents = await readFile(file);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    const currentFile = resolveImage(owner, name);
+    let contents = currentFile ? await readContainedImage(currentFile, root) : null;
+    if (!contents) {
       const legacyFile = resolveLegacyImage(owner, name);
       if (!legacyFile) { res.status(404).end(); return; }
-      contents = await readFile(legacyFile);
+      contents = await readContainedImage(legacyFile, legacyRoot);
     }
+    if (!contents) { res.status(404).end(); return; }
     const image=imageKinds.find((kind)=>kind.prefix.every((value,index)=>contents[index]===value));
     if(!image||(image.mime==="image/webp"&&contents.toString("ascii",8,12)!=="WEBP")){res.status(404).end();return;}
     res.setHeader("Content-Type",image.mime);res.setHeader("Cache-Control","public, max-age=3600");res.setHeader("X-Content-Type-Options","nosniff");res.send(contents);
