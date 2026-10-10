@@ -1,27 +1,36 @@
 # C6 Employee Hub deployment
 
 C6 and C9 share the frontend source but use separate tenant APIs and databases.
-The public frontend remains at `https://c6.mextest67.workers.dev`; its API
-requests are intended to proxy to the C6 DigitalOcean API.
+The C6 frontend is `https://c6.mextest67.workers.dev`; its `/api` routes are
+proxied to the C6 DigitalOcean API.
 
-## Current migration state
+## Current production state (2026-10-10)
 
-- The C6 DigitalOcean API and PostgreSQL tenant are deployed on the existing
-  Droplet. The API readiness endpoint is
-  `https://api-c6.165-245-183-45.sslip.io/api/readyz`.
-- The C6 production Cloudflare Worker still serves its current frontend. Its
-  `/api` proxy has not yet been enabled, so the live app still uses Supabase.
-- Production cutover is pending. Keep the existing Supabase project available
-  until sign-in and the app's core flows have been checked through the Worker.
-- Resend is intentionally unconfigured; password recovery email is not ready.
+- The C6 PostgreSQL baseline and tenant data are deployed on the existing
+  DigitalOcean Droplet. Storage import totals are recorded in
+  [`DIGITALOCEAN-BASELINE.md`](DIGITALOCEAN-BASELINE.md).
+- The C6 API readiness endpoint
+  `https://api-c6.165-245-183-45.sslip.io/api/readyz` returns `ready` for C6.
+  The public Worker endpoint `https://c6.mextest67.workers.dev/api/readyz`
+  also returns `ready` for C6.
+- The C6 Worker deployment from `main` succeeded after the migration and the
+  live Admin page, including Daily mood check-ins results, loads.
+- Browser-side Supabase SDK dependencies and client calls have been removed.
+  Keep the old Supabase service available for rollback until C9 and C6 pass
+  full acceptance and push/voice checks are complete.
+- Resend is intentionally not configured. Password recovery and birthday
+  email delivery remain unavailable until the email provider is configured.
+- Push/VAPID and TURN secrets and real-browser voice/push acceptance remain
+  outstanding.
 
 ## GitHub Actions settings
 
 The `Deploy C6 hub to Cloudflare` workflow builds the C6-branded frontend and
-deploys the Worker. It runs on pushes to `main` and can also be started manually.
-It skips deployment until `C6_DO_API_ORIGIN` is set.
+deploys the Worker on pushes to `main` and manual dispatch. It skips deployment
+until `C6_DO_API_ORIGIN` is set.
 
-In **GitHub → repository Settings → Secrets and variables → Actions**, configure:
+In **GitHub → repository Settings → Secrets and variables → Actions**, the
+C6 settings are:
 
 **Variables**
 
@@ -44,15 +53,14 @@ The C6 Google OAuth client must allow this exact redirect URI:
 
 `https://c6.mextest67.workers.dev/api/auth/google/callback`
 
-Keep the currently configured Supabase callback until the production cutover
-has been verified. Do not rotate or remove OAuth client secrets as part of this
-deployment.
+Keep old OAuth callbacks while rollback may still be needed. Do not rotate or
+remove OAuth client secrets as part of this deployment.
 
-## Cutover checks
+## Remaining acceptance before Supabase retirement
 
-After the Worker is deployed, verify `/api/readyz` through the Worker, password
-login, Google sign-in, session restore/logout, and representative employee and
-admin writes. Check C6 only against the C6 tenant. Keep the existing Supabase
-service intact until both C6 and C9 pass their checks and rollback is no longer
-needed. The user handles backups separately.
-
+- Verify C6 password and Google sign-in, session restore/logout, and
+  representative employee and admin writes using the C6 tenant only.
+- Verify PK transactions and authorization, existing and new file URLs,
+  push delivery, and browser voice calls against C6.
+- Keep the current Supabase service available until both C6 and C9 pass these
+  checks and rollback is no longer needed. The user handles backups separately.
