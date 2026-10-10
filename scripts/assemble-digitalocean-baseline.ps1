@@ -51,6 +51,10 @@ $accountApproval = [System.IO.File]::ReadAllText((Join-Path $root "artifacts/eng
 $accountApproval = [regex]::Replace($accountApproval, '(?s)-- Pending accounts must not be able to upload into the shared photo bucket\..*?notify pgrst, ''reload schema'';\s*', "-- Supabase Storage policies and PostgREST notifications are not used by the DigitalOcean API.")
 $parts.Add("-- Account approval and pending-user behavior added after the captured schema snapshot.")
 $parts.Add($accountApproval)
+$hofDepartmentVisibility = [System.IO.File]::ReadAllText((Join-Path $root "artifacts/engagement-hub/supabase/migrations/0050_hof_department_visibility.sql"))
+$hofDepartmentVisibility = $hofDepartmentVisibility.Replace("notify pgrst, 'reload schema';", "-- PostgREST schema notification is not used by the DigitalOcean API.")
+$parts.Add("-- Hall of Fame department visibility added after the captured schema snapshot.")
+$parts.Add($hofDepartmentVisibility)
 $parts.Add("-- Current PK rules; the hosted publication and cron setup has been removed.")
 $parts.Add(@'
 -- PK schema updates introduced after the captured application snapshot.
