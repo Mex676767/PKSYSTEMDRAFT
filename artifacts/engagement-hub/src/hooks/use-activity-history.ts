@@ -20,7 +20,9 @@ export function useActivityHistory(userId: string | undefined) {
     queryKey: ["activity-history", userId],
     enabled: !!userId,
     queryFn: async () => {
-      return apiRequest<{ logins: LoginSession[]; voiceSessions: VoiceSession[] }>("/activity-history/me");
+      return apiRequest<{ logins: LoginSession[]; voiceSessions: VoiceSession[] }>(
+        `/activity-history/${encodeURIComponent(userId!)}`,
+      );
     },
   });
 }
