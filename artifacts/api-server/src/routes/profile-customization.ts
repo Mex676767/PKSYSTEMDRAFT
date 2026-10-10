@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { assertAllowedBrowserOrigin, requireApprovedSession, requireSession } from "../middleware/session-auth";
+import { isValidAvatarUrl } from "../lib/avatar-url";
 
 const router: IRouter = Router();
 const ACCESSORIES = new Set(["angel-wings", "neon-headphones", "rocket-pack", "wizard-hat", "cyber-cat-ears", "lightning-bolt-aura", "floating-hearts", "pixel-sword", "mini-planet", "champion-laurel"]);
@@ -30,9 +31,7 @@ router.patch("/profile/customization/:kind", requireSession, requireApprovedSess
 
 router.patch("/profile/avatar-url", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {
   const { avatar_url: avatarUrl } = req.body ?? {};
-  const ownUploadedAvatar = typeof avatarUrl === "string"
-    && new RegExp(`^/api/files/${req.sessionUser!.id}/[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}(?:\\?t=\\d{1,16})?$`).test(avatarUrl);
-  if (avatarUrl !== null && (typeof avatarUrl !== "string" || avatarUrl.length > 2048 || (!avatarUrl.startsWith("https://") && !ownUploadedAvatar))) {
+  if (!isValidAvatarUrl(avatarUrl, req.sessionUser!.id)) {
     res.status(400).json({ error: "Avatar URL is invalid." }); return;
   }
   try {

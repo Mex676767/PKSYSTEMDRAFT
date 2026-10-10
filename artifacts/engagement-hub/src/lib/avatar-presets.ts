@@ -35,7 +35,18 @@ export function avatarPresetDataUri(preset: AvatarPreset): string {
 }
 
 export function presetIdFromAvatarUrl(avatarUrl: string | null): string | null {
+  if (avatarUrl?.startsWith("preset:")) {
+    const id = avatarUrl.slice("preset:".length);
+    return AVATAR_PRESETS.some((preset) => preset.id === id) ? id : null;
+  }
   if (!avatarUrl?.startsWith("data:image/svg+xml,")) return null;
   const preset = AVATAR_PRESETS.find((p) => avatarUrl === avatarPresetDataUri(p));
   return preset?.id ?? null;
+}
+
+export function avatarUrlForDisplay(avatarUrl: string | null): string | null {
+  const presetId = avatarUrl?.startsWith("preset:") ? presetIdFromAvatarUrl(avatarUrl) : null;
+  if (!presetId) return avatarUrl;
+  const preset = AVATAR_PRESETS.find((item) => item.id === presetId)!;
+  return avatarPresetDataUri(preset);
 }

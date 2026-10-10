@@ -5,6 +5,7 @@ import { AccessoryDecoration } from "./accessory-decoration";
 import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/api";
 import { ACCESSORY_EXTENTS, BORDER_EXTENTS, isAccessoryKey, isBorderKey } from "@/lib/cosmetics";
+import { avatarUrlForDisplay } from "@/lib/avatar-presets";
 
 interface UserAvatarProps {
   user: { initials: string; color: string; name: string };
@@ -57,7 +58,7 @@ function UserAvatarComponent({ user, className, style, accessory, photoUrl, bord
     <div ref={wrapRef} className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
       <AccessoryDecoration accessory={accessory} layer="back" />
       <Avatar ref={avatarRef} className={cn("border-2 border-background bg-muted relative z-10", className, isBorderKey(border) && "border-0")} style={style}>
-        {photoUrl && <AvatarImage src={apiAssetUrl(photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
+        {photoUrl && <AvatarImage src={apiAssetUrl(avatarUrlForDisplay(photoUrl) ?? photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
         <AvatarFallback className={cn("text-white font-bold", user.color)}>
           {user.initials}
         </AvatarFallback>

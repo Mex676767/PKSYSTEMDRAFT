@@ -122,7 +122,7 @@ export default function Profile() {
                       title={preset.id}
                       disabled={setAvatarUrl.isPending}
                       onClick={() =>
-                        setAvatarUrl.mutate(uri, {
+                        setAvatarUrl.mutate(`preset:${preset.id}`, {
                           onSuccess: () => setIsAvatarDialogOpen(false),
                           onError: (err) => setAvatarError(getErrorMessage(err)),
                         })
