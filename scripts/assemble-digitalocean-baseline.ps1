@@ -48,6 +48,25 @@ $parts.Add("-- Existing application tables, functions, indexes, constraints, and
 $parts.Add($schema)
 $parts.Add("SET search_path = public;")
 $parts.Add("-- Current PK rules; the hosted publication and cron setup has been removed.")
+$parts.Add(@'
+-- PK schema updates introduced after the captured application snapshot.
+ALTER TABLE public.challenge_participants ADD COLUMN IF NOT EXISTS missed_count integer NOT NULL DEFAULT 0;
+ALTER TABLE public.pk_settings
+  ADD COLUMN IF NOT EXISTS reminders_enabled boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS announce_live boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS announce_winner boolean NOT NULL DEFAULT true;
+CREATE TABLE IF NOT EXISTS public.pk_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  challenge_id uuid NOT NULL REFERENCES public.challenges(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  kind text NOT NULL DEFAULT 'missed_updates',
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  resolved_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  resolution text
+);
+'@)
 $parts.Add($pkRules)
 $parts.Add("-- Features added after the captured schema snapshot.")
 $learningAndGratitude = [System.IO.File]::ReadAllText((Join-Path $root "artifacts/engagement-hub/supabase/migrations/0052_learning_hub_and_gratitude.sql"))
