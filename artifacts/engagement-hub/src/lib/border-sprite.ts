@@ -1,4 +1,4 @@
-import type { BorderKey } from "./cosmetics";
+import type { LegacyBorderKey } from "./cosmetics";
 
 export const BORDER_SPRITE = {
   url: `${import.meta.env.BASE_URL}cosmetics/borders-reference.png`,
@@ -11,7 +11,7 @@ export const BORDER_SPRITE = {
  * r is the photo radius in source pixels; the avatar always maps to 0..100.
  */
 export const BORDER_CROPS: Record<
-  BorderKey,
+  LegacyBorderKey,
   {
     cx: number;
     cy: number;

@@ -2,6 +2,16 @@ import { useMutation } from "@tanstack/react-query";
 import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
+export function useSetActiveCosmeticSet() {
+  const { refetchProfile } = useAuth();
+  return useMutation({
+    mutationFn: async (set: { border: string | null; accessory: string | null }) => {
+      await apiRequest<void>("/profile/customization/set", { method: "PATCH", body: JSON.stringify(set) });
+    },
+    onSuccess: () => refetchProfile(),
+  });
+}
+
 export function useSetActiveAccessory() {
   const { refetchProfile } = useAuth();
   return useMutation({

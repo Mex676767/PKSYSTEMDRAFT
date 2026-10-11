@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { AccessoryKey } from "@/lib/cosmetics";
+import type { LegacyAccessoryKey } from "@/lib/cosmetics";
 import type { CosmeticRenderProps } from "../geometry";
 import { AngelWingsAccessory } from "./angel-wings";
 import { NeonHeadphonesAccessory } from "./neon-headphones";
@@ -12,7 +12,7 @@ import { PixelSwordAccessory } from "./pixel-sword";
 import { MiniPlanetAccessory } from "./mini-planet";
 import { ChampionLaurelAccessory } from "./champion-laurel";
 
-export const ACCESSORY_RENDERERS: Record<AccessoryKey, ComponentType<CosmeticRenderProps>> = {
+export const ACCESSORY_RENDERERS: Record<LegacyAccessoryKey, ComponentType<CosmeticRenderProps>> = {
   "angel-wings": AngelWingsAccessory,
   "neon-headphones": NeonHeadphonesAccessory,
   "rocket-pack": RocketPackAccessory,

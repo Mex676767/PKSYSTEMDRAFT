@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { BorderDecoration } from "./border-decoration";
 import { AccessoryDecoration } from "./accessory-decoration";
@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/api";
 import { ACCESSORY_EXTENTS, BORDER_EXTENTS, isAccessoryKey, isBorderKey } from "@/lib/cosmetics";
 import { avatarUrlForDisplay } from "@/lib/avatar-presets";
+import { ANIMATED_COSMETIC_SETS } from "@/lib/animated-cosmetics";
+import { AnimatedCatalogDecoration } from "./cosmetics/animated-catalog-decoration";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface UserAvatarProps {
   user: { initials: string; color: string; name: string };
@@ -21,6 +24,10 @@ interface UserAvatarProps {
 }
 
 function UserAvatarComponent({ user, className, style, accessory, photoUrl, border, reserveSpace = true }: UserAvatarProps) {
+  const uid = useId();
+  const reducedMotion = useReducedMotion();
+  const paired = ANIMATED_COSMETIC_SETS.find(set => set.borderKey === border && set.accessoryKey === accessory);
+  const newArtwork = !!paired || ANIMATED_COSMETIC_SETS.some(set => set.borderKey === border || set.accessoryKey === accessory);
   const avatarRef = useRef<HTMLSpanElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
@@ -51,20 +58,28 @@ function UserAvatarComponent({ user, className, style, accessory, photoUrl, bord
   // Accessory and border art overlap, so the room needed on a side is the larger of the two.
   const side = (s: "left" | "right") => Math.max(0, Math.ceil(Math.max(acc?.[s] ?? 0, bor?.[s] ?? 0) * size - Math.max(0, gap[s] - 3)));
   const margins: CSSProperties | undefined = decorated && size
-    ? { marginLeft: side("left"), marginRight: side("right") }
+    ? { marginLeft: side("left"), marginRight: side("right"), ...(newArtwork ? {
+      marginTop: Math.ceil(Math.max(acc?.top ?? 0, bor?.top ?? 0) * size),
+      marginBottom: Math.ceil(Math.max(acc?.bottom ?? 0, bor?.bottom ?? 0) * size),
+    } : {}) }
     : undefined;
 
   return (
     <div ref={wrapRef} className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
-      <AccessoryDecoration accessory={accessory} layer="back" />
+      {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-back`} kind="set" layer="back" animated={!reducedMotion} /> : <>
+        <AccessoryDecoration accessory={accessory} layer="back" />
+        <BorderDecoration border={border} layer="back" />
+      </>}
       <Avatar ref={avatarRef} className={cn("border-2 border-background bg-muted relative z-10", className, isBorderKey(border) && "border-0")} style={style}>
         {photoUrl && <AvatarImage src={apiAssetUrl(avatarUrlForDisplay(photoUrl) ?? photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
         <AvatarFallback className={cn("text-white font-bold", user.color)}>
           {user.initials}
         </AvatarFallback>
       </Avatar>
-      <BorderDecoration border={border} />
-      <AccessoryDecoration accessory={accessory} layer="front" />
+      {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-front`} kind="set" layer="front" animated={!reducedMotion} /> : <>
+        <BorderDecoration border={border} />
+        <AccessoryDecoration accessory={accessory} layer="front" />
+      </>}
     </div>
   );
 }
