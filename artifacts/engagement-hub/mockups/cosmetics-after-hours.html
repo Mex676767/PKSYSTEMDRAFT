@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C9MYR · Animated cosmetics studio</title>
+  <link rel="stylesheet" href="cosmetics-after-hours.css">
+  <script src="cosmetics-after-hours.js" defer></script>
+</head>
+<body>
+  <main id="cosmetics-studio">
+    <header class="masthead">
+      <a class="brand" href="#"><img src="../public/brands/c9/logo.png" alt="C9MYR"><span>Employee’s Hub <span class="brand-sub">Cosmetics studio</span></span></a>
+      <span class="preview-tag">New concepts · mockup only</span>
+    </header>
+    <div class="intro"><div><h1>Turn the volume up.</h1><p>More movement. More magic. Six new ways to make your avatar yours.</p></div><span class="collection-mark" aria-hidden="true">✦</span></div>
+    <div class="toolbar" aria-label="Preview controls">
+      <button id="motion" type="button" aria-pressed="false">Pause animation</button>
+      <label><input id="borders" type="checkbox" checked> Borders</label>
+      <label><input id="decorations" type="checkbox" checked> Decorations</label>
+      <label class="intensity">Energy <select id="energy" aria-label="Energy"><option value="calm">Low</option><option value="full" selected>Full</option><option value="extra">Extra</option></select></label>
+      <button id="surface" type="button" aria-pressed="false">Light backdrop</button>
+    </div>
+    <div class="gallery" id="gallery" aria-label="Six animated cosmetic concepts"></div>
+    <section class="context" aria-labelledby="context-heading">
+      <div class="context-heading"><div><h2 id="context-heading">Try it in the Hub</h2><p>Select a concept above to see it at everyday sizes.</p></div><span id="selected-name" aria-live="polite">Solar Phoenix</span></div>
+      <div class="contexts">
+        <div class="profile-preview"><div class="context-caption">Profile · 96px avatar</div><div class="profile-avatar" id="profile-avatar"></div><strong>Alex Tan</strong><span class="role">Customer experience</span><span class="profile-title">Making every interaction count.</span></div>
+        <div class="social-preview"><div class="context-caption">Social feed · 44px avatar</div><div class="post-header"><div id="feed-avatar"></div><div><strong>Alex Tan</strong><span class="role">Today, 10:24 AM</span></div><span class="post-more" aria-hidden="true">•••</span></div><p>Small wins deserve a little sparkle. ✨<br>Thank you, team, for a brilliant week!</p><div class="post-reactions"><span>♡ &nbsp; 12</span><span>3 comments</span></div></div>
+        <div class="voice-preview"><div class="context-caption">Voice room · 64px avatar</div><div class="voice-avatars"><div><div id="voice-avatar"></div><strong>Alex</strong><span class="speaking">Speaking</span></div><div><div class="plain-avatar">JL</div><strong>Jamie</strong><span class="role">Listening</span></div></div><div class="voice-footer"><span class="room-dot"></span>Team lounge <span>2 connected</span></div></div>
+      </div>
+    </section>
+    <footer>Designed for the C9MYR avatar collection. Preview concepts; sample profile.</footer>
+  </main>
+</body>
+</html>

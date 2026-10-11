@@ -1,0 +1,43 @@
+/* Approved mockup animation values, scoped so they cannot style app UI. */
+.catalog-cosmetic .rotor{transform-origin:150px 140px;animation:catalog-orbit 12s linear infinite}
+.catalog-cosmetic .reverse{animation-direction:reverse}
+.catalog-cosmetic .quick{animation-duration:6s}
+.catalog-cosmetic .slow{animation-duration:22s}
+.catalog-cosmetic .breathing{transform-origin:150px 140px;animation:catalog-breathe 3.5s ease-in-out infinite}
+.catalog-cosmetic .shimmer{animation:catalog-shimmer 2.8s ease-in-out infinite}
+.catalog-cosmetic .stream{animation:catalog-stream 3s linear infinite}
+.catalog-cosmetic .levitate{animation:catalog-levitate 3.2s ease-in-out infinite}
+.catalog-cosmetic .wing{transform-origin:95px 160px;animation:catalog-wing 3.8s ease-in-out infinite}
+.catalog-cosmetic .particles circle,.catalog-cosmetic .particles path{transform-box:fill-box;transform-origin:center;animation:catalog-twinkle 3.5s ease-in-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic .ember{animation:catalog-ember 4s ease-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic .orbit-line{fill:none;stroke-linecap:round}
+.catalog-cosmetic .soft-glow{filter:drop-shadow(0 0 4px var(--c1))}
+.catalog-cosmetic .strong-glow{filter:drop-shadow(0 0 5px var(--c1)) drop-shadow(0 0 10px var(--c2))}
+.catalog-cosmetic.catalog-overdrive .rotor{animation-duration:10s}
+.catalog-cosmetic.catalog-overdrive .quick{animation-duration:6s}
+.catalog-cosmetic.catalog-overdrive .slow{animation-duration:20s}
+.catalog-cosmetic.catalog-overdrive .rock{transform-origin:150px 140px;animation:catalog-rock 5s ease-in-out infinite}
+.catalog-cosmetic.catalog-overdrive .fan{transform-origin:150px 140px;animation:catalog-fan 5s ease-in-out infinite}
+.catalog-cosmetic.catalog-overdrive .rise{animation:catalog-rise 5s ease-in-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic.catalog-overdrive .ripple{transform-origin:150px 140px;animation:catalog-ripple 5s ease-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic.catalog-overdrive .comet{animation:catalog-comet 6s ease-in-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic.catalog-overdrive .coin{transform-box:fill-box;transform-origin:center;animation:catalog-coin 4s ease-in-out infinite;animation-delay:var(--delay,0s)}
+.catalog-cosmetic.catalog-overdrive .ornament{filter:drop-shadow(0 0 3px var(--c1))}
+.catalog-cosmetic.catalog-overdrive .strong-glow{filter:drop-shadow(0 0 4px var(--c1)) drop-shadow(0 0 10px var(--c2))}
+.catalog-cosmetic.catalog-static *{animation:none!important;transition:none!important}
+.catalog-cosmetic.catalog-paused *,.tab-hidden .catalog-cosmetic *{animation-play-state:paused!important}
+@keyframes catalog-orbit{to{transform:rotate(360deg)}}
+@keyframes catalog-breathe{0%,100%{transform:scale(.97);opacity:.75}50%{transform:scale(1.035);opacity:1}}
+@keyframes catalog-shimmer{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes catalog-stream{to{stroke-dashoffset:-120}}
+@keyframes catalog-levitate{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes catalog-wing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(7deg)}}
+@keyframes catalog-twinkle{0%,100%{opacity:.25;transform:scale(.65)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes catalog-ember{0%{transform:translateY(12px);opacity:0}30%{opacity:.9}100%{transform:translateY(-24px);opacity:0}}
+@keyframes catalog-rock{0%,100%{transform:rotate(-3deg) translateY(1px)}50%{transform:rotate(3deg) translateY(-4px)}}
+@keyframes catalog-fan{0%,100%{transform:scaleX(.96) scaleY(.97)}50%{transform:scaleX(1.04) scaleY(1.025)}}
+@keyframes catalog-rise{0%,100%{transform:translateY(4px);opacity:.6}50%{transform:translateY(-9px);opacity:1}}
+@keyframes catalog-ripple{0%{transform:scale(.86);opacity:.6}100%{transform:scale(1.22);opacity:0}}
+@keyframes catalog-comet{0%,100%{stroke-dashoffset:160;opacity:.5}50%{stroke-dashoffset:0;opacity:1}}
+@keyframes catalog-coin{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.3)}}
+@media(prefers-reduced-motion:reduce){.catalog-cosmetic *{animation:none!important;transition:none!important}}

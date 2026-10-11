@@ -1,4 +1,4 @@
-import type { BorderKey } from "@/lib/cosmetics";
+import type { LegacyBorderKey } from "@/lib/cosmetics";
 import { Sparkles, bob } from "./details";
 import { polar } from "./geometry";
 
@@ -9,7 +9,7 @@ export function BorderAccents({
   border,
   animated,
 }: {
-  border: BorderKey;
+  border: LegacyBorderKey;
   animated: boolean;
 }) {
   const orbit = animated ? "cosmetic-anim cosmetic-orbit" : undefined;

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
+import { AnimatedCosmeticsShop } from "@/components/animated-cosmetics-shop";
 import { ChangePasswordCard } from "@/components/change-password-card";
 import { motion } from "framer-motion";
 import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
@@ -43,6 +44,7 @@ export default function Profile() {
   const setAccessory = useSetActiveAccessory();
   const setTitle = useSetActiveTitle();
   const setBorder = useSetActiveBorder();
+  const [setEquipPending, setSetEquipPending] = useState(false);
   const uploadAvatar = useUploadAvatar();
   const setAvatarUrl = useSetAvatarUrl();
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export default function Profile() {
             </div>
           </DialogContent>
         </Dialog>
-        <div>
+        <div className="min-w-0 break-words">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
             {profile.active_title ? achievementLabel(profile.active_title) : "No title set"}
@@ -239,6 +241,8 @@ export default function Profile() {
         </motion.div>
       </motion.div>
 
+      <AnimatedCosmeticsShop busy={setAccessory.isPending || setBorder.isPending} onPendingChange={setSetEquipPending} />
+
       {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-accent/20 shadow-sm bg-gradient-to-br from-accent/10 via-card to-card">
@@ -257,6 +261,7 @@ export default function Profile() {
                 return (
                   <div
                     key={key}
+                    data-accessory={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
@@ -269,6 +274,7 @@ export default function Profile() {
                         accessory={key}
                         border={profile.active_border}
                         className="w-12 h-12"
+                        reserveSpace={false}
                       />
                     </div>
                     <div className="text-xs font-semibold">{meta.name}</div>
@@ -276,7 +282,8 @@ export default function Profile() {
                       size="sm"
                       variant={equipped ? "outline" : "default"}
                       className="w-full text-xs h-7"
-                      disabled={setAccessory.isPending}
+                      disabled={setAccessory.isPending || setEquipPending || setBorder.isPending}
+                      aria-label={`${equipped ? "Remove" : "Equip"} ${meta.name}`}
                       onClick={() => setAccessory.mutate(equipped ? null : key)}
                     >
                       {equipped ? (
@@ -311,6 +318,7 @@ export default function Profile() {
                 return (
                   <div
                     key={key}
+                    data-border={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
@@ -323,6 +331,7 @@ export default function Profile() {
                         border={key}
                         accessory={profile.active_accessory}
                         className="w-12 h-12"
+                        reserveSpace={false}
                       />
                     </div>
                     <div className="text-xs font-semibold">{meta.name}</div>
@@ -330,7 +339,8 @@ export default function Profile() {
                       size="sm"
                       variant={equipped ? "outline" : "default"}
                       className="w-full text-xs h-7"
-                      disabled={setBorder.isPending}
+                      disabled={setBorder.isPending || setEquipPending || setAccessory.isPending}
+                      aria-label={`${equipped ? "Remove" : "Equip"} ${meta.name}`}
                       onClick={() => setBorder.mutate(equipped ? null : key)}
                     >
                       {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Free · Equip"}

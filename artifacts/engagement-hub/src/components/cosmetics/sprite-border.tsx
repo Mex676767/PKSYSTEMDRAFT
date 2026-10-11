@@ -1,4 +1,4 @@
-import type { BorderKey } from "@/lib/cosmetics";
+import type { LegacyBorderKey } from "@/lib/cosmetics";
 import { BORDER_CROPS, BORDER_SPRITE } from "@/lib/border-sprite";
 import { BorderAccents } from "./border-accents";
 
@@ -12,7 +12,7 @@ export function SpriteBorder({
   uid,
   animated,
 }: {
-  border: BorderKey;
+  border: LegacyBorderKey;
   uid: string;
   animated: boolean;
 }) {

@@ -2,10 +2,26 @@ import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { assertAllowedBrowserOrigin, requireApprovedSession, requireSession } from "../middleware/session-auth";
 import { isValidAvatarUrl } from "../lib/avatar-url";
+import { ANIMATED_BORDER_KEYS, ANIMATED_ACCESSORY_KEYS } from "../lib/animated-cosmetic-keys";
 
 const router: IRouter = Router();
-const ACCESSORIES = new Set(["angel-wings", "neon-headphones", "rocket-pack", "wizard-hat", "cyber-cat-ears", "lightning-bolt-aura", "floating-hearts", "pixel-sword", "mini-planet", "champion-laurel"]);
-const BORDERS = new Set(["cosmic-orbit", "pixel-glitch", "electric-pulse", "sakura-bloom", "trophy-halo", "crystal-prism", "meteor-trail", "galaxy-crown"]);
+const ACCESSORIES = new Set<string>(["angel-wings", "neon-headphones", "rocket-pack", "wizard-hat", "cyber-cat-ears", "lightning-bolt-aura", "floating-hearts", "pixel-sword", "mini-planet", "champion-laurel", ...ANIMATED_ACCESSORY_KEYS]);
+const BORDERS = new Set<string>(["cosmic-orbit", "pixel-glitch", "electric-pulse", "sakura-bloom", "trophy-halo", "crystal-prism", "meteor-trail", "galaxy-crown", ...ANIMATED_BORDER_KEYS]);
+
+// Save a matched look in one update, so a failed equip can never leave half a set.
+router.patch("/profile/customization/set", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {
+  const { border, accessory } = req.body ?? {};
+  if ((border !== null && (typeof border !== "string" || !BORDERS.has(border))) ||
+      (accessory !== null && (typeof accessory !== "string" || !ACCESSORIES.has(accessory)))) {
+    res.status(400).json({ error: "Profile customization is invalid." }); return;
+  }
+  try {
+    const result = await pool.query("update public.profiles set active_border = $2, active_accessory = $3 where id = $1 returning id",
+      [req.sessionUser!.id, border, accessory]);
+    if (!result.rowCount) { res.status(404).json({ error: "Profile not found." }); return; }
+    res.status(204).end();
+  } catch (error) { next(error); }
+});
 
 router.patch("/profile/customization/:kind", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {
   const kind = Array.isArray(req.params.kind) ? req.params.kind[0] : req.params.kind;
