@@ -144,7 +144,7 @@ export default function Voice() {
                   <Badge variant="outline" className="ml-auto text-[10px]">{participants.length} in call</Badge>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(144px,1fr))] gap-3">
                   {participants.map((p) => {
                     const isMe = p.id === profile?.id;
                     return (
