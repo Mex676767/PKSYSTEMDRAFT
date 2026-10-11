@@ -25,12 +25,13 @@ function UserAvatarComponent({ user, className, style, accessory, photoUrl, bord
   const uid = useId();
   const reducedMotion = useReducedMotion();
   const paired = ANIMATED_COSMETIC_SETS.find(set => set.borderKey === border && set.accessoryKey === accessory);
-  // Every cosmetic gets the same footprint and the same photo diameter.
-  // Intrinsic grid tracks reserve room before paint, without measuring the DOM.
-  const gutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .9;
+  // Photos define row height. Artwork floats outside without enlarging rows.
+  // Equal horizontal clearance keeps accessories away from adjacent names.
+  const horizontalGutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .35;
+  const verticalGutter = presentation === "showcase" ? 1.05 : 0;
   const frameStyle: CSSProperties = {
-    gridTemplateColumns: `${gutter}fr 1fr ${gutter}fr`,
-    gridTemplateRows: `${gutter}fr 1fr ${gutter}fr`,
+    gridTemplateColumns: `${horizontalGutter}fr 1fr ${horizontalGutter}fr`,
+    gridTemplateRows: `${verticalGutter}fr 1fr ${verticalGutter}fr`,
   };
 
   return (
