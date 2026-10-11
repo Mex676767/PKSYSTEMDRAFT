@@ -22,7 +22,7 @@ function LayoutRegression() {
   return <main className="p-4 max-w-6xl mx-auto space-y-6">
     <h1 className="text-2xl font-bold">Avatar layout check</h1>
     <div className="flex flex-wrap gap-3" data-nav-samples>
-      {examples.map(example => <button key={example.name} className="flex h-10 items-center gap-2 p-0.5 border rounded-full" aria-label={example.name}>
+      {examples.map(example => <button key={example.name} className="flex h-14 items-center gap-2 p-0 border rounded-full" aria-label={example.name}>
         <UserAvatar user={user} {...example} className="w-8 h-8" /><span className="text-xs">⌄</span>
       </button>)}
     </div>
@@ -36,7 +36,7 @@ function LayoutRegression() {
         <div data-card-content className="flex-1 border-t pt-3 text-sm">Short-term<p className="text-xs text-muted-foreground">Goal content stays aligned.</p></div>
       </article>)}
     </div>
-    <div className="flex -space-x-3" data-stack-sample>{examples.map(example => <UserAvatar key={example.name} user={user} {...example} className="w-10 h-10 ring-2 ring-background" />)}</div>
+    <div className="flex -space-x-3" data-stack-sample>{examples.map(example => <UserAvatar key={example.name} user={user} {...example} className="w-10 h-10 ring-2 ring-background" presentation="stack" />)}</div>
     <div className="flex gap-4" data-voice-samples>{examples.map(example => <VoiceParticipantAvatar key={example.name}
       participant={{ id: example.name, username: "Alex", muted: true, deafened: false, streaming: true }}
       isMe={false} isSpeaking isMuted isDeafened={false} myProfile={null}
@@ -45,7 +45,7 @@ function LayoutRegression() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {variants.map(variant => <section key={variant.name} data-variant={variant.name} className="border rounded-lg p-3 min-w-0">
         <h2 className="text-xs truncate mb-3">{variant.name}</h2>
-        <div className="flex items-center gap-4">{contexts.map(context => <div key={context.size} data-expected-size={context.size}>
+        <div className="flex flex-wrap items-center gap-4">{contexts.map(context => <div key={context.size} data-expected-size={context.size}>
           <UserAvatar user={user} {...variant} className={context.className} />
         </div>)}</div>
       </section>)}

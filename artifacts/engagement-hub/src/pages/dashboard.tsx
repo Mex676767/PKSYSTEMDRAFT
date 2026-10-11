@@ -179,6 +179,7 @@ export default function Dashboard() {
                         <Crown className="absolute right-2 top-2 h-4 w-4 rotate-12 text-amber-400/50 transition-transform group-hover:scale-110" />
                         <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
                           <UserAvatar
+                          presentation="stack"
                             user={{ name: recipientName, initials: initialsForUsername(recipientName), color: colorForId(shoutout.recipient_id) }}
                             photoUrl={shoutout.recipient?.avatar_url ?? null}
                             border={shoutout.recipient?.active_border ?? null}
@@ -230,6 +231,7 @@ export default function Dashboard() {
                     >
                       <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
                         <UserAvatar
+                            presentation="stack"
                           user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
                           photoUrl={goal.owner?.avatar_url ?? null}
                           border={goal.owner?.active_border ?? null}
