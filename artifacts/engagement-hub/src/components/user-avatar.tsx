@@ -4,7 +4,7 @@ import { BorderDecoration } from "./border-decoration";
 import { AccessoryDecoration } from "./accessory-decoration";
 import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/api";
-import { ACCESSORY_EXTENTS, BORDER_EXTENTS, isAccessoryKey, isBorderKey } from "@/lib/cosmetics";
+import { isBorderKey } from "@/lib/cosmetics";
 import { avatarUrlForDisplay } from "@/lib/avatar-presets";
 import { ANIMATED_COSMETIC_SETS } from "@/lib/animated-cosmetics";
 import { AnimatedCatalogDecoration } from "./cosmetics/animated-catalog-decoration";
@@ -17,34 +17,34 @@ interface UserAvatarProps {
   accessory?: string | null
   photoUrl?: string | null
   border?: string | null
-
+  /** Photo size stays fixed; only the space around its artwork changes. */
+  presentation?: "compact" | "showcase" | "stack"
 }
 
-function UserAvatarComponent({ user, className, style, accessory, photoUrl, border }: UserAvatarProps) {
+function UserAvatarComponent({ user, className, style, accessory, photoUrl, border, presentation = "compact" }: UserAvatarProps) {
   const uid = useId();
   const reducedMotion = useReducedMotion();
   const paired = ANIMATED_COSMETIC_SETS.find(set => set.borderKey === border && set.accessoryKey === accessory);
-  const acc = isAccessoryKey(accessory) ? ACCESSORY_EXTENTS[accessory] : null;
-  const bor = isBorderKey(border) ? BORDER_EXTENTS[border] : null;
-  const left = Math.max(acc?.left ?? 0, bor?.left ?? 0);
-  const right = Math.max(acc?.right ?? 0, bor?.right ?? 0);
-  const top = Math.max(acc?.top ?? 0, bor?.top ?? 0);
-  const bottom = Math.max(acc?.bottom ?? 0, bor?.bottom ?? 0);
-  // Scale the entire composition inside the caller's fixed slot. Cosmetic
-  // selection must never change a row, card header, stack or menu's geometry.
-  const scale = 1 / Math.max(1 + left + right, 1 + top + bottom);
-  const compositionStyle: CSSProperties = {
-    transform: `translate(${(left - right) * scale * 50}%, ${(top - bottom) * scale * 50}%) scale(${scale})`,
+  // Every cosmetic gets the same footprint and the same photo diameter.
+  // Intrinsic grid tracks reserve room before paint, without measuring the DOM.
+  const gutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .35;
+  const frameStyle: CSSProperties = {
+    gridTemplateColumns: `${gutter}fr 1fr ${gutter}fr`,
+    gridTemplateRows: `${gutter}fr 1fr ${gutter}fr`,
+    ...(presentation === "compact" ? {
+      maskImage: "radial-gradient(ellipse closest-side at center, #000 76%, transparent 100%)",
+      WebkitMaskImage: "radial-gradient(ellipse closest-side at center, #000 76%, transparent 100%)",
+    } : {}),
   };
 
   return (
-    <div data-user-avatar className={cn("relative inline-flex w-10 h-10 rounded-full align-middle shrink-0 isolate", className)} style={style}>
-      <div className="absolute inset-0" style={compositionStyle}>
+    <div data-user-avatar data-presentation={presentation} className="relative inline-grid w-max align-middle shrink-0 isolate overflow-hidden" style={frameStyle}>
+      <div data-avatar-face className={cn("relative col-start-2 row-start-2 w-10 h-10 rounded-full", className)} style={style}>
         {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-back`} kind="set" layer="back" animated={!reducedMotion} /> : <>
           <AccessoryDecoration accessory={accessory} layer="back" />
           <BorderDecoration border={border} layer="back" />
         </>}
-        <Avatar className={cn("w-full h-full border-2 border-background bg-muted relative z-10", isBorderKey(border) && "border-0")}>
+        <Avatar data-avatar-photo className={cn("w-full h-full border-2 border-background bg-muted relative z-10", isBorderKey(border) && "border-0")}>
           {photoUrl && <AvatarImage src={apiAssetUrl(avatarUrlForDisplay(photoUrl) ?? photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
           <AvatarFallback className={cn("text-white font-bold", user.color)}>
             {user.initials}
@@ -77,6 +77,7 @@ export const UserAvatar = memo(
     previous.accessory === next.accessory &&
     previous.photoUrl === next.photoUrl &&
     previous.border === next.border &&
+    previous.presentation === next.presentation &&
     sameStyle(previous.style, next.style),
 );
 UserAvatar.displayName = "UserAvatar";

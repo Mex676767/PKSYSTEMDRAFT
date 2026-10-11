@@ -198,7 +198,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="shrink-0 flex h-10 items-center gap-2 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-0.5 sm:pr-2.5 hover:border-foreground/30 transition-colors">
+              <button className="shrink-0 flex h-14 items-center gap-2 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-0 sm:pr-2.5 hover:border-foreground/30 transition-colors">
                 <div className="relative shrink-0">
                   <UserAvatar
                     user={{
@@ -251,7 +251,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <main className="w-full pt-32 sm:pt-20 md:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
+      <main className="w-full pt-36 xl:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
         {children}
       </main>
     </div>

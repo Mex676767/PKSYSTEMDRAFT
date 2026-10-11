@@ -253,7 +253,7 @@ export default function Profile() {
             <CardDescription>Free for everyone. Pick a little flair for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {ACCESSORY_KEYS.map((key) => {
                 const meta = ACCESSORY_META[key];
                 const equipped = profile.active_accessory === key;
@@ -273,7 +273,8 @@ export default function Profile() {
                         photoUrl={profile.avatar_url}
                         accessory={key}
                         border={profile.active_border}
-                        className="w-full max-w-36 h-auto aspect-square"
+                        className="w-10 h-10"
+                        presentation="showcase"
                       />
                     </div>
                     <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
@@ -309,7 +310,7 @@ export default function Profile() {
             <CardDescription>Free for everyone. Pick a border for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {BORDER_KEYS.map((key) => {
                 const meta = BORDER_META[key];
                 const equipped = profile.active_border === key;
@@ -329,7 +330,8 @@ export default function Profile() {
                         photoUrl={profile.avatar_url}
                         border={key}
                         accessory={profile.active_accessory}
-                        className="w-full max-w-36 h-auto aspect-square"
+                        className="w-10 h-10"
+                        presentation="showcase"
                       />
                     </div>
                     <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
