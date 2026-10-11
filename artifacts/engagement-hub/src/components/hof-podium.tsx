@@ -77,7 +77,6 @@ export function DepartmentPodium({ department, category, awardType, entries, mon
                                 photoUrl={entry.avatar_url}
                                 border={entry.active_border}
                                 accessory={entry.active_accessory}
-                                reserveSpace={false}
                                 className={cn("hof-celestial-avatar", winner && "is-winner", rankedEntries.length > 1 && "is-tied-avatar")}
                               />
                             </div>
