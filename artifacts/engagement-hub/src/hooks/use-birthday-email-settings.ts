@@ -9,9 +9,11 @@ export type BirthdayEmailSettings = {
   reply_to: string;
   subject: string;
   body: string;
+  announcement_image_url: string;
   personal_enabled: boolean;
   personal_subject: string;
   personal_body: string;
+  personal_image_url: string;
   site_url: string;
   send_hour: number;
   timezone: string;

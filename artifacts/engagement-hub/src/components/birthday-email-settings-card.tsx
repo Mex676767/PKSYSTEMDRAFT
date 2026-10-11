@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { safeFormatDate } from "@/lib/safe-date-format";
-import { Mail, Save, Eye, Pencil, Send, Users, Cake, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Mail, Save, Eye, Pencil, Send, Users, Cake, CheckCircle2, XCircle, Clock, ImagePlus, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,11 +21,13 @@ import {
 } from "@/hooks/use-birthday-email-settings";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { BRAND_HUB_NAME } from "@/lib/brand";
+import { apiAssetUrl, uploadImage } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 
 type Draft = Omit<BirthdayEmailSettings, "updated_at" | "delivery_configured">;
 const DRAFT_FIELDS: (keyof Draft)[] = [
-  "enabled", "from_name", "from_email", "reply_to", "subject", "body", "personal_enabled",
-  "personal_subject", "personal_body", "site_url", "send_hour", "timezone",
+  "enabled", "from_name", "from_email", "reply_to", "subject", "body", "announcement_image_url", "personal_enabled",
+  "personal_subject", "personal_body", "personal_image_url", "site_url", "send_hour", "timezone",
 ];
 
 function editableSettings(settings: BirthdayEmailSettings): Draft {
@@ -76,10 +78,14 @@ export function BirthdayEmailSettingsCard() {
   const { data: log = [] } = useBirthdayEmailLog(true);
   const save = useSaveBirthdayEmailSettings();
   const test = useSendTestBirthdayEmail();
+  const { profile } = useAuth();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [kind, setKind] = useState<BirthdayEmailKind>("announcement");
   const [preview, setPreview] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const zones = useMemo(timezoneOptions, []);
   const hubUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
   const migrated = !!settings && typeof settings.personal_subject === "string";
@@ -116,6 +122,8 @@ export function BirthdayEmailSettingsCard() {
   };
 
   const e = EMAILS[kind];
+  const imageField: keyof Draft = kind === "announcement" ? "announcement_image_url" : "personal_image_url";
+  const imageUrl = draft[imageField] as string;
   const fromEmailValid = draft.from_email.trim() === "" || EMAIL_PATTERN.test(draft.from_email.trim());
   const replyToValid = draft.reply_to.trim() === "" || EMAIL_PATTERN.test(draft.reply_to.trim());
   const hasSender = EMAIL_PATTERN.test(draft.from_email.trim());
@@ -139,6 +147,37 @@ export function BirthdayEmailSettingsCard() {
       },
       { onSuccess: () => setSavedAt(Date.now()) }
     );
+
+  const onImageSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" } as Record<string, string>)[file.type];
+    if (!extension) {
+      setImageError("Choose a JPEG, PNG, GIF, or WebP picture.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setImageError("Picture must be 8 MB or smaller.");
+      return;
+    }
+    if (!profile?.id) {
+      setImageError("Your profile is not ready. Reload the page and try again.");
+      return;
+    }
+    setImageUploading(true);
+    setImageError(null);
+    try {
+      const uploaded = await uploadImage(`/files/${profile.id}/birthday-${kind}-inline.${extension}`, file);
+      const url = new URL(uploaded.url, window.location.origin);
+      url.searchParams.set("v", String(Date.now()));
+      set(imageField, url.toString() as never);
+    } catch (error) {
+      setImageError(getErrorMessage(error));
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   return (
     <Card className="shadow-sm">
@@ -271,6 +310,7 @@ export function BirthdayEmailSettingsCard() {
               </div>
               <p className="font-semibold">{fillBirthdayTemplate(String(draft[e.subject]), sample)}</p>
               <p className="whitespace-pre-wrap break-words">{fillBirthdayTemplate(String(draft[e.body]), sample)}</p>
+              {imageUrl && <img src={apiAssetUrl(imageUrl)} alt="Birthday email picture" className="max-h-72 w-full rounded-lg object-contain" />}
               <p className="text-[11px] text-muted-foreground">Preview uses sample names ({kind === "personal" ? sample.name : sample.names}).</p>
             </div>
           ) : (
@@ -282,6 +322,27 @@ export function BirthdayEmailSettingsCard() {
               <div className="space-y-1.5">
                 <Label htmlFor={`bday-${kind}-body`}>Message</Label>
                 <Textarea id={`bday-${kind}-body`} value={String(draft[e.body])} onChange={(ev) => set(e.body, ev.target.value as never)} rows={8} className="font-mono text-xs" />
+              </div>
+              <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  aria-label={`Upload picture for ${e.label.toLowerCase()} email`}
+                  onChange={onImageSelected}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" disabled={imageUploading} onClick={() => imageInputRef.current?.click()}>
+                    <ImagePlus className="w-3.5 h-3.5 mr-1.5" /> {imageUploading ? "Uploading..." : imageUrl ? "Change picture" : "Add picture"}
+                  </Button>
+                  {imageUrl && <Button type="button" size="sm" variant="ghost" disabled={imageUploading} onClick={() => { set(imageField, "" as never); setImageError(null); }}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Remove
+                  </Button>}
+                  <span className="text-[11px] text-muted-foreground">Displays inside the email. JPEG, PNG, GIF, or WebP, up to 8 MB.</span>
+                </div>
+                {imageError && <p className="text-xs text-destructive">{imageError}</p>}
+                {imageUrl && <img src={apiAssetUrl(imageUrl)} alt="Picture that will appear in the email" className="max-h-52 w-full rounded-lg bg-muted/30 object-contain" />}
               </div>
               <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
                 <span>Placeholders:</span>
