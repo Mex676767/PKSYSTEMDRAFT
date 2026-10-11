@@ -7,7 +7,7 @@ import { PostCard } from "@/components/post-card";
 import { motion } from "framer-motion";
 import { X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { usePostsFeed, useCreatePost } from "@/hooks/use-posts";
+import { usePostsFeed, useCreatePost, getPostImageError } from "@/hooks/use-posts";
 import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/hooks/use-social";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { ImagePickerButton } from "@/components/image-picker-button";
@@ -42,6 +42,7 @@ export default function Social() {
   const [body, setBody] = useState(() => loadDraft<string>(NEW_POST_DRAFT_KEY) ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (body.trim()) saveDraft(NEW_POST_DRAFT_KEY, body);
@@ -49,6 +50,16 @@ export default function Social() {
   }, [body]);
 
   const setImage = (file: File | null) => {
+    if (file) {
+      const error = getPostImageError(file);
+      if (error) {
+        setImageFile(null);
+        setImagePreview(null);
+        setImageError(error);
+        return;
+      }
+    }
+    setImageError(null);
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
   };
@@ -64,6 +75,7 @@ export default function Social() {
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setImageError(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -117,7 +129,7 @@ export default function Social() {
                     />
                   </div>
                   <div className="flex flex-col gap-2 w-20 shrink-0">
-                    <ImagePickerButton onImage={setImage} label="Photo" iconOnly className="h-[calc(50%-4px)] shrink-0" />
+                  <ImagePickerButton onImage={setImage} label="Photo" iconOnly accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp" className="h-[calc(50%-4px)] shrink-0" />
                     <Button
                       type="submit"
                       className="h-[calc(50%-4px)] shrink-0 rounded-xl px-2 text-sm"
@@ -131,7 +143,7 @@ export default function Social() {
 
               {imagePreview && (
                 <div className="relative rounded-xl overflow-hidden border border-border">
-                  <img src={imagePreview} alt="" className="w-full max-h-80 object-cover" />
+                  <img src={imagePreview} alt="Photo preview" onError={() => { clearImage(); setImageError("This photo could not be previewed. Choose a JPEG, PNG, GIF, or WebP image."); }} className="w-full max-h-80 object-contain" />
                   <button
                     type="button"
                     onClick={clearImage}
@@ -140,6 +152,11 @@ export default function Social() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+              )}
+              {(imageError || createPost.error) && (
+                <p role="alert" className="text-sm text-destructive">
+                  {imageError ?? (createPost.error instanceof Error ? createPost.error.message : "The post could not be published. Please try again.")}
+                </p>
               )}
             </form>
           ) : (

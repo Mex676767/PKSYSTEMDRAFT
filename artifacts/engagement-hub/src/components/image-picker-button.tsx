@@ -10,12 +10,14 @@ export function ImagePickerButton(
     label = "Upload a photo",
     disabled = false,
     iconOnly = false,
+    accept = "image/*",
   }: {
     onImage: (file: File) => void;
     className?: string;
     label?: string;
     disabled?: boolean;
     iconOnly?: boolean;
+    accept?: string;
   }
 ) {
   const [focused, setFocused] = useState(false);
@@ -64,7 +66,7 @@ export function ImagePickerButton(
     <input
       ref={fileInputRef}
       type="file"
-      accept="image/*"
+      accept={accept}
       className="hidden"
       disabled={disabled}
       onChange={handleFileChange}
