@@ -177,9 +177,8 @@ export default function Dashboard() {
                     return (
                       <div key={shoutout.id} className="group relative flex min-h-28 items-start gap-3 overflow-hidden rounded-xl border border-amber-400/15 bg-background/45 p-3 transition-colors hover:bg-background/65">
                         <Crown className="absolute right-2 top-2 h-4 w-4 rotate-12 text-amber-400/50 transition-transform group-hover:scale-110" />
-                        <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
+                        <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-visible">
                           <UserAvatar
-                          presentation="stack"
                             user={{ name: recipientName, initials: initialsForUsername(recipientName), color: colorForId(shoutout.recipient_id) }}
                             photoUrl={shoutout.recipient?.avatar_url ?? null}
                             border={shoutout.recipient?.active_border ?? null}
@@ -229,9 +228,8 @@ export default function Dashboard() {
                       key={goal.id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
                     >
-                      <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
+                      <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-visible">
                         <UserAvatar
-                            presentation="stack"
                           user={{ name: goal.owner?.username ?? "unknown", initials: initialsForUsername(goal.owner?.username ?? "?"), color: colorForId(goal.owner_id) }}
                           photoUrl={goal.owner?.avatar_url ?? null}
                           border={goal.owner?.active_border ?? null}

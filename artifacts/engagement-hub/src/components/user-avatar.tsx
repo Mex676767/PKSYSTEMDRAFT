@@ -27,18 +27,14 @@ function UserAvatarComponent({ user, className, style, accessory, photoUrl, bord
   const paired = ANIMATED_COSMETIC_SETS.find(set => set.borderKey === border && set.accessoryKey === accessory);
   // Every cosmetic gets the same footprint and the same photo diameter.
   // Intrinsic grid tracks reserve room before paint, without measuring the DOM.
-  const gutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .35;
+  const gutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .9;
   const frameStyle: CSSProperties = {
     gridTemplateColumns: `${gutter}fr 1fr ${gutter}fr`,
     gridTemplateRows: `${gutter}fr 1fr ${gutter}fr`,
-    ...(presentation === "compact" ? {
-      maskImage: "radial-gradient(ellipse closest-side at center, #000 76%, transparent 100%)",
-      WebkitMaskImage: "radial-gradient(ellipse closest-side at center, #000 76%, transparent 100%)",
-    } : {}),
   };
 
   return (
-    <div data-user-avatar data-presentation={presentation} className="relative inline-grid w-max align-middle shrink-0 isolate overflow-hidden" style={frameStyle}>
+    <div data-user-avatar data-presentation={presentation} className="relative inline-grid w-max align-middle shrink-0 isolate overflow-visible" style={frameStyle}>
       <div data-avatar-face className={cn("relative col-start-2 row-start-2 w-10 h-10 rounded-full", className)} style={style}>
         {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-back`} kind="set" layer="back" animated={!reducedMotion} /> : <>
           <AccessoryDecoration accessory={accessory} layer="back" />

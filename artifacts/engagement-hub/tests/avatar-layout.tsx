@@ -22,7 +22,7 @@ function LayoutRegression() {
   return <main className="p-4 max-w-6xl mx-auto space-y-6">
     <h1 className="text-2xl font-bold">Avatar layout check</h1>
     <div className="flex flex-wrap gap-3" data-nav-samples>
-      {examples.map(example => <button key={example.name} className="flex h-14 items-center gap-2 p-0 border rounded-full" aria-label={example.name}>
+      {examples.map(example => <button key={example.name} className="flex h-24 items-center gap-2 p-0 border rounded-full" aria-label={example.name}>
         <UserAvatar user={user} {...example} className="w-8 h-8" /><span className="text-xs">⌄</span>
       </button>)}
     </div>
@@ -37,7 +37,7 @@ function LayoutRegression() {
       </article>)}
     </div>
     <div className="flex -space-x-3" data-stack-sample>{examples.map(example => <UserAvatar key={example.name} user={user} {...example} className="w-10 h-10 ring-2 ring-background" presentation="stack" />)}</div>
-    <div className="flex gap-4" data-voice-samples>{examples.map(example => <VoiceParticipantAvatar key={example.name}
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(144px,1fr))] gap-3" data-voice-samples>{examples.map(example => <VoiceParticipantAvatar key={example.name}
       participant={{ id: example.name, username: "Alex", muted: true, deafened: false, streaming: true }}
       isMe={false} isSpeaking isMuted isDeafened={false} myProfile={null}
       directoryEntry={{ id: example.name, username: "Alex", department: null, role: null, avatar_url: null, active_title: null, last_seen_at: null, active_border: example.border, active_accessory: example.accessory }}

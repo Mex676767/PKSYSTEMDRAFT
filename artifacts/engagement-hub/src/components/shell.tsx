@@ -112,7 +112,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <CursorSparkleTrail />
       <Fireflies />
 
-      <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 xl:block xl:h-14">
+      <div className="fixed top-4 inset-x-4 z-40 flex flex-col gap-2 xl:block xl:h-24">
         <div className="flex items-center justify-center xl:absolute xl:inset-y-0 xl:left-[280px] xl:right-[280px]">
         <div data-tree-obstacle className="flex items-center max-w-[min(88vw,52rem)] min-w-0 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg px-2">
           <button type="button" onClick={scrollNavLeft} disabled={!canScrollLeft} aria-label="Scroll navigation left" className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
@@ -198,7 +198,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="shrink-0 flex h-14 items-center gap-2 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-0 sm:pr-2.5 hover:border-foreground/30 transition-colors">
+              <button className="shrink-0 flex h-24 items-center gap-2 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-0 sm:pr-2.5 hover:border-foreground/30 transition-colors">
                 <div className="relative shrink-0">
                   <UserAvatar
                     user={{
@@ -251,7 +251,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <main className="w-full pt-36 xl:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
+      <main className="w-full pt-48 md:pt-56 xl:pt-36 pb-10 px-4 md:px-8 overflow-x-hidden">
         {children}
       </main>
     </div>
