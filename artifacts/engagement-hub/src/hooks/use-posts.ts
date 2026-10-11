@@ -4,6 +4,44 @@ import { apiAssetUrl, apiRequest, uploadImage } from "@/lib/api";
 
 export type PostCategory = "general" | "desk_setup";
 
+const POST_IMAGE_TYPES = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+} as const;
+const POST_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+
+export function getPostImageError(file: File): string | null {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const mime = file.type.toLowerCase();
+  const supportedMime = mime in POST_IMAGE_TYPES;
+  const supportedExtension = ["jpg", "jpeg", "png", "gif", "webp"].includes(extension);
+  if ((mime && !supportedMime) || (!mime && !supportedExtension)) {
+    return "Use a JPEG, PNG, GIF, or WebP photo. HEIC and AVIF photos are not supported yet.";
+  }
+  if (file.size > POST_IMAGE_MAX_BYTES) return "This photo is over 20 MB. Choose a smaller photo and try again.";
+  return null;
+}
+
+function preparePostImage(file: File): { file: File; extension: string } {
+  const extensionFromName = file.name.split(".").pop()?.toLowerCase();
+  const mimeFromExtension: Record<string, keyof typeof POST_IMAGE_TYPES> = {
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp",
+  };
+  const mime = (file.type.toLowerCase() in POST_IMAGE_TYPES
+    ? file.type.toLowerCase()
+    : mimeFromExtension[extensionFromName ?? ""]) as keyof typeof POST_IMAGE_TYPES | undefined;
+
+  const error = getPostImageError(file);
+  if (error) throw new Error(error);
+  if (!mime || !POST_IMAGE_TYPES[mime]) throw new Error("This photo format is not supported.");
+
+  const extension = POST_IMAGE_TYPES[mime];
+  const normalizedFile = file.type === mime ? file : new File([file], `photo.${extension}`, { type: mime });
+  return { file: normalizedFile, extension };
+}
+
 export type Post = {
   id: string;
   author_id: string;
@@ -48,8 +86,8 @@ export function useCreatePost() {
 
       let image_path: string | null = null;
       if (imageFile) {
-        const ext = imageFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
-        image_path = (await uploadImage(`/files/${encodeURIComponent(session.user.id)}/${encodeURIComponent(`${Date.now()}.${ext}`)}`, imageFile)).path;
+        const prepared = preparePostImage(imageFile);
+        image_path = (await uploadImage(`/files/${encodeURIComponent(session.user.id)}/${encodeURIComponent(`${crypto.randomUUID()}.${prepared.extension}`)}`, prepared.file)).path;
       }
 
       return apiRequest<Post>("/posts", { method: "POST", body: JSON.stringify({ body: body || null, image_path, category }) });

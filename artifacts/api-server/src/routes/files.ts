@@ -45,7 +45,7 @@ const readContainedImage = async (file: string, allowedRoot: string): Promise<Bu
   }
 };
 
-router.post("/files/:owner/:name", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, express.raw({ type:"image/*", limit:"10mb" }), async(req,res,next)=>{
+router.post("/files/:owner/:name", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, express.raw({ type:"image/*", limit:"25mb" }), async(req,res,next)=>{
   const owner=Array.isArray(req.params.owner)?req.params.owner[0]:req.params.owner;
   const name=Array.isArray(req.params.name)?req.params.name[0]:req.params.name;
   const file=resolveImage(owner,name);
