@@ -87,7 +87,8 @@ foreach ($migration in @(
     "0002_daily_mood_checkins.sql",
     "0003_app_presence.sql",
     "0004_app_push_delivery.sql",
-    "0005_voice_realtime_replacement.sql"
+    "0005_voice_realtime_replacement.sql",
+    "0006_birthday_email_inline_images.sql"
 )) {
   $parts.Add([System.IO.File]::ReadAllText((Join-Path $root "lib/db/migrations/$migration")))
 }

@@ -22,6 +22,7 @@ export async function sendBirthdayEmail(options: {
   replyTo?: string | null;
   subject: string;
   body: string;
+  imageUrl?: string | null;
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Email delivery is not configured. Add RESEND_API_KEY to the API environment.");
@@ -29,6 +30,16 @@ export async function sendBirthdayEmail(options: {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) throw new Error("The configured sender email address is invalid.");
   const fromName = options.fromName.trim();
   const from = `${fromName ? `${fromName.replace(/[<>\r\n]/g, "")} ` : ""}<${fromEmail}>`;
+  let imageHtml = "";
+  if (options.imageUrl?.trim()) {
+    let imageUrl: URL;
+    try { imageUrl = new URL(options.imageUrl); }
+    catch { throw new Error("The configured birthday email picture URL is invalid."); }
+    if (imageUrl.protocol !== "https:" || !imageUrl.pathname.startsWith("/api/files/") || imageUrl.username || imageUrl.password) {
+      throw new Error("The configured birthday email picture URL is invalid.");
+    }
+    imageHtml = `<p style="margin:20px 0"><img src="${escapeHtml(imageUrl.toString())}" alt="Birthday celebration" style="display:block;max-width:100%;height:auto;border:0;border-radius:12px" /></p>`;
+  }
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
@@ -38,7 +49,7 @@ export async function sendBirthdayEmail(options: {
       ...(options.replyTo?.trim() ? { reply_to: options.replyTo.trim() } : {}),
       subject: options.subject,
       text: options.body,
-      html: `<div style="font-family:Arial,sans-serif;white-space:pre-wrap;line-height:1.6">${escapeHtml(options.body)}</div>`,
+      html: `<div style="font-family:Arial,sans-serif;white-space:pre-wrap;line-height:1.6">${escapeHtml(options.body)}</div>${imageHtml}`,
     }),
   });
   if (!response.ok) {
@@ -67,7 +78,7 @@ function localDateTime(date: Date, timeZone: string): { date: string; hour: numb
 type BirthdayPerson = { id: string; email: string | null; username: string | null };
 type EmailSettings = {
   enabled: boolean; personal_enabled: boolean; from_name: string; from_email: string; reply_to: string;
-  subject: string; body: string; personal_subject: string; personal_body: string; site_url: string;
+  subject: string; body: string; announcement_image_url: string; personal_subject: string; personal_body: string; personal_image_url: string; site_url: string;
   timezone: string; send_hour: number;
 };
 
@@ -124,6 +135,7 @@ async function deliverBirthdayEmails(now: Date): Promise<void> {
           to: person.email, fromName: settings.from_name, fromEmail: settings.from_email, replyTo: settings.reply_to,
           subject: fillBirthdayTemplate(settings.personal_subject, { name: `@${person.username || "teammate"}`, date: dateLabel, site_url: siteUrl }),
           body: fillBirthdayTemplate(settings.personal_body, { name: `@${person.username || "teammate"}`, date: dateLabel, site_url: siteUrl }),
+          imageUrl: settings.personal_image_url,
         });
         await finishLog(person.id, local.date, "personal", 1);
       } catch (error) {
@@ -154,6 +166,7 @@ async function deliverBirthdayEmails(now: Date): Promise<void> {
             to: recipient.email, fromName: settings.from_name, fromEmail: settings.from_email, replyTo: settings.reply_to,
             subject: fillBirthdayTemplate(settings.subject, { names, date: dateLabel, site_url: siteUrl }),
             body: fillBirthdayTemplate(settings.body, { names, date: dateLabel, site_url: siteUrl }),
+            imageUrl: settings.announcement_image_url,
           });
           sent++;
         } catch (error) {
