@@ -267,17 +267,16 @@ export default function Profile() {
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="h-32 w-full flex items-center justify-center">
+                    <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
                         user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         accessory={key}
                         border={profile.active_border}
-                        className="w-12 h-12"
-                        reserveSpace={false}
+                        className="w-full max-w-36 h-auto aspect-square"
                       />
                     </div>
-                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
                     <Button
                       size="sm"
                       variant={equipped ? "outline" : "default"}
@@ -324,17 +323,16 @@ export default function Profile() {
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="h-32 w-full flex items-center justify-center">
+                    <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
                         user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         border={key}
                         accessory={profile.active_accessory}
-                        className="w-12 h-12"
-                        reserveSpace={false}
+                        className="w-full max-w-36 h-auto aspect-square"
                       />
                     </div>
-                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
                     <Button
                       size="sm"
                       variant={equipped ? "outline" : "default"}

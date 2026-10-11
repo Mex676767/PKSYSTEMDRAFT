@@ -28,7 +28,7 @@ export function AnimatedCosmeticsShop({ busy = false, onPendingChange }: { busy?
                 return (
                   <div key={set.id} data-cosmetic-set={set.id} className={cn("min-w-0 rounded-xl border p-3 text-center", equipped ? "border-primary/50 bg-primary/10" : "border-border/60 bg-muted/20")}>
                     <div className="h-48 flex items-center justify-center">
-                      <UserAvatar user={user} photoUrl={profile.avatar_url} border={set.borderKey} accessory={set.accessoryKey} className="w-16 h-16" reserveSpace={false} />
+                      <UserAvatar user={user} photoUrl={profile.avatar_url} border={set.borderKey} accessory={set.accessoryKey} className="w-44 h-44" />
                     </div>
                     <h4 className="text-sm font-semibold">{set.name}</h4>
                     <p className="text-[11px] leading-relaxed text-muted-foreground mt-1 min-h-12">{set.description}</p>

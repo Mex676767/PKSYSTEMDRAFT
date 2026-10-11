@@ -77,7 +77,6 @@ export function TeamStatusCard() {
                           border={p.active_border}
                           accessory={p.active_accessory}
                           className="w-8 h-8 text-[10px]"
-                          reserveSpace={false}
                         />
                       </div>
                       <span className="flex min-w-0 flex-1 flex-col items-start gap-1">

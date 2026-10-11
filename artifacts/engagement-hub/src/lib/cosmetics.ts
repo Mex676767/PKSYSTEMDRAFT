@@ -67,8 +67,8 @@ export function isAccessoryKey(key: string | null | undefined): key is Accessory
 }
 
 /** How far each decoration draws outside the avatar, as a fraction of the
- * avatar's size (measured in the browser, plus a small margin). UserAvatar
- * reserves this much space so decorations don't cover nearby text. */
+ * avatar's diameter, including a small margin for animation. UserAvatar
+ * fits these bounds inside a stable slot so art cannot cover nearby text. */
 export type DecorationExtent = { left: number; right: number; top: number; bottom: number };
 
 export const ACCESSORY_EXTENTS = Object.assign({

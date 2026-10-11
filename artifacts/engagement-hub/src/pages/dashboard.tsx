@@ -184,7 +184,6 @@ export default function Dashboard() {
                             border={shoutout.recipient?.active_border ?? null}
                             accessory={shoutout.recipient?.active_accessory ?? null}
                             className="h-10 w-10 text-xs"
-                            reserveSpace={false}
                           />
                         </div>
                         <div className="min-w-0 flex-1 pr-3">
@@ -236,7 +235,6 @@ export default function Dashboard() {
                           border={goal.owner?.active_border ?? null}
                           accessory={goal.owner?.active_accessory ?? null}
                           className="w-9 h-9 text-xs"
-                          reserveSpace={false}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
