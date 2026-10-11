@@ -20,8 +20,17 @@ router.get("/activity-history/:userId", requireSession, requireApprovedSession, 
         [userId],
       ),
       pool.query(
-        `select id, channel_id, joined_at, left_at from public.voice_sessions
-          where user_id = $1 order by joined_at desc limit 20`,
+        `select s.id, s.channel_id, s.joined_at,
+                case
+                  when s.left_at is not null then s.left_at
+                  when p.last_seen_at > now() - interval '20 seconds' then null
+                  else coalesce(p.last_seen_at, s.joined_at)
+                end as left_at
+           from public.voice_sessions s
+           left join public.voice_presence p
+             on p.user_id = s.user_id and p.channel_id = s.channel_id
+          where s.user_id = $1
+          order by s.joined_at desc limit 20`,
         [userId],
       ),
     ]);
