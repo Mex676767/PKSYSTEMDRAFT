@@ -39,17 +39,14 @@ export function VoiceParticipantAvatar({
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div
-        className={cn(
-          "relative rounded-full transition-shadow",
-          isSpeaking && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-card"
-        )}
+        className="relative rounded-full transition-shadow"
       >
         <UserAvatar
           user={{ name: participant.username, initials: initialsForUsername(participant.username), color: colorForId(participant.id) }}
           photoUrl={isMe ? myProfile?.avatar_url : directoryEntry?.avatar_url}
           border={isMe ? myProfile?.active_border : directoryEntry?.active_border}
           accessory={isMe ? myProfile?.active_accessory : directoryEntry?.active_accessory}
-          className={dimClass}
+          className={cn(dimClass, isSpeaking && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-card")}
         />
         {(deafened || muted) && (
           <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center">
@@ -62,11 +59,11 @@ export function VoiceParticipantAvatar({
           </span>
         )}
       </div>
-      <span className="text-[11px] text-muted-foreground truncate max-w-full">
+      <span className="avatar-readable text-[11px] text-muted-foreground truncate max-w-full">
         {isMe ? "You" : `@${participant.username}`}
       </span>
       {!isMe && connectionState && connectionState !== "connected" && (
-        <span className="text-[9px] text-amber-500 truncate max-w-full -mt-1">
+        <span className="avatar-readable text-[9px] text-amber-500 truncate max-w-full -mt-1">
           {connectionState === "connecting" || connectionState === "new" ? "Connecting…" : "Connection issue"}
         </span>
       )}

@@ -70,7 +70,7 @@ export function TeamStatusCard() {
                       onClick={() => setHistoryUser({ id: p.id, username: p.username })}
                       className="flex min-h-14 items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors text-left"
                     >
-                      <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-visible">
+                      <div className="relative flex h-11 w-12 shrink-0 items-center justify-center overflow-visible">
                         <UserAvatar
                           user={{ name: p.username, initials: initialsForUsername(p.username), color: colorForId(p.id) }}
                           photoUrl={p.avatar_url}
@@ -79,7 +79,7 @@ export function TeamStatusCard() {
                           className="w-8 h-8 text-[10px]"
                         />
                       </div>
-                      <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                      <span className="avatar-readable flex min-w-0 flex-1 flex-col items-start gap-1">
                         <span className="text-xs font-medium truncate max-w-full">@{p.username}</span>
                         <span
                           className={cn(

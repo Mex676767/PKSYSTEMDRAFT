@@ -163,7 +163,7 @@ export default function Profile() {
             </div>
           </DialogContent>
         </Dialog>
-        <div className="min-w-0 break-words">
+        <div className="avatar-readable min-w-0 break-words">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
             {profile.active_title ? achievementLabel(profile.active_title) : "No title set"}
