@@ -1,11 +1,14 @@
-import { memo, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useId, type CSSProperties } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { BorderDecoration } from "./border-decoration";
 import { AccessoryDecoration } from "./accessory-decoration";
 import { cn } from "@/lib/utils";
 import { apiAssetUrl } from "@/lib/api";
-import { ACCESSORY_EXTENTS, BORDER_EXTENTS, isAccessoryKey, isBorderKey } from "@/lib/cosmetics";
+import { isBorderKey } from "@/lib/cosmetics";
 import { avatarUrlForDisplay } from "@/lib/avatar-presets";
+import { ANIMATED_COSMETIC_SETS } from "@/lib/animated-cosmetics";
+import { AnimatedCatalogDecoration } from "./cosmetics/animated-catalog-decoration";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface UserAvatarProps {
   user: { initials: string; color: string; name: string };
@@ -14,57 +17,41 @@ interface UserAvatarProps {
   accessory?: string | null
   photoUrl?: string | null
   border?: string | null
-  /** Reserve room beside the avatar for wings, ears, borders and so on, so
-   * they don't cover the name next to it. Off for overlapping stacks and
-   * layouts that place avatars themselves (the goals tree). */
-  reserveSpace?: boolean
+  /** Photo size stays fixed; only the space around its artwork changes. */
+  presentation?: "compact" | "showcase" | "stack"
 }
 
-function UserAvatarComponent({ user, className, style, accessory, photoUrl, border, reserveSpace = true }: UserAvatarProps) {
-  const avatarRef = useRef<HTMLSpanElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(0);
-  // The gap the parent layout already leaves beside the avatar; decorations can use it.
-  const [gap, setGap] = useState({ left: 0, right: 0 });
-  const acc = isAccessoryKey(accessory) ? ACCESSORY_EXTENTS[accessory] : null;
-  const bor = isBorderKey(border) ? BORDER_EXTENTS[border] : null;
-  const decorated = reserveSpace && !!(acc || bor);
-
-  useLayoutEffect(() => {
-    const el = avatarRef.current;
-    if (!decorated || !el) return;
-    const measure = () => {
-      setSize(el.offsetWidth);
-      const wrap = wrapRef.current;
-      const parent = wrap?.parentElement;
-      const g = parent ? parseFloat(getComputedStyle(parent).columnGap) : 0;
-      const usable = Number.isFinite(g) ? g : 0;
-      // Only count the gap on a side that actually has a neighbour.
-      setGap({ left: wrap?.previousElementSibling ? usable : 0, right: wrap?.nextElementSibling ? usable : 0 });
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [decorated]);
-
-  // Accessory and border art overlap, so the room needed on a side is the larger of the two.
-  const side = (s: "left" | "right") => Math.max(0, Math.ceil(Math.max(acc?.[s] ?? 0, bor?.[s] ?? 0) * size - Math.max(0, gap[s] - 3)));
-  const margins: CSSProperties | undefined = decorated && size
-    ? { marginLeft: side("left"), marginRight: side("right") }
-    : undefined;
+function UserAvatarComponent({ user, className, style, accessory, photoUrl, border, presentation = "compact" }: UserAvatarProps) {
+  const uid = useId();
+  const reducedMotion = useReducedMotion();
+  const paired = ANIMATED_COSMETIC_SETS.find(set => set.borderKey === border && set.accessoryKey === accessory);
+  // Photos define row height. Artwork floats outside without enlarging rows.
+  // Equal horizontal clearance keeps accessories away from adjacent names.
+  const horizontalGutter = presentation === "showcase" ? 1.05 : presentation === "stack" ? 0 : .35;
+  const verticalGutter = presentation === "showcase" ? 1.05 : 0;
+  const frameStyle: CSSProperties = {
+    gridTemplateColumns: `${horizontalGutter}fr 1fr ${horizontalGutter}fr`,
+    gridTemplateRows: `${verticalGutter}fr 1fr ${verticalGutter}fr`,
+  };
 
   return (
-    <div ref={wrapRef} className="relative inline-flex h-fit align-middle shrink-0 isolate overflow-visible" style={margins}>
-      <AccessoryDecoration accessory={accessory} layer="back" />
-      <Avatar ref={avatarRef} className={cn("border-2 border-background bg-muted relative z-10", className, isBorderKey(border) && "border-0")} style={style}>
-        {photoUrl && <AvatarImage src={apiAssetUrl(avatarUrlForDisplay(photoUrl) ?? photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
-        <AvatarFallback className={cn("text-white font-bold", user.color)}>
-          {user.initials}
-        </AvatarFallback>
-      </Avatar>
-      <BorderDecoration border={border} />
-      <AccessoryDecoration accessory={accessory} layer="front" />
+    <div data-user-avatar data-presentation={presentation} className="relative inline-grid w-max align-middle shrink-0 isolate overflow-visible" style={frameStyle}>
+      <div data-avatar-face className={cn("relative col-start-2 row-start-2 w-10 h-10 rounded-full", className)} style={style}>
+        {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-back`} kind="set" layer="back" animated={!reducedMotion} /> : <>
+          <AccessoryDecoration accessory={accessory} layer="back" />
+          <BorderDecoration border={border} layer="back" />
+        </>}
+        <Avatar data-avatar-photo className={cn("w-full h-full border-2 border-background bg-muted relative z-10", isBorderKey(border) && "border-0")}>
+          {photoUrl && <AvatarImage src={apiAssetUrl(avatarUrlForDisplay(photoUrl) ?? photoUrl)} alt={user.name} loading="lazy" decoding="async" />}
+          <AvatarFallback className={cn("text-white font-bold", user.color)}>
+            {user.initials}
+          </AvatarFallback>
+        </Avatar>
+        {paired ? <AnimatedCatalogDecoration entry={paired} uid={`${uid}-front`} kind="set" layer="front" animated={!reducedMotion} /> : <>
+          <BorderDecoration border={border} />
+          <AccessoryDecoration accessory={accessory} layer="front" />
+        </>}
+      </div>
     </div>
   );
 }
@@ -87,7 +74,7 @@ export const UserAvatar = memo(
     previous.accessory === next.accessory &&
     previous.photoUrl === next.photoUrl &&
     previous.border === next.border &&
-    previous.reserveSpace === next.reserveSpace &&
+    previous.presentation === next.presentation &&
     sameStyle(previous.style, next.style),
 );
 UserAvatar.displayName = "UserAvatar";

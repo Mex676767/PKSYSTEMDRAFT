@@ -646,3 +646,118 @@ body.tab-hidden .cosmetic-anim {
 /* Floating avatar artwork may approach labels; labels always paint above it. */
 [data-user-avatar] ~ :is(div, span, p, a, h1, h2, h3):not([data-user-avatar]):not(.absolute):not(.fixed),
 .avatar-readable { position: relative; z-index: 1; }
+/* Floating avatar artwork may approach labels; labels always paint above it. */
+[data-user-avatar] ~ :is(div, span, p, a, h1, h2, h3):not([data-user-avatar]):not(.absolute):not(.fixed),
+.avatar-readable { position: relative; z-index: 1; }
+
+
+.hof-celestial-head h2.hof-celestial-category{max-width:min(900px,95%);margin:18px auto 0;color:#ffe3a0;font-size:clamp(32px,5vw,52px);font-weight:900;line-height:1.08;letter-spacing:-.04em;text-shadow:0 3px 20px #f2bd5b38;overflow-wrap:anywhere}
+@media(max-width:700px){.hof-celestial-head h2.hof-celestial-category{font-size:clamp(28px,8vw,38px)}}
+
+
+/* Keep the profile avatar centered inside its podium stage. */
+.hof-celestial-avatar-stage > [data-user-avatar] {
+  justify-self: center;
+  align-self: center;
+  margin-inline: auto;
+}
+
+
+/* Give tied winners compact, polished profiles that stay inside the podium. */
+.hof-celestial-people.is-tied{gap:8px;padding:4px 2px}
+.hof-celestial-people.is-tied .hof-celestial-person{padding:7px 3px 6px;border:1px solid #e8c87944;border-radius:12px;background:linear-gradient(180deg,#fff2,#140a1dba);box-shadow:inset 0 1px 0 #fff2,0 5px 12px #0003}
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage{min-height:58px}
+.hof-celestial-people.is-tied .hof-celestial-avatar{width:44px!important;height:44px!important;box-shadow:0 0 0 3px #ffffff08,0 0 0 4px #d6bcde2b,0 5px 13px #0008}
+.hof-celestial-people.is-tied .hof-celestial-avatar.is-winner{width:48px!important;height:48px!important}
+.hof-celestial-people.is-tied .hof-celestial-crown{bottom:calc(50% + 23px);width:32px;height:24px}
+.hof-celestial-people.is-tied .hof-celestial-person h3{width:100%;margin-top:5px;font-size:clamp(10px,1.1vw,13px);line-height:1.15;overflow-wrap:anywhere}
+
+
+/* Keep ties as one shared group, without individual boxes. */
+.hof-celestial-people.is-tied{gap:8px;padding:4px 2px}
+.hof-celestial-people.is-tied .hof-celestial-person{padding:4px 2px 6px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.hof-celestial-people.is-tied .hof-celestial-person+.hof-celestial-person{border-left:1px solid #e8c87938}
+
+
+/* Keep champion art centered without adding vertical avatar height. */
+.hof-celestial-avatar-stage > [data-user-avatar] {
+  grid-template-rows: 0px auto 0px !important;
+}
+.hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar.is-winner {
+  transform: translateX(-25%);
+}
+
+
+/* Keep tied third-place profiles compact and visually centered. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied {
+  justify-content: center;
+  gap: 4px;
+  padding-inline: 8px;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-person + .hof-celestial-person {
+  border-left: 0 !important;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar {
+  width: 40px !important;
+  height: 40px !important;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  transform: translateX(-25%) !important;
+}
+
+
+/* Counter the right-heavy cosmetics on compact tied podium avatars. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  transform: translateX(-50%) !important;
+}
+
+
+/* Center the complete tied third-place group in its card. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied {
+  transform: translateX(-8px);
+}
+/* Fine-tune the tied third-place winner row slightly farther left. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied { transform: translateX(-14px); }
+/* Center tied third-place winners from the card midpoint, with centered labels. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  transform: none !important;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-person {
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-person h3 {
+  width: 100%;
+  text-align: center;
+}
+
+/* Let each tied winner fit its own equal-width grid track. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-person {
+  width: auto !important;
+  min-width: 0;
+  justify-self: stretch;
+}
+
+/* Center the tied profile photo itself; do not translate it inside its wrapper. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] {
+  justify-self: center;
+  align-self: center;
+  margin-inline: auto;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  transform: none !important;
+}
+
+/* Keep decorative avatar gutters symmetric within each tied-winner column. */
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] {
+  width: 100% !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+}
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  grid-column: 2;
+  justify-self: center;
+  transform: none !important;
+}

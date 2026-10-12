@@ -1,4 +1,6 @@
-export const BORDER_KEYS = [
+import { ANIMATED_COSMETIC_SETS } from "./animated-cosmetics";
+
+export const LEGACY_BORDER_KEYS = [
   "cosmic-orbit",
   "pixel-glitch",
   "electric-pulse",
@@ -9,9 +11,12 @@ export const BORDER_KEYS = [
   "galaxy-crown",
 ] as const;
 
+export type LegacyBorderKey = (typeof LEGACY_BORDER_KEYS)[number];
+export const BORDER_KEYS = [...LEGACY_BORDER_KEYS, ...ANIMATED_COSMETIC_SETS.map(set => set.borderKey)] as const;
+
 export type BorderKey = (typeof BORDER_KEYS)[number];
 
-export const BORDER_META: Record<BorderKey, { name: string; tagline: string }> = {
+export const BORDER_META = Object.assign({
   "cosmic-orbit": { name: "Cosmic Orbit", tagline: "Keep reaching for higher things." },
   "pixel-glitch": { name: "Pixel Glitch", tagline: "A little chaos looks good on you." },
   "electric-pulse": { name: "Electric Pulse", tagline: "Positive energy. Bigger impact." },
@@ -20,13 +25,13 @@ export const BORDER_META: Record<BorderKey, { name: string; tagline: string }> =
   "crystal-prism": { name: "Crystal Prism", tagline: "Different perspectives, brighter outcomes." },
   "meteor-trail": { name: "Meteor Trail", tagline: "Make your mark." },
   "galaxy-crown": { name: "Galaxy Crown", tagline: "For those who go beyond." },
-};
+}, Object.fromEntries(ANIMATED_COSMETIC_SETS.map(set => [set.borderKey, { name: set.borderName, tagline: set.description }]))) as Record<BorderKey, { name: string; tagline: string }>;
 
 export function isBorderKey(key: string | null | undefined): key is BorderKey {
   return !!key && (BORDER_KEYS as readonly string[]).includes(key);
 }
 
-export const ACCESSORY_KEYS = [
+export const LEGACY_ACCESSORY_KEYS = [
   "angel-wings",
   "neon-headphones",
   "rocket-pack",
@@ -39,9 +44,12 @@ export const ACCESSORY_KEYS = [
   "champion-laurel",
 ] as const;
 
+export type LegacyAccessoryKey = (typeof LEGACY_ACCESSORY_KEYS)[number];
+export const ACCESSORY_KEYS = [...LEGACY_ACCESSORY_KEYS, ...ANIMATED_COSMETIC_SETS.map(set => set.accessoryKey)] as const;
+
 export type AccessoryKey = (typeof ACCESSORY_KEYS)[number];
 
-export const ACCESSORY_META: Record<AccessoryKey, { name: string; tagline: string }> = {
+export const ACCESSORY_META = Object.assign({
   "angel-wings": { name: "Angel Wings", tagline: "Rise above and spread positive vibes." },
   "neon-headphones": { name: "Neon Headphones", tagline: "Good ideas sound better together." },
   "rocket-pack": { name: "Rocket Pack", tagline: "Take your progress to new heights." },
@@ -52,18 +60,18 @@ export const ACCESSORY_META: Record<AccessoryKey, { name: string; tagline: strin
   "pixel-sword": { name: "Pixel Sword", tagline: "For those who fight for progress." },
   "mini-planet": { name: "Mini Planet", tagline: "A bigger perspective leads to bigger things." },
   "champion-laurel": { name: "Champion Laurel", tagline: "Celebrate your wins, big and small." },
-};
+}, Object.fromEntries(ANIMATED_COSMETIC_SETS.map(set => [set.accessoryKey, { name: set.accessoryName, tagline: set.description }]))) as Record<AccessoryKey, { name: string; tagline: string }>;
 
 export function isAccessoryKey(key: string | null | undefined): key is AccessoryKey {
   return !!key && (ACCESSORY_KEYS as readonly string[]).includes(key);
 }
 
 /** How far each decoration draws outside the avatar, as a fraction of the
- * avatar's size (measured in the browser, plus a small margin). UserAvatar
- * reserves this much space so decorations don't cover nearby text. */
+ * avatar's diameter, including a small margin for animation. UserAvatar
+ * fits these bounds inside a stable slot so art cannot cover nearby text. */
 export type DecorationExtent = { left: number; right: number; top: number; bottom: number };
 
-export const ACCESSORY_EXTENTS: Record<AccessoryKey, DecorationExtent> = {
+export const ACCESSORY_EXTENTS = Object.assign({
   "angel-wings": { left: 0.49, right: 0.49, top: 0.31, bottom: 0 },
   "neon-headphones": { left: 0.36, right: 0.45, top: 0.12, bottom: 0 },
   "rocket-pack": { left: 0, right: 0.42, top: 0.15, bottom: 0.22 },
@@ -74,9 +82,9 @@ export const ACCESSORY_EXTENTS: Record<AccessoryKey, DecorationExtent> = {
   "pixel-sword": { left: 0, right: 0.58, top: 0.37, bottom: 0 },
   "mini-planet": { left: 0.28, right: 0.27, top: 0.65, bottom: 0 },
   "champion-laurel": { left: 0.38, right: 0.36, top: 0.39, bottom: 0 },
-};
+}, Object.fromEntries(ANIMATED_COSMETIC_SETS.map(set => [set.accessoryKey, { left: 1.05, right: 1.05, top: 1, bottom: 1 }]))) as Record<AccessoryKey, DecorationExtent>;
 
-export const BORDER_EXTENTS: Record<BorderKey, DecorationExtent> = {
+export const BORDER_EXTENTS = Object.assign({
   "cosmic-orbit": { left: 0.43, right: 0.36, top: 0.31, bottom: 0.31 },
   "pixel-glitch": { left: 0.39, right: 0.39, top: 0.27, bottom: 0.18 },
   "electric-pulse": { left: 0.39, right: 0.43, top: 0.35, bottom: 0.27 },
@@ -85,4 +93,4 @@ export const BORDER_EXTENTS: Record<BorderKey, DecorationExtent> = {
   "crystal-prism": { left: 0.32, right: 0.36, top: 0.33, bottom: 0.22 },
   "meteor-trail": { left: 0.39, right: 0.39, top: 0.42, bottom: 0.19 },
   "galaxy-crown": { left: 0.42, right: 0.46, top: 0.4, bottom: 0.25 },
-};
+}, Object.fromEntries(ANIMATED_COSMETIC_SETS.map(set => [set.borderKey, { left: .65, right: .65, top: .65, bottom: .65 }]))) as Record<BorderKey, DecorationExtent>;

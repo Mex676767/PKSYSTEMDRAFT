@@ -127,7 +127,7 @@ function CategoryEditor({
   const [name, setName] = useState(category.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saved, setSaved] = useState("");
-  const awardType = category.award_type ?? "individual";
+  const [awardType, setAwardType] = useState<"individual" | "team">(category.award_type ?? "individual");
   const [draft, setDraft] = useState<{ rank: number; winner_ids: string[]; achievement: string; team_member_ids: string[] }[]>(
     [1, 2, 3].map((rank) => ({
       rank,
@@ -227,8 +227,10 @@ function CategoryEditor({
           onChange={(e) => setName(e.target.value)}
         />
         <Button disabled={mutation.isPending || !name.trim()} variant="outline">
-          Rename
-        </Button>
+          Save category
+        </Button>        <Button type="button" size="sm" variant={awardType === "individual" ? "default" : "outline"} aria-pressed={awardType === "individual"} onClick={() => { if (awardType !== "individual") { setSaved(""); setDraft((rows) => rows.map((row) => ({ ...row, winner_ids: [...row.winner_ids, ...row.team_member_ids], team_member_ids: [] }))); setAwardType("individual"); } }} children="Individual" />
+        <Button type="button" size="sm" variant={awardType === "team" ? "default" : "outline"} aria-pressed={awardType === "team"} onClick={() => { if (awardType !== "team") { setSaved(""); setDraft((rows) => rows.map((row) => ({ ...row, winner_ids: row.winner_ids.slice(0, 1), team_member_ids: [...row.team_member_ids, ...row.winner_ids.slice(1)] }))); setAwardType("team"); } }} children="Team" />
+
       </form>
       <form
         className="space-y-3"

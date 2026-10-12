@@ -77,10 +77,9 @@ export function TeamStatusCard() {
                           border={p.active_border}
                           accessory={p.active_accessory}
                           className="w-8 h-8 text-[10px]"
-                          reserveSpace={false}
                         />
                       </div>
-                      <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                      <span className="avatar-readable flex min-w-0 flex-1 flex-col items-start gap-1">
                         <span className="text-xs font-medium truncate max-w-full">@{p.username}</span>
                         <span
                           className={cn(
