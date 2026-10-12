@@ -693,3 +693,9 @@ body.tab-hidden .cosmetic-anim {
 .hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
   transform: translateX(-50%) !important;
 }
+
+
+/* Center the complete tied third-place group in its card. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied {
+  transform: translateX(-8px);
+}
