@@ -140,11 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithPassword = async (login: string, password: string) => {
     try {
-      await apiRequest("/auth/password/login", {
+      const loginResult = await apiRequest<{ must_change_password: boolean }>("/auth/password/login", {
         method: "POST",
         body: JSON.stringify({ login: login.trim(), password }),
       });
-      await refetchProfile();
+      await refetchProfile(); setProfile((current) => current ? { ...current, must_change_password: loginResult.must_change_password } : current);
       return { error: null };
     } catch (error) {
       return { error: error instanceof Error ? error.message : "Sign-in failed. Please try again." };
