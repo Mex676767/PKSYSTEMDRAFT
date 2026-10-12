@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, MessageCircle, Reply, Heart, Swords, MessageSquare, Cake, Target, Coins, Trophy, type LucideIcon } from "lucide-react";
 import { PushToggle } from "@/components/push-toggle";
@@ -39,6 +39,7 @@ const TARGET_LINK: Record<string, string> = {
 
 export function NotificationBell() {
   const { session } = useAuth();
+  const [, navigate] = useLocation();
   const { data: notifications = [] } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -119,7 +120,14 @@ export function NotificationBell() {
                     onClick={(event) => {
                       if (n.target_type === "post" && n.target_id) {
                         event.preventDefault();
-                        window.location.assign(href);
+                        if (window.location.pathname === "/social") {
+                          window.history.pushState({}, "", href);
+                          window.dispatchEvent(new CustomEvent("social-notification-target", {
+                            detail: { postId: n.target_id, commentId: n.comment_id ?? null },
+                          }));
+                        } else {
+                          navigate(href);
+                        }
                       }
                       if (!n.read) markRead.mutate(n.id);
                       setIsOpen(false);
