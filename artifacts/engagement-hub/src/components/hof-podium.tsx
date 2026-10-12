@@ -4,7 +4,7 @@ import type { HofPodiumEntry } from "@/hooks/use-hall-of-fame";
 import { cn } from "@/lib/utils";
 
 const places = ["", "Monthly champion", "Second place", "Third place"];
-const distinction = ["", "Gold distinction", "Silver distinction", "Bronze distinction"];
+
 
 function ChampionCrown() {
   return (
@@ -105,7 +105,7 @@ export function DepartmentPodium({ department, category, awardType, entries }: D
                   )}
                   <div className="hof-celestial-divider" aria-hidden="true"><i />✧<i /></div>
                   <strong className="hof-celestial-rank">0{rank}</strong>
-                  <span className="hof-celestial-distinction">{distinction[rank]}</span>
+                  
                 </article>
               );
             })}
