@@ -19,9 +19,12 @@ const NEW_POST_DRAFT_KEY = "c9myr:new-post-draft";
 export default function Social() {
   const { session, profile } = useAuth();
   const { data: feedPosts = [], isLoading } = usePostsFeed();
-  const searchParams = new URLSearchParams(window.location.search);
-  const requestedPostId = searchParams.get("post");
-  const requestedCommentId = searchParams.get("comment");
+  const [notificationTarget, setNotificationTarget] = useState(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return { postId: searchParams.get("post"), commentId: searchParams.get("comment") };
+  });
+  const requestedPostId = notificationTarget.postId;
+  const requestedCommentId = notificationTarget.commentId;
   const { data: focusedPost } = usePostById(requestedPostId && !feedPosts.some((post) => post.id === requestedPostId) ? requestedPostId : null);
   const posts = useMemo(() => focusedPost && !feedPosts.some((post) => post.id === focusedPost.id) ? [focusedPost, ...feedPosts] : feedPosts, [feedPosts, focusedPost]);
   const postIds = useMemo(() => posts.map((post) => post.id), [posts]);
@@ -29,6 +32,24 @@ export default function Social() {
   const focusCommentId = requestedCommentId;
   const focusedComment = focusCommentId ? comments.find((comment) => comment.id === focusCommentId) : undefined;
   const lastScrolledPostId = useRef<string | null>(null);
+  useEffect(() => {
+    const updateFromUrl = () => {
+      lastScrolledPostId.current = null;
+      const searchParams = new URLSearchParams(window.location.search);
+      setNotificationTarget({ postId: searchParams.get("post"), commentId: searchParams.get("comment") });
+    };
+    const handleNotificationTarget = (event: Event) => {
+      lastScrolledPostId.current = null;
+      const { postId, commentId } = (event as CustomEvent<{ postId: string; commentId: string | null }>).detail;
+      setNotificationTarget({ postId, commentId });
+    };
+    window.addEventListener("popstate", updateFromUrl);
+    window.addEventListener("social-notification-target", handleNotificationTarget);
+    return () => {
+      window.removeEventListener("popstate", updateFromUrl);
+      window.removeEventListener("social-notification-target", handleNotificationTarget);
+    };
+  }, []);
   useEffect(() => {
     if (!requestedPostId) {
       lastScrolledPostId.current = null;
