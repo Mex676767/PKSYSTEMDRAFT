@@ -636,3 +636,11 @@ body.tab-hidden .cosmetic-anim {
 
 .hof-celestial-head h2.hof-celestial-category{max-width:min(900px,95%);margin:18px auto 0;color:#ffe3a0;font-size:clamp(32px,5vw,52px);font-weight:900;line-height:1.08;letter-spacing:-.04em;text-shadow:0 3px 20px #f2bd5b38;overflow-wrap:anywhere}
 @media(max-width:700px){.hof-celestial-head h2.hof-celestial-category{font-size:clamp(28px,8vw,38px)}}
+
+
+/* Keep the profile avatar centered inside its podium stage. */
+.hof-celestial-avatar-stage > [data-user-avatar] {
+  justify-self: center;
+  align-self: center;
+  margin-inline: auto;
+}
