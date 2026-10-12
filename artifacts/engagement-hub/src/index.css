@@ -733,3 +733,14 @@ body.tab-hidden .cosmetic-anim {
 .hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
   transform: none !important;
 }
+
+/* Keep decorative avatar gutters symmetric within each tied-winner column. */
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] {
+  width: 100% !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+}
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  grid-column: 2;
+  justify-self: center;
+  transform: none !important;
+}
