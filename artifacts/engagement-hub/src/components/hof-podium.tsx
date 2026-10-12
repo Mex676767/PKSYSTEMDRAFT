@@ -63,7 +63,7 @@ export function DepartmentPodium({ department, category, awardType, entries }: D
                 <article key={rank} data-rank={rank} className={cn("hof-celestial-place", winner && "is-winner")}>
                   {rankedEntries.length ? (
                     <>
-                      <div className={cn("hof-celestial-people", awardType === "individual" && rankedEntries.length > 1 && "is-tied")}>
+                      <div className={cn("hof-celestial-people", awardType === "individual" && rankedEntries.length > 1 && "is-tied")} style={awardType === "individual" && rankedEntries.length > 1 ? { display: "grid", gridTemplateColumns: `repeat(${rankedEntries.length}, minmax(0, 1fr))`, alignItems: "start", gap: 4 } : undefined}>
                         {rankedEntries.map((entry) => (
                           <div className="hof-celestial-person" key={entry.user_id}>
                             <div className="hof-celestial-avatar-stage">
