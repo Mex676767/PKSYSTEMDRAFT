@@ -148,9 +148,9 @@ router.post("/auth/password/login", assertAllowedBrowserOrigin, async (req, res,
   }
   try {
     const result = await pool.query<{
-      id: string; is_deleted: boolean; password_hash: string | null; is_approved: boolean;
+      id: string; is_deleted: boolean; password_hash: string | null; is_approved: boolean; must_change_password: boolean;
     }>(
-      `select p.id, p.is_deleted, c.password_hash, (a.approved_at is not null) as is_approved
+      `select p.id, p.is_deleted, c.password_hash, (a.approved_at is not null) as is_approved, coalesce(c.must_change_password, false) as must_change_password
          from public.profiles p
          left join public.api_password_credentials c on c.user_id = p.id
          left join public.account_approvals a on a.user_id = p.id
@@ -174,7 +174,7 @@ router.post("/auth/password/login", assertAllowedBrowserOrigin, async (req, res,
       );
     }
     await issueSession(res, account.id);
-    res.json({ authenticated: true, is_approved: Boolean(account.is_approved) });
+    res.json({ authenticated: true, is_approved: Boolean(account.is_approved), must_change_password: Boolean(account.must_change_password) });
   } catch (error) { next(error); }
 });
 
