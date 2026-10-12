@@ -71,6 +71,7 @@ export function DepartmentPodium({ department, category, awardType, entries }: D
                               <UserAvatar
                                 user={{ name: entry.username ?? "Team member", initials: initialsForUsername(entry.username ?? "?"), color: colorForId(entry.user_id) }}
                                 photoUrl={entry.avatar_url}
+                                presentation="showcase"
                                 border={entry.active_border}
                                 accessory={entry.active_accessory}
                                 reserveSpace={false}
