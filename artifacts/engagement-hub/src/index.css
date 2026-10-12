@@ -701,3 +701,18 @@ body.tab-hidden .cosmetic-anim {
 }
 /* Fine-tune the tied third-place winner row slightly farther left. */
 .hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied { transform: translateX(-14px); }
+/* Center tied third-place winners from the card midpoint, with centered labels. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  transform: none !important;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-person {
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-person h3 {
+  width: 100%;
+  text-align: center;
+}
