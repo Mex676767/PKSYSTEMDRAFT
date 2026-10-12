@@ -27,7 +27,7 @@ function CelestialMap() {
         <circle cx="500" cy="375" r="270" strokeDasharray="1 12" />
         <path d="M180 170 256 220 207 330 110 285 180 170M820 170 744 220 793 330 890 285 820 170M340 90 500 125 660 90M400 50 500 125 600 50" />
       </g>
-      <g fill="currentColor">{points.map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="2.5" />)}</g>
+      <g fill="currentColor">{points.map(([x, y]) => <circle key={x + "-" + y} cx={x} cy={y} r="2.5" />)}</g>
     </svg>
   );
 }
@@ -40,18 +40,14 @@ type DepartmentPodiumProps = {
   monthLabel?: string;
 };
 
-export function DepartmentPodium({ department, category, awardType, entries, monthLabel }: DepartmentPodiumProps) {
+export function DepartmentPodium({ department, category, awardType, entries }: DepartmentPodiumProps) {
   return (
-    <section aria-label={`${department} ${category} podium`} className="hof-celestial-shell">
+    <section aria-label={department + " " + category + " podium"} className="hof-celestial-shell">
       <CelestialMap />
       <div className="hof-celestial-arch" aria-hidden="true" />
       <header className="hof-celestial-head">
         <p>✦ Monthly KPI spotlight</p>
-        <h2>{department} · {monthLabel}</h2>
-        <span>Celebrating this month&apos;s standout performers</span>
-        <div className="hof-celestial-tags" aria-label="Award category">
-          <b>{category}</b>
-        </div>
+        <h2 className="hof-celestial-category">{category}</h2>
       </header>
 
       {entries.length === 0 ? (
@@ -77,6 +73,7 @@ export function DepartmentPodium({ department, category, awardType, entries, mon
                                 photoUrl={entry.avatar_url}
                                 border={entry.active_border}
                                 accessory={entry.active_accessory}
+                                reserveSpace={false}
                                 className={cn("hof-celestial-avatar", winner && "is-winner", rankedEntries.length > 1 && "is-tied-avatar")}
                               />
                             </div>
@@ -90,7 +87,7 @@ export function DepartmentPodium({ department, category, awardType, entries, mon
                       </p>
                       <p className="hof-celestial-achievement">{lead.achievement}</p>
                       {awardType === "team" && !!lead.team_members?.length && (
-                        <div className="hof-celestial-team" aria-label={`${lead.team_members.length} team members`}>
+                        <div className="hof-celestial-team" aria-label={lead.team_members.length + " team members"}>
                           <span className="hof-celestial-team-heading">Team members</span>
                           <ul>
                             {lead.team_members.map((member) => (
