@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post-card";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { motion } from "framer-motion";
 import { X, Rss } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
-import { usePostsFeed, useCreatePost, getPostImageError } from "@/hooks/use-posts";
+import { usePostsFeed, usePostById, useCreatePost, getPostImageError } from "@/hooks/use-posts";
 import { useCommentsForTargets, useReactionsForTargets, type Reaction } from "@/hooks/use-social";
 import { imageFromClipboard } from "@/lib/clipboard-image";
 import { ImagePickerButton } from "@/components/image-picker-button";
@@ -17,9 +18,16 @@ const NEW_POST_DRAFT_KEY = "c9myr:new-post-draft";
 
 export default function Social() {
   const { session, profile } = useAuth();
-  const { data: posts = [], isLoading } = usePostsFeed();
+  const { data: feedPosts = [], isLoading } = usePostsFeed();
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedPostId = searchParams.get("post");
+  const requestedCommentId = searchParams.get("comment");
+  const { data: focusedPost } = usePostById(requestedPostId && !feedPosts.some((post) => post.id === requestedPostId) ? requestedPostId : null);
+  const posts = useMemo(() => focusedPost && !feedPosts.some((post) => post.id === focusedPost.id) ? [focusedPost, ...feedPosts] : feedPosts, [feedPosts, focusedPost]);
   const postIds = useMemo(() => posts.map((post) => post.id), [posts]);
   const { data: comments = [] } = useCommentsForTargets("post", postIds);
+  const focusCommentId = requestedCommentId;
+  const focusedComment = focusCommentId ? comments.find((comment) => comment.id === focusCommentId) : undefined;
   const { data: reactions = [] } = useReactionsForTargets("post", postIds);
   const createPost = useCreatePost();
 
@@ -119,14 +127,15 @@ export default function Social() {
                   className="w-10 h-10 shrink-0"
                 />
                 <div className="flex-1 flex gap-2 items-stretch">
-                  <div className="flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
+                  <div className="relative flex-1 rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
                     <textarea
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                       onPaste={handlePaste}
                       placeholder="What's on your mind? (you can paste a picture in here too)"
-                      className="h-24 w-full px-3 pt-2 text-sm bg-transparent focus-visible:outline-none resize-none overflow-y-auto block"
+                      className="h-24 w-full px-3 pt-2 pb-10 pr-12 text-sm bg-transparent focus-visible:outline-none resize-none overflow-y-auto block"
                     />
+                    <EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setBody((value) => `${value}${emoji}`)} />
                   </div>
                   <div className="flex flex-col gap-2 w-20 shrink-0">
                   <ImagePickerButton onImage={setImage} label="Photo" iconOnly accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp" className="h-[calc(50%-4px)] shrink-0" />
@@ -177,6 +186,7 @@ export default function Social() {
                 post={post}
                 commentCount={commentCountByPost.get(post.id) ?? 0}
                 reactions={reactionsByPost.get(post.id) ?? []}
+                focusCommentId={focusedComment?.target_id === post.id ? focusCommentId : null}
               />
             </motion.div>
           ))}

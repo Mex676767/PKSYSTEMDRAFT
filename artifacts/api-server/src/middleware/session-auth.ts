@@ -8,7 +8,7 @@ const SESSION_LIFETIME_DAYS = 30;
 
 export type SessionUser = {
   id: string;
-  email: string;
+  email: string | null;
   username: string | null;
   points: number;
   badges: string[];

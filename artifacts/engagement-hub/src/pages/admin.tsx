@@ -4,7 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, Eye, EyeOff, Clock3 } from "lucide-react";
+import { ShieldAlert, Search, UserX, UserCheck, Shield, Cake, Briefcase, AtSign, Coins, Eye, EyeOff, Clock3, KeyRound, Copy } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
 import { useAuth, colorForId, initialsForUsername, USERNAME_PATTERN } from "@/hooks/use-auth";
 import {
   useAllProfiles,
@@ -47,7 +49,7 @@ export default function Admin() {
     (p) =>
       !search.trim() ||
       p.username?.toLowerCase().includes(search.toLowerCase()) ||
-      p.email.toLowerCase().includes(search.toLowerCase())
+      (p.email ?? "").toLowerCase().includes(search.toLowerCase())
   );
   const pendingCount = profiles.filter((profile) => !profile.is_approved && !profile.is_deleted).length;
 
@@ -148,6 +150,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
   const usernameValid = USERNAME_PATTERN.test(usernameInput);
   const adjustPoints = useAdminAdjustPoints();
   const approve = useApproveUser();
+  const resetPassword = useMutation({ mutationFn: (userId: string) => apiRequest<{ password: string }>(`/admin/profiles/${encodeURIComponent(userId)}/reset-password`, { method: "POST" }) });
   const [editingPoints, setEditingPoints] = useState(false);
   const [pointsAmount, setPointsAmount] = useState("");
   const [pointsReason, setPointsReason] = useState("");
@@ -166,7 +169,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
         <div className="flex items-center gap-3">
           <Avatar className="w-9 h-9 shrink-0">
             <AvatarFallback className={cn("text-white text-xs font-bold", colorForId(row.id))}>
-              {initialsForUsername(row.username ?? row.email)}
+              {initialsForUsername(row.username ?? row.email ?? "?")}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -178,7 +181,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               {row.is_deleted && row.is_approved && <Badge variant="destructive" className="text-[10px]">Deactivated</Badge>}
               {row.is_hidden && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
             </div>
-            <p className="text-xs text-muted-foreground truncate">{row.email} · {row.points} pts{row.department ? ` · ${row.department}` : ""}</p>
+            <p className="text-xs text-muted-foreground truncate">{row.email ?? "No recovery email"} · {row.points} pts{row.department ? ` · ${row.department}` : ""}</p>
           </div>
 
           <button
@@ -231,6 +234,13 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
               ) : null}
             </div>
           )}
+          {!isSelf && !row.is_deleted && <button
+            onClick={() => window.confirm(`Reset @${row.username ?? row.email ?? "user"}'s password? Their active sessions will be signed out.`) && resetPassword.mutate(row.id)}
+            disabled={resetPassword.isPending}
+            title="Set a random password"
+            aria-label="Reset user password"
+            className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+          ><KeyRound className="w-4 h-4" /></button>}
         </div>
 
         {!row.is_approved && !row.is_deleted && (
@@ -238,7 +248,7 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             <p className="text-xs text-muted-foreground">This user cannot enter the hub until an admin approves the account.</p>
             <div className="flex shrink-0 items-center gap-2">
               <button
-                onClick={() => window.confirm(`Reject ${row.email}? Their account will be deactivated immediately.`) && deactivate.mutate(row.id)}
+                onClick={() => window.confirm(`Reject ${row.email ?? `@${row.username}`}? Their account will be deactivated immediately.`) && deactivate.mutate(row.id)}
                 disabled={approve.isPending || deactivate.isPending}
                 className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
               >
@@ -302,6 +312,11 @@ function UserRow({ row, isSelf }: { row: AdminProfileRow; isSelf: boolean }) {
             </>
           )}
         </div>
+        {resetPassword.data?.password && <div className="ml-12 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+          <p className="text-xs font-medium">New password. Copy it now; it won’t be shown again.</p>
+          <div className="flex items-center gap-2"><code className="break-all text-xs">{resetPassword.data.password}</code><button type="button" title="Copy password" className="p-1.5 rounded hover:bg-muted" onClick={() => void navigator.clipboard.writeText(resetPassword.data!.password)}><Copy className="w-3.5 h-3.5" /></button><button type="button" className="text-xs text-primary hover:underline" onClick={() => resetPassword.reset()}>Dismiss</button></div>
+        </div>}
+        {resetPassword.isError && <p className="ml-12 text-xs text-destructive">Password reset failed. Try again.</p>}
 
         <div className="pl-12 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
           <Coins className="w-3.5 h-3.5 shrink-0" />

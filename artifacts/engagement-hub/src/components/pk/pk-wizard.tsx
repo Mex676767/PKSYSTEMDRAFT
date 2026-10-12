@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DatePicker } from "@/components/date-picker";
 import { SearchableSelect } from "@/components/searchable-select";
 import { personOption } from "@/components/person-option";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { useAuth } from "@/hooks/use-auth";
 import { useDirectory } from "@/hooks/use-mentors";
 import { useCreatePk, useRespondPk } from "@/hooks/use-pk";
@@ -307,8 +308,8 @@ export function PkWizard({
               <Field label="Title"><input className={input} maxLength={120} value={t.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Most closed deals in October" /></Field>
               <Field label="What's measured"><input className={input} value={t.metric} onChange={(e) => set("metric", e.target.value)} placeholder="e.g. Closed deals" /></Field>
               <Field label="Exactly how it's counted">
-                <textarea className={cn(input, "h-auto min-h-[64px] py-2")} value={t.metric_definition} onChange={(e) => set("metric_definition", e.target.value)}
-                  placeholder="e.g. Deals marked Won in the CRM with the payment received" />
+                <div className="relative"><textarea className={cn(input, "h-auto min-h-[64px] py-2 pb-10")} value={t.metric_definition} onChange={(e) => set("metric_definition", e.target.value)}
+                  placeholder="e.g. Deals marked Won in the CRM with the payment received" /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => set("metric_definition", `${t.metric_definition}${emoji}`)} /></div>
               </Field>
               <Field label="Who wins">
                 <div className="grid grid-cols-2 gap-2">
@@ -330,7 +331,7 @@ export function PkWizard({
                 <SearchableSelect value={t.base_tier} onValueChange={(v) => set("base_tier", v as PkTerms["base_tier"])} searchable={false} aria-label="Point tier"
                   options={[{ value: "5", label: "5 points", description: "Normal work target" }, { value: "8", label: "8 points", description: "Stretch result" }, { value: "10", label: "10 points", description: "Major company or customer result" }]} />
               </Field>
-              <Field label="Why this tier fits"><textarea className={cn(input, "h-auto min-h-[56px] py-2")} value={t.tier_reason} onChange={(e) => set("tier_reason", e.target.value)} placeholder="The approver will confirm this reasoning" /></Field>
+              <Field label="Why this tier fits"><div className="relative"><textarea className={cn(input, "h-auto min-h-[56px] py-2 pb-10")} value={t.tier_reason} onChange={(e) => set("tier_reason", e.target.value)} placeholder="The approver will confirm this reasoning" /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => set("tier_reason", `${t.tier_reason}${emoji}`)} /></div></Field>
               {isSelf && <label className="flex items-start gap-2 text-xs"><input type="checkbox" className="mt-0.5" checked={t.company_metric} onChange={(e) => { set("company_metric", e.target.checked); if (e.target.checked) set("base_tier", "10"); }} /> This self-declaration directly measures a company or customer result (eligible for Tier 10)</label>}
               <Field label="How often scores are updated">
                 <input list="pk-update-frequencies" className={input} value={t.update_frequency} onChange={(e) => set("update_frequency", e.target.value)} placeholder="Daily, every Monday, every 3 days..." />
@@ -338,7 +339,7 @@ export function PkWizard({
                 <p className="text-[11px] text-muted-foreground mt-1">Choose the schedule both sides can maintain. Stopping agreed updates forfeits the completion point and records a violation.</p>
               </Field>
               <Field label="Description (optional)">
-                <textarea className={cn(input, "h-auto min-h-[56px] py-2")} value={t.description} onChange={(e) => set("description", e.target.value)} placeholder="Anything else people should know" />
+                <div className="relative"><textarea className={cn(input, "h-auto min-h-[56px] py-2 pb-10")} value={t.description} onChange={(e) => set("description", e.target.value)} placeholder="Anything else people should know" /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => set("description", `${t.description}${emoji}`)} /></div>
               </Field>
             </>
           )}
@@ -383,7 +384,7 @@ export function PkWizard({
               <Field label="Optional tier upgrade">
                 <SearchableSelect value={t.upgrade_tier} onValueChange={(v) => set("upgrade_tier", v as PkTerms["upgrade_tier"])} searchable={false} aria-label="Tier upgrade"
                   options={[{ value: "", label: "No upgrade" }, ...(t.base_tier === "5" ? [{ value: "8", label: "Upgrade to 8" }, { value: "10", label: "Upgrade to 10" }] : t.base_tier === "8" ? [{ value: "10", label: "Upgrade to 10" }] : [])]} />
-                {t.upgrade_tier && <textarea className={cn(input, "h-auto min-h-[56px] py-2 mt-2")} value={t.upgrade_requirement} onChange={(e) => set("upgrade_requirement", e.target.value)} placeholder="Pre-agreed requirement and evidence for the upgrade" />}
+                {t.upgrade_tier && <div className="relative mt-2"><textarea className={cn(input, "h-auto min-h-[56px] py-2 pb-10")} value={t.upgrade_requirement} onChange={(e) => set("upgrade_requirement", e.target.value)} placeholder="Pre-agreed requirement and evidence for the upgrade" /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => set("upgrade_requirement", `${t.upgrade_requirement}${emoji}`)} /></div>}
               </Field>
               <Field label="Tiebreaker (optional)"><input className={input} value={t.tiebreaker} onChange={(e) => set("tiebreaker", e.target.value)} placeholder="e.g. Whoever got there first" /></Field>
             </>

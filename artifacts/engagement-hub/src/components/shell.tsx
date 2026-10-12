@@ -202,8 +202,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <div className="relative shrink-0">
                   <UserAvatar
                     user={{
-                      name: profile.username ?? profile.email,
-                      initials: initialsForUsername(profile.username ?? profile.email),
+                      name: profile.username ?? profile.email ?? "teammate",
+                      initials: initialsForUsername(profile.username ?? profile.email ?? "?"),
                       color: colorForId(profile.id),
                     }}
                     accessory={profile.active_accessory}
@@ -217,7 +217,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
+                <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email ?? "teammate"}</p>
                 {isMyBirthdayToday ? (
                   <p className="text-xs font-semibold text-secondary truncate flex items-center gap-1 mt-0.5">
                     <PartyPopper className="w-3 h-3" /> It's your birthday!

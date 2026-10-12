@@ -19,14 +19,15 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export default function Login() {
-  const { signInWithPassword, signInWithGoogle, deactivatedNotice, dismissDeactivatedNotice } = useAuth();
+  const { signInWithPassword, signInWithGoogle, refetchProfile, deactivatedNotice, dismissDeactivatedNotice } = useAuth();
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const resetToken = new URLSearchParams(window.location.search).get("token");
-  const [screen, setScreen] = useState<"login" | "forgot" | "reset">(resetToken ? "reset" : "login");
+  const [screen, setScreen] = useState<"login" | "register" | "forgot" | "reset">(resetToken ? "reset" : "login");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -148,13 +149,13 @@ export default function Login() {
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-primary" /> Email address
+                  <Mail className="w-4 h-4 text-primary" /> Username or email
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="your_username"
                   autoFocus
                   required
                   className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -180,10 +181,26 @@ export default function Login() {
               <button type="button" className="block mx-auto text-xs text-primary hover:underline" onClick={() => { setScreen("forgot"); setError(null); setNotice(null); }}>Forgot password?</button>
 
               <p className="text-center text-xs text-muted-foreground">
-                No account yet? Use Google above. Password sign-in is for existing accounts only.
+                New here? <button type="button" className="text-primary hover:underline" onClick={() => { setScreen("register"); setError(null); }}>Create an account</button>
               </p>
             </form>
             </>}
+            {screen === "register" && <form onSubmit={async (e) => {
+              e.preventDefault(); setStatus("sending"); setError(null);
+              try {
+                await apiRequest("/auth/register", { method: "POST", body: JSON.stringify({ username, email: email.trim() || null, password }) });
+                await refetchProfile();
+                setStatus("idle");
+              } catch (err) { setError(err instanceof Error ? err.message : "Could not create your account."); setStatus("error"); }
+            }} className="space-y-4">
+              <h2 className="text-xl font-semibold text-center">Create your account</h2>
+              <label className="block space-y-2 text-sm font-medium"><span>Username</span><input type="text" required minLength={3} maxLength={20} pattern="[A-Za-z0-9_]{3,20}" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="letters, numbers, underscore" className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>
+              <label className="block space-y-2 text-sm font-medium"><span>Email address <span className="text-muted-foreground font-normal">(optional)</span></span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>
+              <p className="text-xs text-muted-foreground">Without an email, you can’t reset a forgotten password or receive birthday emails. You can add one later in your profile.</p>
+              <label className="block space-y-2 text-sm font-medium"><span>Password</span><input type="password" required minLength={12} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /><span className="text-xs text-muted-foreground font-normal">Use at least 12 characters.</span></label>
+              <Button type="submit" className="w-full" disabled={status === "sending"}>{status === "sending" ? "Creating account..." : "Create account"}</Button>
+              <button type="button" className="block mx-auto text-xs text-primary hover:underline" onClick={() => setScreen("login")}>Back to sign in</button>
+            </form>}
             {screen === "forgot" && <form onSubmit={handleForgotPassword} className="space-y-4">
               <h2 className="text-xl font-semibold text-center">Reset your password</h2>
               <p className="text-sm text-center text-muted-foreground">We’ll email a secure reset link if an account matches.</p>

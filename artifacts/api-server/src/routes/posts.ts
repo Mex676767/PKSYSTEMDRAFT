@@ -15,6 +15,11 @@ router.get("/posts/desk-setup", requireSession, requireApprovedSession, async (_
   try{const q=await pool.query(`select ${postFields},count(r.id)::int as vote_count from public.posts p join public.profiles u on u.id=p.author_id left join public.reactions r on r.target_type='post' and r.target_id=p.id::text where p.category='desk_setup' group by p.id,u.id order by vote_count desc,p.created_at desc`);res.json(q.rows);}catch(e){next(e);}
 });
 
+router.get("/posts/:id", requireSession, requireApprovedSession, async (req,res,next)=>{
+  if(!isUuid(req.params.id)){res.status(400).json({error:"Post id is invalid."});return;}
+  try{const q=await pool.query(`select ${postFields} from public.posts p join public.profiles u on u.id=p.author_id where p.id=$1`,[req.params.id]);if(!q.rowCount){res.status(404).json({error:"Post not found."});return;}res.json(q.rows[0]);}catch(e){next(e);}
+});
+
 router.post("/posts", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async(req,res,next)=>{
   const {body,image_path:imagePath,category="general"}=req.body??{};
   if((body!==null&&body!==undefined&&(typeof body!=="string"||body.length>5000))||(imagePath!==null&&imagePath!==undefined&&(typeof imagePath!=="string"||imagePath.length>500))||!["general","desk_setup"].includes(category)){res.status(400).json({error:"Post details are invalid."});return;}

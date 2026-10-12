@@ -10,6 +10,7 @@ import { LiveDataSync } from "@/components/live-data-sync";
 import { Shell } from "@/components/shell";
 import { ComingSoon } from "@/pages/coming-soon";
 import Dashboard from "@/pages/dashboard";
+import { GooglePasswordSetup } from "@/components/google-password-setup";
 
 const Goals = lazy(() => import("@/pages/goals"));
 const Social = lazy(() => import("@/pages/social"));
@@ -46,6 +47,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function Router() {
   return (
     <Shell>
+      <GooglePasswordSetup />
       <DailyGoalReminder />
       <RoutedErrorBoundary>
         <Suspense fallback={<RouteLoading />}>

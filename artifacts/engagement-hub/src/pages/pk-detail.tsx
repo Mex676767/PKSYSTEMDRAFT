@@ -8,6 +8,7 @@ import { PageTransition } from "@/components/animations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImagePickerButton } from "@/components/image-picker-button";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
 import { PkAvatar, PkSideBlock, pkNextStep } from "@/components/pk/pk-card";
@@ -180,7 +181,7 @@ function UpgradeEvidence({ pk }: { pk: Pk }) {
   return <Card className="border-secondary/30"><CardContent className="p-4 space-y-2">
     <p className="text-sm font-semibold">Tier upgrade evidence · {pk.base_tier} → {pk.upgrade_tier} points</p>
     <p className="text-xs text-muted-foreground">Pre-agreed requirement: {pk.upgrade_requirement}</p>
-    <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[64px]" value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="Describe the result and where the approver can verify it" />
+    <div className="relative"><textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 pb-11 text-sm min-h-[64px]" value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="Describe the result and where the approver can verify it" /><EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setEvidence((value) => `${value}${emoji}`)} /></div>
     <Button size="sm" variant="outline" disabled={submit.isPending} onClick={async () => { setError(null); try { await submit.mutateAsync({ id: pk.id, evidence }); } catch (err) { setError(getErrorMessage(err)); } }}>{submit.isPending ? "Saving..." : pk.upgrade_evidence ? "Update evidence" : "Submit evidence"}</Button>
     {error && <p className="text-xs text-destructive">{error}</p>}
     {pk.upgrade_evidence && <p className="text-[11px] text-muted-foreground">The result confirmer will approve this upgrade when settling the match.</p>}
@@ -262,8 +263,8 @@ function PkActions({ pk, viewerId, canApprove, isAdmin, playbook, canTerminate }
   if (pk.status === "awaiting_approval" && canApprove) {
     blocks.push(
       <div key="review" className="space-y-2">
-        <textarea className={cn(input, "w-full h-auto min-h-[56px] py-2")} value={note} onChange={(e) => setNote(e.target.value)}
-          placeholder="Note (required if you reject: say what to fix)" />
+        <div className="relative"><textarea className={cn(input, "w-full h-auto min-h-[56px] py-2 pb-11")} value={note} onChange={(e) => setNote(e.target.value)}
+          placeholder="Note (required if you reject: say what to fix)" /><EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setNote((value) => `${value}${emoji}`)} /></div>
         <div className="flex gap-2">
           <Button size="sm" disabled={review.isPending} onClick={() => run(() => review.mutateAsync({ id: pk.id, approve: true, note }))}>
             <ShieldCheck className="w-4 h-4 mr-1" /> Approve
@@ -376,7 +377,8 @@ function PlaybookForm({ pk, playbook, onError }: { pk: Pk; playbook: PkPlaybook 
       {PLAYBOOK_QUESTIONS.map((q) => (
         <div key={q.key} className="space-y-1">
           <label className="text-sm font-medium">{q.label}</label>
-          <textarea className={input} value={v[q.key]} onChange={(e) => setV({ ...v, [q.key]: e.target.value })} placeholder={q.hint} />
+          <div className="relative"><textarea className={cn(input, "pb-10")} value={v[q.key]} onChange={(e) => setV({ ...v, [q.key]: e.target.value })} placeholder={q.hint} />
+            <EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => setV((current) => ({ ...current, [q.key]: `${current[q.key]}${emoji}` }))} /></div>
           <p className={cn("text-[11px]", v[q.key].trim().length >= 40 ? "text-emerald-500" : "text-muted-foreground")}>{v[q.key].trim().length}/40 characters minimum</p>
         </div>
       ))}
@@ -403,8 +405,8 @@ function VerifyPanel({ pk, hasPlaybook, onError }: { pk: Pk; hasPlaybook: boolea
       <p className="text-xs text-muted-foreground">
         Check the final numbers against the proof{hasPlaybook ? ", read the playbook" : ""}, and make sure the reward and penalty have been done. Confirming gives out the PK points.
       </p>
-      <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[56px]" value={note}
-        onChange={(e) => setNote(e.target.value)} placeholder="Note (required to send back or reopen)" />
+      <div className="relative"><textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 pb-11 text-sm min-h-[56px]" value={note}
+        onChange={(e) => setNote(e.target.value)} placeholder="Note (required to send back or reopen)" /><EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setNote((value) => `${value}${emoji}`)} /></div>
       <div className="flex flex-wrap gap-2">
         {draw ? (
           <>
@@ -445,8 +447,8 @@ function TerminatePanel({ pk, onError }: { pk: Pk; onError: (e: string | null) =
       <p className="text-xs text-muted-foreground">For special cases outside anyone's control. It ends without a winner or PK points.</p>
       <SearchableSelect value={reason} onValueChange={(v) => setReason(v as PkTerminateReason)} searchable={false} placeholder="Reason" aria-label="Reason"
         options={(Object.keys(PK_TERMINATE_REASONS) as PkTerminateReason[]).map((r) => ({ value: r, label: PK_TERMINATE_REASONS[r] }))} />
-      <textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[56px]" value={note}
-        onChange={(e) => setNote(e.target.value)} placeholder="What happened? Everyone in the PK will see this." />
+      <div className="relative"><textarea className="flex w-full rounded-md border border-input bg-background px-3 py-2 pb-11 text-sm min-h-[56px]" value={note}
+        onChange={(e) => setNote(e.target.value)} placeholder="What happened? Everyone in the PK will see this." /><EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setNote((value) => `${value}${emoji}`)} /></div>
       <div className="flex gap-2">
         <Button size="sm" variant="destructive" disabled={terminate.isPending} onClick={async () => {
           onError(null);
@@ -574,7 +576,7 @@ function ScoreForm({ pk, onError }: { pk: Pk; onError: (e: string | null) => voi
       <p className="text-xs text-muted-foreground">Your running total for {pk.metric}, not just today's. Proof: {pk.proof_method}</p>
       <div className="flex flex-wrap items-center gap-2">
         <input type="number" inputMode="decimal" min={0} className={cn(input, "w-32")} placeholder="Current total" value={value} onChange={(e) => setValue(e.target.value)} />
-        <input className={cn(input, "flex-1 min-w-[10rem]")} placeholder="Comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} />
+        <div className="flex flex-1 min-w-[10rem] items-center gap-1"><input className={cn(input, "flex-1 min-w-0")} placeholder="Comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} /><EmojiPicker className="[&_button]:h-8 [&_button]:w-8" onSelect={(emoji) => setComment((value) => `${value}${emoji}`)} /></div>
       </div>
       {preview ? (
         <div className="relative inline-block">

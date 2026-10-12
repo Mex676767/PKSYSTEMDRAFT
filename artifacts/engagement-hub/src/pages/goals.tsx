@@ -7,6 +7,7 @@ import { DatePicker } from "@/components/date-picker";
 import { GoalCard } from "@/components/goal-card";
 import { GoalsTreeView } from "@/components/goals-tree-view";
 import { TreeDetailPanel } from "@/components/goals-tree-panel";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { Plus, Search, X, MessageCircle, ListChecks, ClipboardList, Send, LayoutGrid, TreeDeciduous, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import {
@@ -367,34 +368,30 @@ export default function Goals() {
                         className="h-8 w-auto min-w-[7rem] text-xs"
                       />
                     </div>
-                    <input
-                      type="text"
-                      value={d.title}
-                      onChange={(e) => updateDraft(d.key, { title: e.target.value })}
-                      placeholder="e.g., Ship feature X"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    />
-                    <textarea
-                      value={d.description}
-                      onChange={(e) => updateDraft(d.key, { description: e.target.value })}
-                      placeholder="Details..."
-                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
+                    <div className="flex items-center gap-1 rounded-md border border-input bg-background pr-1">
+                      <input type="text" value={d.title} onChange={(e) => updateDraft(d.key, { title: e.target.value })}
+                        placeholder="e.g., Ship feature X" className="flex h-9 w-full min-w-0 rounded-md bg-transparent px-3 text-sm outline-none" />
+                      <EmojiPicker className="[&_button]:h-7 [&_button]:w-7" onSelect={(emoji) => updateDraft(d.key, { title: `${d.title}${emoji}` })} />
+                    </div>
+                    <div className="relative"><textarea value={d.description} onChange={(e) => updateDraft(d.key, { description: e.target.value })}
+                      placeholder="Details..." className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm" />
+                      <EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => updateDraft(d.key, { description: `${d.description}${emoji}` })} />
+                    </div>
                     <p className="text-[11px] text-muted-foreground">{GOAL_TERM_META[d.term].sub}</p>
                     {d.term === "short" && (
-                      <textarea
+                      <div className="relative"><textarea
                         value={d.accountability}
                         onChange={(e) => updateDraft(d.key, { accountability: e.target.value })}
                         placeholder="Consequence if missed: what penalty will you set if you don't follow through?"
-                        className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      />
+                        className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm"
+                      /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => updateDraft(d.key, { accountability: `${d.accountability}${emoji}` })} /></div>
                     )}
-                    <textarea
+                    <div className="relative"><textarea
                       value={d.actionPlan}
                       onChange={(e) => updateDraft(d.key, { actionPlan: e.target.value })}
                       placeholder="Action plan (optional): how are you going to get there?"
-                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
+                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm"
+                    /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => updateDraft(d.key, { actionPlan: `${d.actionPlan}${emoji}` })} /></div>
                     <div className="flex items-center gap-1.5">
                       <ClipboardList className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <span className="text-xs text-muted-foreground shrink-0">Target date:</span>
@@ -706,6 +703,7 @@ const PersonGoalCard = memo(function PersonGoalCard(
                 placeholder="Comment..."
                 className="flex-1 min-w-0 h-7 rounded-full border border-input bg-background px-2.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
+              <EmojiPicker className="[&_button]:h-7 [&_button]:w-7" onSelect={(emoji) => setCommentText((value) => `${value}${emoji}`)} />
               <button
                 type="submit"
                 disabled={!commentText.trim() || addComment.isPending}

@@ -11,6 +11,7 @@ import { ArrowLeft, Monitor, Image as ImageIcon, X, Trophy } from "lucide-react"
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { useDeskSetupEntries, useCreatePost, getPostImageUrl } from "@/hooks/use-posts";
 import { ImagePickerButton } from "@/components/image-picker-button";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { cn } from "@/lib/utils";
 
 const RANK_STYLES = [
@@ -94,14 +95,14 @@ export default function DeskSetup() {
                 <ImagePickerButton onImage={setImage} label="Add a photo of your setup" className="w-full" />
               )}
 
-              <input
+              <div className="flex items-center gap-2"><input
                 type="text"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Tell us about your setup (optional)"
                 maxLength={200}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
+                className="flex h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              /><EmojiPicker onSelect={(emoji) => setCaption((value) => `${value}${emoji}`)} /></div>
 
               <Button type="submit" className="w-full" disabled={!imageFile || createPost.isPending}>
                 {createPost.isPending ? "Submitting..." : "Submit Entry"}

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { UserAvatar } from "@/components/user-avatar";
 import { AnimatedCosmeticsShop } from "@/components/animated-cosmetics-shop";
 import { ChangePasswordCard } from "@/components/change-password-card";
+import { ContactEmailCard } from "@/components/contact-email-card";
 import { motion } from "framer-motion";
 import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -78,8 +79,8 @@ export default function Profile() {
             <button type="button" className="relative group shrink-0">
               <UserAvatar
                 user={{
-                  name: profile.username ?? profile.email,
-                  initials: initialsForUsername(profile.username ?? profile.email),
+                  name: profile.username ?? profile.email ?? "teammate",
+                  initials: initialsForUsername(profile.username ?? profile.email ?? "?"),
                   color: colorForId(profile.id),
                 }}
                 accessory={profile.active_accessory}
@@ -269,7 +270,7 @@ export default function Profile() {
                   >
                     <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
-                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        user={{ name: profile.username ?? profile.email ?? "teammate", initials: initialsForUsername(profile.username ?? profile.email ?? "?"), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         accessory={key}
                         border={profile.active_border}
@@ -326,7 +327,7 @@ export default function Profile() {
                   >
                     <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
-                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        user={{ name: profile.username ?? profile.email ?? "teammate", initials: initialsForUsername(profile.username ?? profile.email ?? "?"), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         border={key}
                         accessory={profile.active_accessory}
@@ -391,6 +392,7 @@ export default function Profile() {
         </Card>
       </motion.div>
 
+      <ContactEmailCard />
       <ChangePasswordCard />
 
       <motion.div variants={slideUp} initial="hidden" animate="show">

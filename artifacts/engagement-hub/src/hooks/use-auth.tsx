@@ -4,7 +4,7 @@ import { ApiError, apiRequest } from "@/lib/api";
 
 export type Profile = {
   id: string;
-  email: string;
+  email: string | null;
   username: string | null;
   points: number;
   badges: string[];
@@ -29,7 +29,7 @@ export type Profile = {
 export type AuthSession = {
   user: {
     id: string;
-    email: string;
+    email: string | null;
     identities: { provider: string }[];
   };
 };
@@ -55,7 +55,7 @@ type AuthState = {
   session: AuthSession | null;
   profile: Profile | null;
   loading: boolean;
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithPassword: (login: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   claimUsername: (username: string) => Promise<{ error: string | null }>;
@@ -137,11 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [profile?.is_approved, profile?.username, queryClient, refetchProfile, session?.user.id]);
 
-  const signInWithPassword = async (email: string, password: string) => {
+  const signInWithPassword = async (login: string, password: string) => {
     try {
       await apiRequest("/auth/password/login", {
         method: "POST",
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ login: login.trim(), password }),
       });
       await refetchProfile();
       return { error: null };

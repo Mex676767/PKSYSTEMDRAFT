@@ -43,6 +43,10 @@ export function useComments(targetType: TargetType, targetId: string) {
   });
 }
 
+export function useMentionableProfiles() {
+  return useQuery({ queryKey: ["mentionable-profiles"], queryFn: () => apiRequest<{ id: string; username: string }[]>("/social/mentionable-profiles"), staleTime: 5 * 60_000 });
+}
+
 export function useAddComment(targetType: TargetType, targetId: string) {
   const { session } = useAuth();
   const qc = useQueryClient();

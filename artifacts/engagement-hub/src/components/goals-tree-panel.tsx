@@ -8,6 +8,7 @@ import { EditGoalDialog } from "@/components/goal-card";
 import type { DirectoryProfile } from "@/hooks/use-mentors";
 import { cn } from "@/lib/utils";
 import { useAchievements } from "@/hooks/use-achievements";
+import { EmojiPicker } from "@/components/emoji-picker";
 
 const TERM_ORDER: GoalTerm[] = ["short", "mid", "long"];
 
@@ -331,6 +332,7 @@ export function TreeDetailPanel(
             placeholder="Comment..."
             className="flex-1 min-w-0 h-8 rounded-full border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+          <EmojiPicker className="[&_button]:h-8 [&_button]:w-8" onSelect={(emoji) => setCommentText((value) => `${value}${emoji}`)} />
           <button
             type="submit"
             disabled={!commentText.trim() || addComment.isPending}

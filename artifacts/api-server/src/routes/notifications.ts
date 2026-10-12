@@ -8,7 +8,7 @@ const isUuid = (value: unknown): value is string => typeof value === "string" &&
 router.get("/notifications", requireSession, requireApprovedSession, async (req, res, next) => {
   try {
     const result = await pool.query(
-      "select id,user_id,actor_id,type,target_type,target_id,message,read,created_at from public.notifications where user_id=$1 and type <> 'dm' order by created_at desc limit 50",
+      "select id,user_id,actor_id,type,target_type,target_id,comment_id,message,read,created_at from public.notifications where user_id=$1 and type <> 'dm' order by created_at desc limit 50",
       [req.sessionUser!.id],
     );
     res.json(result.rows);
