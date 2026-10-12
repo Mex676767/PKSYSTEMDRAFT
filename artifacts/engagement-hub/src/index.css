@@ -644,3 +644,13 @@ body.tab-hidden .cosmetic-anim {
   align-self: center;
   margin-inline: auto;
 }
+
+
+/* Give tied winners compact, polished profiles that stay inside the podium. */
+.hof-celestial-people.is-tied{gap:8px;padding:4px 2px}
+.hof-celestial-people.is-tied .hof-celestial-person{padding:7px 3px 6px;border:1px solid #e8c87944;border-radius:12px;background:linear-gradient(180deg,#fff2,#140a1dba);box-shadow:inset 0 1px 0 #fff2,0 5px 12px #0003}
+.hof-celestial-people.is-tied .hof-celestial-avatar-stage{min-height:58px}
+.hof-celestial-people.is-tied .hof-celestial-avatar{width:44px!important;height:44px!important;box-shadow:0 0 0 3px #ffffff08,0 0 0 4px #d6bcde2b,0 5px 13px #0008}
+.hof-celestial-people.is-tied .hof-celestial-avatar.is-winner{width:48px!important;height:48px!important}
+.hof-celestial-people.is-tied .hof-celestial-crown{bottom:calc(50% + 23px);width:32px;height:24px}
+.hof-celestial-people.is-tied .hof-celestial-person h3{width:100%;margin-top:5px;font-size:clamp(10px,1.1vw,13px);line-height:1.15;overflow-wrap:anywhere}
