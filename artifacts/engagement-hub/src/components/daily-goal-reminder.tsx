@@ -15,17 +15,30 @@ import { GOAL_TERM_META, useGoalTermCoverage } from "@/hooks/use-goals";
 import { localMoodDateKey, useMyMoodCheckIn, useSubmitMoodCheckIn, type Mood } from "@/hooks/use-mood-checkins";
 
 export function DailyGoalReminder() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { data: coverage, isSuccess } = useGoalTermCoverage();
   const [location, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [moodOpen, setMoodOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [confirmPostpone, setConfirmPostpone] = useState(false);
+  const [passwordSetupDismissed, setPasswordSetupDismissed] = useState(() => sessionStorage.getItem("google-password-setup-dismissed") === "1");
+  const needsGooglePasswordSetup = Boolean(
+    session?.user.identities.some((identity) => identity.provider === "google") &&
+    !session?.user.identities.some((identity) => identity.provider === "email") &&
+    !passwordSetupDismissed
+  );
   const submitMood = useSubmitMoodCheckIn();
   const myMoodCheckIn = useMyMoodCheckIn(profile?.id);
 
   const reminderKey = profile ? `daily-goal-reminder:${profile.id}` : null;
+
+
+  useEffect(() => {
+    const handlePasswordSetupDismissed = () => setPasswordSetupDismissed(true);
+    window.addEventListener("google-password-setup-dismissed", handlePasswordSetupDismissed);
+    return () => window.removeEventListener("google-password-setup-dismissed", handlePasswordSetupDismissed);
+  }, []);
 
   const finishForToday = () => {
     if (reminderKey) window.localStorage.setItem(reminderKey, localMoodDateKey());
@@ -46,6 +59,12 @@ export function DailyGoalReminder() {
   };
 
   useEffect(() => {
+    if (needsGooglePasswordSetup) {
+      setOpen(false);
+      setMoodOpen(false);
+      setConfirmPostpone(false);
+      return;
+    }
     if (!profile?.is_approved || !isSuccess) return;
 
     if (coverage?.complete) {
@@ -63,7 +82,7 @@ export function DailyGoalReminder() {
     }
 
     if (location !== "/goals") setOpen(true);
-  }, [coverage?.complete, isSuccess, location, myMoodCheckIn.data, myMoodCheckIn.isSuccess, profile?.id, profile?.is_approved]);
+  }, [coverage?.complete, isSuccess, location, myMoodCheckIn.data, myMoodCheckIn.isSuccess, needsGooglePasswordSetup, profile?.id, profile?.is_approved]);
 
   const missingLabels = coverage?.missing.map((term) => GOAL_TERM_META[term].label) ?? [];
   const missingText = missingLabels.length === 0
