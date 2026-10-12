@@ -94,6 +94,13 @@ export function CommentSection({
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [activeMentionIndex, setActiveMentionIndex] = useState(0);
+  const mentionOptions = useMemo(
+    () => mentionQuery === null
+      ? []
+      : mentionable.filter((person) => person.username.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6),
+    [mentionable, mentionQuery],
+  );
 
   useEffect(() => {
     if (!focusCommentId || isLoading) return;
@@ -134,8 +141,41 @@ export function CommentSection({
     inputRef.current?.focus();
   };
 
+  const selectMention = (username: string) => {
+    const match = /(?:^|\s)@[a-zA-Z0-9_]{0,20}$/.exec(text);
+    const next = match
+      ? `${text.slice(0, match.index)}${match[0].startsWith(" ") ? " " : ""}@${username} `
+      : `${text}@${username} `;
+    setText(next);
+    setMentionQuery(null);
+    setActiveMentionIndex(0);
+    inputRef.current?.focus();
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (mentionQuery === null || mentionOptions.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveMentionIndex((index) => (index + 1) % mentionOptions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveMentionIndex((index) => (index - 1 + mentionOptions.length) % mentionOptions.length);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+      selectMention(mentionOptions[activeMentionIndex]?.username ?? mentionOptions[0].username);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setMentionQuery(null);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (mentionQuery !== null && mentionOptions.length > 0) {
+      selectMention(mentionOptions[activeMentionIndex]?.username ?? mentionOptions[0].username);
+      return;
+    }
     if (!text.trim() || addComment.isPending) return;
     addComment.mutate(
       { body: text.trim(), parentCommentId: replyingTo?.id ?? null },
@@ -204,11 +244,13 @@ export function CommentSection({
               disabled={addComment.isPending}
               maxLength={2000}
               value={text}
+              onKeyDown={handleInputKeyDown}
               onChange={(e) => {
                 const value = e.target.value; setText(value);
                 const beforeCaret = value.slice(0, e.target.selectionStart ?? value.length);
                 const match = /(?:^|\s)@([a-zA-Z0-9_]{0,20})$/.exec(beforeCaret);
                 setMentionQuery(match ? match[1] : null);
+                setActiveMentionIndex(0);
               }}
               placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
               className={cn(
