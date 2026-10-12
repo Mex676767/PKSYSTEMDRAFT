@@ -18,7 +18,7 @@ function PostCardComponent({ post, commentCount, reactions, focusCommentId }: { 
   const canDelete = isOwner || isAdmin;
 
   return (
-    <Card className="render-when-visible shadow-sm overflow-hidden">
+    <Card id={`post-${post.id}`} className="render-when-visible scroll-mt-24 shadow-sm overflow-hidden">
       <CardContent className="p-0">
         <div className="p-4 flex items-center gap-3">
           <UserAvatar

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageTransition, slideUp, staggerContainer } from "@/components/animations";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
@@ -28,6 +28,22 @@ export default function Social() {
   const { data: comments = [] } = useCommentsForTargets("post", postIds);
   const focusCommentId = requestedCommentId;
   const focusedComment = focusCommentId ? comments.find((comment) => comment.id === focusCommentId) : undefined;
+  const lastScrolledPostId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedPostId) {
+      lastScrolledPostId.current = null;
+      return;
+    }
+    if (lastScrolledPostId.current === requestedPostId || !posts.some((post) => post.id === requestedPostId)) return;
+    if (requestedCommentId && focusedComment) return;
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById(`post-${requestedPostId}`);
+      if (!target) return;
+      lastScrolledPostId.current = requestedPostId;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [focusedComment, posts, requestedCommentId, requestedPostId]);
   const { data: reactions = [] } = useReactionsForTargets("post", postIds);
   const createPost = useCreatePost();
 
