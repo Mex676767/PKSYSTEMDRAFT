@@ -654,3 +654,9 @@ body.tab-hidden .cosmetic-anim {
 .hof-celestial-people.is-tied .hof-celestial-avatar.is-winner{width:48px!important;height:48px!important}
 .hof-celestial-people.is-tied .hof-celestial-crown{bottom:calc(50% + 23px);width:32px;height:24px}
 .hof-celestial-people.is-tied .hof-celestial-person h3{width:100%;margin-top:5px;font-size:clamp(10px,1.1vw,13px);line-height:1.15;overflow-wrap:anywhere}
+
+
+/* Keep ties as one shared group, without individual boxes. */
+.hof-celestial-people.is-tied{gap:8px;padding:4px 2px}
+.hof-celestial-people.is-tied .hof-celestial-person{padding:4px 2px 6px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.hof-celestial-people.is-tied .hof-celestial-person+.hof-celestial-person{border-left:1px solid #e8c87938}
