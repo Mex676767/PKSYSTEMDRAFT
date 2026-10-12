@@ -32,6 +32,21 @@ export default {
       return fetch(new Request(upstream, request));
     }
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+
+    // Always revalidate the SPA document so a reopened or refreshed page gets
+    // the current entry chunk names after a deployment. Tabs already running
+    // an older bundle recover through the vite:preloadError handler in main.tsx.
+    if (response.headers.get("content-type")?.toLowerCase().includes("text/html")) {
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+
+    return response;
   },
 };

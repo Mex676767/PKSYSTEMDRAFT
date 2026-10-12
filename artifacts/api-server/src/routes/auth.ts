@@ -140,10 +140,10 @@ router.post("/auth/daily-login", requireSession, requireApprovedSession, assertA
 
 router.post("/auth/password/login", assertAllowedBrowserOrigin, async (req, res, next) => {
   if (!enforceRateLimit(req, "login", 8)) { res.status(429).json({ error: "Too many attempts. Please wait and try again." }); return; }
-  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const login = typeof (req.body?.login ?? req.body?.email) === "string" ? String(req.body.login ?? req.body.email).trim().toLowerCase() : "";
   const password = req.body?.password;
-  if (!email || email.length > 254 || typeof password !== "string" || password.length > 1024) {
-    res.status(400).json({ error: "Email or password is invalid." });
+  if (!login || login.length > 254 || typeof password !== "string" || password.length > 1024) {
+    res.status(400).json({ error: "Username or password is invalid." });
     return;
   }
   try {
@@ -154,14 +154,14 @@ router.post("/auth/password/login", assertAllowedBrowserOrigin, async (req, res,
          from public.profiles p
          left join public.api_password_credentials c on c.user_id = p.id
          left join public.account_approvals a on a.user_id = p.id
-        where lower(p.email) = $1 limit 1`, [email],
+        where lower(p.email) = $1 or lower(p.username) = $1 limit 1`, [login],
     );
     const account = result.rows[0];
     const valid = account?.password_hash
       ? await verifyLoginPassword(password, account.password_hash)
       : (await hashPassword(password), false);
     if (!account || !valid || account.is_deleted) {
-      res.status(401).json({ error: "Email or password is incorrect. You may need to reset your password." });
+      res.status(401).json({ error: "Username/email or password is incorrect. You may need to reset your password." });
       return;
     }
     if (account.password_hash && /^\$2[aby]\$\d\d\$/.test(account.password_hash)) {
@@ -175,6 +175,61 @@ router.post("/auth/password/login", assertAllowedBrowserOrigin, async (req, res,
     }
     await issueSession(res, account.id);
     res.json({ authenticated: true, is_approved: Boolean(account.is_approved) });
+  } catch (error) { next(error); }
+});
+
+router.post("/auth/register", assertAllowedBrowserOrigin, async (req, res, next) => {
+  if (!enforceRateLimit(req, "register", 5)) { res.status(429).json({ error: "Too many signup attempts. Please wait and try again." }); return; }
+  const username = typeof req.body?.username === "string" ? req.body.username.trim().toLowerCase() : "";
+  const email = typeof req.body?.email === "string" && req.body.email.trim() ? req.body.email.trim().toLowerCase() : null;
+  const password = req.body?.password;
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || !isValidNewPassword(password) || (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))) {
+    res.status(400).json({ error: "Enter a valid username, optional email, and password of at least 12 characters." }); return;
+  }
+  try {
+    const id = randomUUID();
+    const passwordHash = await hashPassword(password);
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("insert into public.profiles (id, username, email) values ($1,$2,$3)", [id, username, email]);
+      await client.query("insert into public.api_password_credentials (user_id,password_hash,password_updated_at) values ($1,$2,now())", [id,passwordHash]);
+      await client.query("insert into public.account_approvals (user_id) values ($1) on conflict (user_id) do nothing", [id]);
+      await client.query("commit");
+    } catch (error) { await client.query("rollback").catch(() => undefined); throw error; }
+    finally { client.release(); }
+    await issueSession(res, id);
+    res.status(201).json({ authenticated: true, is_approved: false });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") { res.status(409).json({ error: "That username or email is already in use." }); return; }
+    next(error);
+  }
+});
+
+router.put("/auth/email", requireSession, assertAllowedBrowserOrigin, async (req, res, next) => {
+  const email = typeof req.body?.email === "string" && req.body.email.trim() ? req.body.email.trim().toLowerCase() : null;
+  if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) { res.status(400).json({ error: "Enter a valid email address." }); return; }
+  try {
+    await pool.query("update public.profiles set email=$2 where id=$1", [req.sessionUser!.id,email]);
+    res.json({ email });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") { res.status(409).json({ error: "That email is already in use." }); return; }
+    next(error);
+  }
+});
+
+router.post("/auth/password/setup", requireSession, assertAllowedBrowserOrigin, async (req, res, next) => {
+  const password = req.body?.password;
+  if (!isValidNewPassword(password)) { res.status(400).json({ error: "Use a password with at least 12 characters." }); return; }
+  try {
+    if (!req.sessionUser!.has_google_identity) { res.status(403).json({ error: "Password setup is available after signing in with Google." }); return; }
+    const passwordHash = await hashPassword(password);
+    const result = await pool.query(
+      `insert into public.api_password_credentials (user_id,password_hash,password_updated_at)
+       values ($1,$2,now()) on conflict (user_id) do nothing returning user_id`, [req.sessionUser!.id,passwordHash],
+    );
+    if (!result.rowCount) { res.status(409).json({ error: "This account already has a password." }); return; }
+    res.status(204).end();
   } catch (error) { next(error); }
 });
 

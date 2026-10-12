@@ -35,6 +35,7 @@ router.post("/birthday-email/test",requireSession,requireApprovedSession,assertA
     const settings=(await pool.query("select * from public.birthday_email_settings where id=1")).rows[0];
     if(!settings){res.status(404).json({error:"Email settings are not initialized."});return;}
     const kind=req.body.kind as "announcement"|"personal";
+    if(!req.sessionUser!.email){res.status(400).json({error:"Add a recovery email in your profile before testing birthday email delivery."});return;}
     const subject=kind==="personal"?settings.personal_subject:settings.subject;
     const body=kind==="personal"?settings.personal_body:settings.body;
     if(!settings.from_email||!subject?.trim()||!body?.trim()){res.status(400).json({error:"Add a sender email, subject and message before sending a test."});return;}

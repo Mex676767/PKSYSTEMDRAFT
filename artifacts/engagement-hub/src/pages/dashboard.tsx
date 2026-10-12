@@ -175,7 +175,7 @@ export default function Dashboard() {
                     const recipientName = shoutout.recipient?.username ?? "teammate";
                     const senderName = shoutout.sender?.username ?? "Someone";
                     return (
-                      <div key={shoutout.id} className="group relative flex min-h-28 items-start gap-3 overflow-hidden rounded-xl border border-amber-400/15 bg-background/45 p-3 transition-colors hover:bg-background/65">
+                      <div key={shoutout.id} className="group relative flex min-h-28 items-start gap-3 overflow-visible rounded-xl border border-amber-400/15 bg-background/45 p-3 transition-colors hover:bg-background/65">
                         <Crown className="absolute right-2 top-2 h-4 w-4 rotate-12 text-amber-400/50 transition-transform group-hover:scale-110" />
                         <div className="relative flex h-12 w-14 shrink-0 items-center justify-center overflow-visible">
                           <UserAvatar
@@ -184,10 +184,9 @@ export default function Dashboard() {
                             border={shoutout.recipient?.active_border ?? null}
                             accessory={shoutout.recipient?.active_accessory ?? null}
                             className="h-10 w-10 text-xs"
-                            reserveSpace={false}
                           />
                         </div>
-                        <div className="min-w-0 flex-1 pr-3">
+                        <div className="avatar-readable min-w-0 flex-1 pr-3">
                           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">MVP Spotlight</p>
                           <p className="truncate text-sm font-bold">@{recipientName}</p>
                           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{shoutout.message}</p>
@@ -236,10 +235,9 @@ export default function Dashboard() {
                           border={goal.owner?.active_border ?? null}
                           accessory={goal.owner?.active_accessory ?? null}
                           className="w-9 h-9 text-xs"
-                          reserveSpace={false}
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="avatar-readable flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs text-muted-foreground">@{goal.owner?.username ?? "unknown"}</span>
                           <Badge variant="outline" className={`text-[9px] px-1.5 ${TERM_BADGE_CLASS[goal.term]}`}>

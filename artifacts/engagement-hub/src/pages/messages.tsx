@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { MessageSquarePlus, Send, Search, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
+import { EmojiPicker } from "@/components/emoji-picker";
 import {
   useConversations,
   useMessages,
@@ -204,6 +205,7 @@ function ConversationThread({ conversation, onBack }: { conversation: Conversati
           placeholder="Message..."
           className="flex-1 h-10 rounded-full border border-input bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
+        <EmojiPicker onSelect={(emoji) => setText((value) => `${value}${emoji}`)} />
         <button
           type="submit"
           disabled={!text.trim() || sendMessage.isPending}

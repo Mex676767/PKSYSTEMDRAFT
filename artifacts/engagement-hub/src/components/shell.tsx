@@ -157,7 +157,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         </div>
 
-        <div data-tree-obstacle className="flex items-center justify-end gap-2 xl:absolute xl:right-0 xl:top-0">
+        <div data-tree-obstacle className="flex min-h-14 items-center justify-end gap-2 xl:absolute xl:right-0 xl:top-0">
         {isAdmin && (
           <Link
             href="/voice"
@@ -198,12 +198,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="shrink-0 flex items-center gap-3 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-1.5 sm:pr-2.5 hover:border-foreground/30 transition-colors">
+              <button className="shrink-0 flex h-10 items-center gap-2 bg-card/70 backdrop-blur-xl border border-border rounded-full shadow-lg p-0 sm:pr-2.5 hover:border-foreground/30 transition-colors">
                 <div className="relative shrink-0">
                   <UserAvatar
                     user={{
-                      name: profile.username ?? profile.email,
-                      initials: initialsForUsername(profile.username ?? profile.email),
+                      name: profile.username ?? profile.email ?? "teammate",
+                      initials: initialsForUsername(profile.username ?? profile.email ?? "?"),
                       color: colorForId(profile.id),
                     }}
                     accessory={profile.active_accessory}
@@ -212,12 +212,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     className="w-8 h-8"
                   />
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
+                <ChevronDown className="relative z-10 w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email}</p>
+                <p className="text-sm font-semibold truncate">@{profile.username ?? profile.email ?? "teammate"}</p>
                 {isMyBirthdayToday ? (
                   <p className="text-xs font-semibold text-secondary truncate flex items-center gap-1 mt-0.5">
                     <PartyPopper className="w-3 h-3" /> It's your birthday!
@@ -251,7 +251,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <main className="w-full pt-32 sm:pt-20 md:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
+      <main className="w-full pt-36 xl:pt-24 pb-10 px-4 md:px-8 overflow-x-hidden">
         {children}
       </main>
     </div>

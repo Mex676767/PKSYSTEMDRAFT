@@ -22,6 +22,7 @@ import { DatePicker } from "@/components/date-picker";
 import { Confetti } from "@/components/confetti";
 import { ReactionBar } from "@/components/social/reaction-bar";
 import { CommentSection } from "@/components/social/comment-section";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { ProgressPhotos } from "@/components/progress-photos";
 import { useComments } from "@/hooks/use-social";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -336,13 +337,13 @@ function LogUpdateDialog({
               className="w-full"
             />
           </div>
-          <textarea
+          <div className="relative"><textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="What did you do, and what's the next step?"
             autoFocus
-            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          />
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 pb-11 text-sm"
+          /><EmojiPicker className="absolute bottom-1 right-1" onSelect={(emoji) => setNote((value) => `${value}${emoji}`)} /></div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={addUpdate.isPending}>
             {addUpdate.isPending ? "Saving..." : "Post Update"}
@@ -438,38 +439,35 @@ export function EditGoalDialog({
               className="h-9 w-auto min-w-[8rem]"
             />
           </div>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Goal title"
-            required
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-          />
-          <textarea
+          <div className="flex items-center gap-1 rounded-md border border-input bg-background pr-1">
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Goal title" required
+              className="flex h-10 w-full min-w-0 rounded-md bg-transparent px-3 text-sm outline-none" />
+            <EmojiPicker className="[&_button]:h-8 [&_button]:w-8" onSelect={(emoji) => setTitle((value) => `${value}${emoji}`)} />
+          </div>
+          <div className="relative"><textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Details..."
-            className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          />
+            className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm"
+          /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => setDescription((value) => `${value}${emoji}`)} /></div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <ClipboardList className="w-3.5 h-3.5" /> Action Plan (optional)
             </label>
-            <textarea
+            <div className="relative"><textarea
               value={actionPlan}
               onChange={(e) => setActionPlan(e.target.value)}
               placeholder="How are you going to get there? List the steps..."
-              className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
+              className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm"
+            /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => setActionPlan((value) => `${value}${emoji}`)} /></div>
           </div>
           {term === "short" && (
-            <textarea
+            <div className="relative"><textarea
               value={accountability}
               onChange={(e) => setAccountability(e.target.value)}
               placeholder="Consequence if missed: what penalty will you set if you don't follow through?"
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
+              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 pb-10 text-sm"
+            /><EmojiPicker className="absolute bottom-0.5 right-1" onSelect={(emoji) => setAccountability((value) => `${value}${emoji}`)} /></div>
           )}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Target Date (optional)</label>

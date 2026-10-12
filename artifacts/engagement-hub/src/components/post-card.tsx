@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageCircle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,9 +9,10 @@ import type { Reaction } from "@/hooks/use-social";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
 import { getPostImageUrl, useDeletePost, type Post } from "@/hooks/use-posts";
 
-function PostCardComponent({ post, commentCount, reactions }: { post: Post; commentCount: number; reactions: Reaction[] }) {
+function PostCardComponent({ post, commentCount, reactions, focusCommentId }: { post: Post; commentCount: number; reactions: Reaction[]; focusCommentId?: string | null }) {
   const { session, isAdmin } = useAuth();
   const [showComments, setShowComments] = useState(false);
+  useEffect(() => { if (focusCommentId) setShowComments(true); }, [focusCommentId]);
   const deletePost = useDeletePost();
   const isOwner = post.author_id === session?.user.id;
   const canDelete = isOwner || isAdmin;
@@ -62,7 +63,7 @@ function PostCardComponent({ post, commentCount, reactions }: { post: Post; comm
               {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>
-          {showComments && <CommentSection targetType="post" targetId={post.id} />}
+          {showComments && <CommentSection targetType="post" targetId={post.id} focusCommentId={focusCommentId} />}
         </div>
       </CardContent>
     </Card>
@@ -81,6 +82,7 @@ export const PostCard = memo(
   (previous, next) =>
     previous.post === next.post &&
     previous.commentCount === next.commentCount &&
+    previous.focusCommentId === next.focusCommentId &&
     sameReactions(previous.reactions, next.reactions),
 );
 PostCard.displayName = "PostCard";

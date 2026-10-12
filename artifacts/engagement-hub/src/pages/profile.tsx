@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
+import { AnimatedCosmeticsShop } from "@/components/animated-cosmetics-shop";
 import { ChangePasswordCard } from "@/components/change-password-card";
+import { ContactEmailCard } from "@/components/contact-email-card";
 import { motion } from "framer-motion";
 import { Flame, Award, ShoppingBag, Check, AlertTriangle, Cake, Briefcase, Camera, CircleDashed, X } from "lucide-react";
 import { useAuth, colorForId, initialsForUsername } from "@/hooks/use-auth";
@@ -43,6 +45,7 @@ export default function Profile() {
   const setAccessory = useSetActiveAccessory();
   const setTitle = useSetActiveTitle();
   const setBorder = useSetActiveBorder();
+  const [setEquipPending, setSetEquipPending] = useState(false);
   const uploadAvatar = useUploadAvatar();
   const setAvatarUrl = useSetAvatarUrl();
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -76,8 +79,8 @@ export default function Profile() {
             <button type="button" className="relative group shrink-0">
               <UserAvatar
                 user={{
-                  name: profile.username ?? profile.email,
-                  initials: initialsForUsername(profile.username ?? profile.email),
+                  name: profile.username ?? profile.email ?? "teammate",
+                  initials: initialsForUsername(profile.username ?? profile.email ?? "?"),
                   color: colorForId(profile.id),
                 }}
                 accessory={profile.active_accessory}
@@ -161,7 +164,7 @@ export default function Profile() {
             </div>
           </DialogContent>
         </Dialog>
-        <div>
+        <div className="avatar-readable min-w-0 break-words">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">@{profile.username}</h1>
           <p className="text-muted-foreground">
             {profile.active_title ? achievementLabel(profile.active_title) : "No title set"}
@@ -239,6 +242,8 @@ export default function Profile() {
         </motion.div>
       </motion.div>
 
+      <AnimatedCosmeticsShop busy={setAccessory.isPending || setBorder.isPending} onPendingChange={setSetEquipPending} />
+
       {}
       <motion.div variants={slideUp} initial="hidden" animate="show">
         <Card className="border-accent/20 shadow-sm bg-gradient-to-br from-accent/10 via-card to-card">
@@ -249,7 +254,7 @@ export default function Profile() {
             <CardDescription>Free for everyone. Pick a little flair for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {ACCESSORY_KEYS.map((key) => {
                 const meta = ACCESSORY_META[key];
                 const equipped = profile.active_accessory === key;
@@ -257,26 +262,29 @@ export default function Profile() {
                 return (
                   <div
                     key={key}
+                    data-accessory={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="h-32 w-full flex items-center justify-center">
+                    <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
-                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        user={{ name: profile.username ?? profile.email ?? "teammate", initials: initialsForUsername(profile.username ?? profile.email ?? "?"), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         accessory={key}
                         border={profile.active_border}
-                        className="w-12 h-12"
+                        className="w-10 h-10"
+                        presentation="showcase"
                       />
                     </div>
-                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
                     <Button
                       size="sm"
                       variant={equipped ? "outline" : "default"}
                       className="w-full text-xs h-7"
-                      disabled={setAccessory.isPending}
+                      disabled={setAccessory.isPending || setEquipPending || setBorder.isPending}
+                      aria-label={`${equipped ? "Remove" : "Equip"} ${meta.name}`}
                       onClick={() => setAccessory.mutate(equipped ? null : key)}
                     >
                       {equipped ? (
@@ -303,7 +311,7 @@ export default function Profile() {
             <CardDescription>Free for everyone. Pick a border for your avatar.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {BORDER_KEYS.map((key) => {
                 const meta = BORDER_META[key];
                 const equipped = profile.active_border === key;
@@ -311,26 +319,29 @@ export default function Profile() {
                 return (
                   <div
                     key={key}
+                    data-border={key}
                     className={cn(
                       "flex flex-col items-center gap-2 p-3 rounded-xl border text-center",
                       equipped ? "border-primary/40 bg-primary/10" : "border-border/50 bg-muted/30"
                     )}
                   >
-                    <div className="h-32 w-full flex items-center justify-center">
+                    <div className="h-40 w-full flex items-center justify-center">
                       <UserAvatar
-                        user={{ name: profile.username ?? profile.email, initials: initialsForUsername(profile.username ?? profile.email), color: colorForId(profile.id) }}
+                        user={{ name: profile.username ?? profile.email ?? "teammate", initials: initialsForUsername(profile.username ?? profile.email ?? "?"), color: colorForId(profile.id) }}
                         photoUrl={profile.avatar_url}
                         border={key}
                         accessory={profile.active_accessory}
-                        className="w-12 h-12"
+                        className="w-10 h-10"
+                        presentation="showcase"
                       />
                     </div>
-                    <div className="text-xs font-semibold">{meta.name}</div>
+                    <div className="text-xs font-semibold min-h-8 flex items-center justify-center">{meta.name}</div>
                     <Button
                       size="sm"
                       variant={equipped ? "outline" : "default"}
                       className="w-full text-xs h-7"
-                      disabled={setBorder.isPending}
+                      disabled={setBorder.isPending || setEquipPending || setAccessory.isPending}
+                      aria-label={`${equipped ? "Remove" : "Equip"} ${meta.name}`}
                       onClick={() => setBorder.mutate(equipped ? null : key)}
                     >
                       {equipped ? (<><Check className="w-3 h-3 mr-1" /> Equipped</>) : "Free · Equip"}
@@ -381,6 +392,7 @@ export default function Profile() {
         </Card>
       </motion.div>
 
+      <ContactEmailCard />
       <ChangePasswordCard />
 
       <motion.div variants={slideUp} initial="hidden" animate="show">

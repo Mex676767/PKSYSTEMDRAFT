@@ -20,6 +20,7 @@ export type AppNotification = {
   type: NotificationType;
   target_type: string | null;
   target_id: string | null;
+  comment_id?: string | null;
   message: string;
   read: boolean;
   created_at: string;

@@ -69,6 +69,15 @@ export function getPostImageUrl(path: string) {
   return apiAssetUrl(`/files/${encodeURIComponent(owner)}/${encodedKey}`);
 }
 
+export function usePostById(postId: string | null) {
+  return useQuery({
+    queryKey: ["post", postId],
+    enabled: !!postId,
+    queryFn: () => apiRequest<Post>(`/posts/${encodeURIComponent(postId!)}`),
+    staleTime: 30_000,
+  });
+}
+
 export function useCreatePost() {
   const { session } = useAuth();
   const qc = useQueryClient();

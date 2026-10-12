@@ -9,7 +9,7 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
 export function ChangePasswordCard() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -54,11 +54,11 @@ export function ChangePasswordCard() {
     <Card className="border-primary/20 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg"><LockKeyhole className="w-5 h-5 text-primary" /> Change password</CardTitle>
-        <CardDescription>Update the password you use to sign in with your email address.</CardDescription>
+        <CardDescription>Update the password you use to sign in with your username or email.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-4" onChange={() => { setSaved(false); setError(null); }}>
-          <input type="hidden" name="username" autoComplete="username" value={session?.user.email ?? ""} />
+          <input type="hidden" name="username" autoComplete="username" value={profile?.username ?? session?.user.email ?? ""} />
           <fieldset disabled={pending} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current password</Label>

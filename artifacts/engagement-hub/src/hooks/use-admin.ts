@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/api";
 
 export type AdminProfileRow = {
   id: string;
-  email: string;
+  email: string | null;
   username: string | null;
   points: number;
   department: string | null;
