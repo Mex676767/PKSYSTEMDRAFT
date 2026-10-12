@@ -26,7 +26,7 @@ export type SessionUser = {
   active_border: string | null;
   is_admin: boolean;
   permissions: string[];
-  is_approved: boolean;
+  is_approved: boolean; must_change_password: boolean;
   is_deleted: boolean;
   has_email_identity: boolean;
   has_google_identity: boolean;
@@ -57,12 +57,13 @@ export async function requireSession(req: Request, res: Response, next: NextFunc
               p.active_title, p.unlocked_titles, p.active_accessory, p.unlocked_accessories,
               p.role, p.department, p.avatar_url, p.birthday, p.unlocked_borders, p.active_border,
               p.is_admin, p.permissions, p.is_deleted,
-              (a.approved_at is not null) as is_approved,
+              (a.approved_at is not null) as is_approved, coalesce(pw.must_change_password, false) as must_change_password,
               exists(select 1 from public.api_password_credentials c where c.user_id = p.id) as has_email_identity,
               exists(select 1 from public.api_oauth_identities i where i.user_id = p.id and i.provider = 'google') as has_google_identity
          from public.api_sessions s
          join public.profiles p on p.id = s.user_id
          left join public.account_approvals a on a.user_id = p.id
+         left join public.api_password_credentials pw on pw.user_id = p.id
         where s.token_hash = $1
           and s.revoked_at is null
           and s.expires_at > now()
@@ -83,6 +84,7 @@ export async function requireSession(req: Request, res: Response, next: NextFunc
     user.unlocked_accessories ??= [];
     user.unlocked_borders ??= [];
     user.is_approved = Boolean(user.is_approved);
+    user.must_change_password = Boolean(user.must_change_password);
     req.sessionUser = user;
     void pool.query(
       "update public.api_sessions set last_used_at = now() where token_hash = $1",
@@ -99,12 +101,19 @@ export function requireApprovedSession(req: Request, res: Response, next: NextFu
     res.status(401).json({ error: "Authentication required." });
     return;
   }
-  if (!req.sessionUser.is_approved) {
-    res.status(403).json({ error: "Your account is awaiting approval." });
+  if (!req.sessionUser.is_approved || req.sessionUser.must_change_password) {
+    res.status(403).json({ error: req.sessionUser.must_change_password ? "Change your temporary password before continuing." : "Your account is awaiting approval.", code: req.sessionUser.must_change_password ? "PASSWORD_CHANGE_REQUIRED" : "ACCOUNT_NOT_APPROVED" });
     return;
   }
+  next();}
+
+
+export function requireApprovedAccount(req: Request, res: Response, next: NextFunction) {
+  if (!req.sessionUser) { res.status(401).json({ error: "Authentication required." }); return; }
+  if (!req.sessionUser.is_approved) { res.status(403).json({ error: "Your account is awaiting approval." }); return; }
   next();
 }
+
 
 export function requirePermission(permission: string) {
   return (req: Request, res: Response, next: NextFunction) => {

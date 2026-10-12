@@ -45,8 +45,8 @@ router.post("/admin/profiles/:id/reset-password", ...adminOnly, async (req, res,
       await client.query("begin");
       const user = await client.query("select id from public.profiles where id=$1 and is_deleted=false for update", [req.params.id]);
       if (!user.rowCount) { await client.query("rollback"); res.status(404).json({ error: "Active user not found." }); return; }
-      await client.query(`insert into public.api_password_credentials(user_id,password_hash,password_updated_at) values($1,$2,now())
-        on conflict(user_id) do update set password_hash=excluded.password_hash,password_updated_at=now()`, [req.params.id,passwordHash]);
+      await client.query(`insert into public.api_password_credentials(user_id,password_hash,password_updated_at,must_change_password) values($1,$2,now(),true)
+        on conflict(user_id) do update set password_hash=excluded.password_hash,password_updated_at=now(),must_change_password=true`, [req.params.id,passwordHash]);
       await client.query("update public.api_sessions set revoked_at=now() where user_id=$1 and revoked_at is null", [req.params.id]);
       await client.query("update public.api_password_reset_tokens set consumed_at=now() where user_id=$1 and consumed_at is null", [req.params.id]);
       await client.query("commit");

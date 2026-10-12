@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
 import { pool } from "@workspace/db";
-import { assertAllowedBrowserOrigin, issueSession, requireApprovedSession, requireSession, revokeSession } from "../middleware/session-auth";
+import { assertAllowedBrowserOrigin, issueSession, requireApprovedAccount, requireApprovedSession, requireSession, revokeSession } from "../middleware/session-auth";
 import { hashPassword, isValidNewPassword, verifyPassword } from "../lib/passwords";
 import { runtimeConfig } from "../lib/runtime-config";
 import { logger } from "../lib/logger";
@@ -298,7 +298,7 @@ router.post("/auth/password/reset", assertAllowedBrowserOrigin, async (req, res,
       const userId = reset.rows[0].user_id;
       await client.query(
         `insert into public.api_password_credentials (user_id, password_hash, password_updated_at)
-         values ($1, $2, now()) on conflict (user_id) do update set password_hash = excluded.password_hash, password_updated_at = now()`,
+         values ($1, $2, now()) on conflict (user_id) do update set password_hash = excluded.password_hash, password_updated_at = now(), must_change_password = false`,
         [userId, passwordHash],
       );
       await client.query("update public.api_password_reset_tokens set consumed_at = now() where user_id = $1 and consumed_at is null", [userId]);
@@ -307,22 +307,21 @@ router.post("/auth/password/reset", assertAllowedBrowserOrigin, async (req, res,
       res.status(204).end();
     } catch (error) { await client.query("rollback").catch(() => undefined); throw error; }
     finally { client.release(); }
-  } catch (error) { next(error); }
-});
+  } catch (error) { next(error); }});
 
-router.post("/auth/password/change", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {
+router.post("/auth/password/change", requireSession, requireApprovedAccount, assertAllowedBrowserOrigin, async (req, res, next) => {
   if (!enforceRateLimit(req, "change", 8)) { res.status(429).json({ error: "Too many attempts. Please wait and try again." }); return; }
   const currentPassword = req.body?.current_password;
   const newPassword = req.body?.new_password;
-  if (typeof currentPassword !== "string" || !isValidNewPassword(newPassword)) {
-    res.status(400).json({ error: "Current password and a new password of at least 12 characters are required." });
+  if (!isValidNewPassword(newPassword)) {
+    res.status(400).json({ error: "A new password of at least 12 characters is required." });
     return;
   }
   try {
     const current = await pool.query<{ password_hash: string }>(
       "select password_hash from public.api_password_credentials where user_id = $1", [req.sessionUser!.id],
     );
-    if (!current.rows[0] || !(await verifyPassword(currentPassword, current.rows[0].password_hash))) {
+    if (!req.sessionUser!.must_change_password && (!current.rows[0] || !(await verifyPassword(currentPassword, current.rows[0].password_hash)))) {
       res.status(401).json({ error: "Current password is incorrect." });
       return;
     }
@@ -332,7 +331,7 @@ router.post("/auth/password/change", requireSession, requireApprovedSession, ass
     try {
       await client.query("begin");
       await client.query(
-        "update public.api_password_credentials set password_hash = $2, password_updated_at = now() where user_id = $1",
+        "update public.api_password_credentials set password_hash = $2, password_updated_at = now(), must_change_password = false where user_id = $1",
         [req.sessionUser!.id, nextHash],
       );
       if (typeof currentToken === "string") {
