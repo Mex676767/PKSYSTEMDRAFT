@@ -716,3 +716,10 @@ body.tab-hidden .cosmetic-anim {
   width: 100%;
   text-align: center;
 }
+
+/* Let each tied winner fit its own equal-width grid track. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-person {
+  width: auto !important;
+  min-width: 0;
+  justify-self: stretch;
+}
