@@ -213,7 +213,7 @@ router.put("/hall-of-fame/award-categories/:id/winners", ...manage, async (req, 
     if (before.rowCount) {
       await client.query(
         `insert into public.hof_deletion_logs (deleted_by, deleted_by_name, entity_type, entity_id, snapshot)
-         values ($1, $2, 'hof_award_winners', $3, jsonb_build_object('category_id', $3, 'month', $4::date, 'winners', $5::jsonb))`,
+         values ($1, $2, 'hof_award_winners', $3, jsonb_build_object('category_id', $3::uuid, 'month', $4::date, 'winners', $5::jsonb))`,
         [req.sessionUser!.id, req.sessionUser!.username, id, month, JSON.stringify(before.rows)],
       );
     }
