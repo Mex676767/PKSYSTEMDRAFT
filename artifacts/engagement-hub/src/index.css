@@ -660,3 +660,12 @@ body.tab-hidden .cosmetic-anim {
 .hof-celestial-people.is-tied{gap:8px;padding:4px 2px}
 .hof-celestial-people.is-tied .hof-celestial-person{padding:4px 2px 6px;border:0;border-radius:0;background:transparent;box-shadow:none}
 .hof-celestial-people.is-tied .hof-celestial-person+.hof-celestial-person{border-left:1px solid #e8c87938}
+
+
+/* Keep champion art centered without adding vertical avatar height. */
+.hof-celestial-avatar-stage > [data-user-avatar] {
+  grid-template-rows: 0px auto 0px !important;
+}
+.hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar.is-winner {
+  transform: translateX(-25%);
+}
