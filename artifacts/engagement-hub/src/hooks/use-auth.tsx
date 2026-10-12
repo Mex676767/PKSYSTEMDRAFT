@@ -24,6 +24,7 @@ export type Profile = {
   unlocked_borders: string[];
   active_border: string | null;
   is_approved: boolean;
+  must_change_password: boolean;
 };
 
 export type AuthSession = {
