@@ -723,3 +723,13 @@ body.tab-hidden .cosmetic-anim {
   min-width: 0;
   justify-self: stretch;
 }
+
+/* Center the tied profile photo itself; do not translate it inside its wrapper. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] {
+  justify-self: center;
+  align-self: center;
+  margin-inline: auto;
+}
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  transform: none !important;
+}
