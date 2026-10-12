@@ -687,3 +687,9 @@ body.tab-hidden .cosmetic-anim {
 .hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
   transform: translateX(-25%) !important;
 }
+
+
+/* Counter the right-heavy cosmetics on compact tied podium avatars. */
+.hof-celestial-place[data-rank="3"] .hof-celestial-people.is-tied .hof-celestial-avatar-stage > [data-user-avatar] > [data-avatar-face].hof-celestial-avatar {
+  transform: translateX(-50%) !important;
+}
