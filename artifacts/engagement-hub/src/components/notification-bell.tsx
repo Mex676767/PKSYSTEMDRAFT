@@ -108,15 +108,19 @@ export function NotificationBell() {
             <div className="divide-y divide-border">
               {notifications.map((n) => {
                 const Icon = TYPE_ICON[n.type] ?? Bell;
-                const href = n.target_type === "post" && n.comment_id
-                  ? `/social?post=${encodeURIComponent(n.target_id ?? "")}&comment=${encodeURIComponent(n.comment_id)}`
+                const href = n.target_type === "post" && n.target_id
+                  ? `/social?post=${encodeURIComponent(n.target_id)}${n.comment_id ? `&comment=${encodeURIComponent(n.comment_id)}` : ""}`
                   : n.target_type === "pk" && n.target_id ? `/challenges/${n.target_id}` : TARGET_LINK[n.target_type ?? ""] ?? "/";
                 const isNew = !n.read || freshIds.has(n.id);
                 return (
                   <Link
                     key={n.id}
                     href={href}
-                    onClick={() => {
+                    onClick={(event) => {
+                      if (n.target_type === "post" && n.target_id) {
+                        event.preventDefault();
+                        window.location.assign(href);
+                      }
                       if (!n.read) markRead.mutate(n.id);
                       setIsOpen(false);
                     }}
