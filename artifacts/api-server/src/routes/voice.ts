@@ -1,11 +1,17 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
+import { exchangeVoiceSignalsSql, validSignalAcknowledgments } from "../lib/voice-signaling";
 import { assertAllowedBrowserOrigin, requireApprovedSession, requireSession } from "../middleware/session-auth";
 
 const router: IRouter = Router();
 const isUuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const validChannel = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 120;
 const signalTypes = new Set(["offer", "answer", "candidate"]);
+
+router.use("/voice", (_req, res, next) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  next();
+});
 
 router.get("/voice/presence", requireSession, requireApprovedSession, async (req, res, next) => {
   const channels = typeof req.query.channels === "string" ? [...new Set(req.query.channels.split(","))] : [];
@@ -55,17 +61,31 @@ router.post("/voice/:channelId/signals", requireSession, requireApprovedSession,
   } catch (error) { next(error); }
 });
 
+router.post("/voice/:channelId/signals/exchange", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {
+  const channelId = Array.isArray(req.params.channelId) ? req.params.channelId[0] : req.params.channelId;
+  const ack = req.body?.ack;
+  if (!validChannel(channelId) || !validSignalAcknowledgments(ack)) {
+    res.status(400).json({ error: "Voice signal acknowledgments are invalid." }); return;
+  }
+  try {
+    const result = await pool.query(exchangeVoiceSignalsSql, [channelId, req.sessionUser!.id, ack]);
+    res.json(result.rows);
+  } catch (error) { next(error); }
+});
+
+// Compatibility for browsers still running the previous frontend during rollout.
 router.get("/voice/:channelId/signals", requireSession, requireApprovedSession, async (req, res, next) => {
   const channelId = Array.isArray(req.params.channelId) ? req.params.channelId[0] : req.params.channelId;
   if (!validChannel(channelId)) { res.status(400).json({ error: "Voice channel is invalid." }); return; }
-  const client = await pool.connect();
   try {
-    await client.query("begin");
-    const result = await client.query("delete from public.voice_signals where id in (select id from public.voice_signals where channel_id=$1 and to_user_id=$2 order by id limit 100 for update skip locked) returning payload", [channelId, req.sessionUser!.id]);
-    await client.query("commit");
+    const result = await pool.query(`with drained as (
+      delete from public.voice_signals where id in (
+        select id from public.voice_signals where channel_id=$1 and to_user_id=$2
+          and created_at>now()-interval '60 seconds' order by id limit 100 for update skip locked
+      ) returning id,payload
+    ) select payload from drained order by id`, [channelId, req.sessionUser!.id]);
     res.json(result.rows.map((row) => row.payload));
-  } catch (error) { await client.query("rollback").catch(() => undefined); next(error); }
-  finally { client.release(); }
+  } catch (error) { next(error); }
 });
 
 router.post("/voice/:channelId/sessions/start", requireSession, requireApprovedSession, assertAllowedBrowserOrigin, async (req, res, next) => {

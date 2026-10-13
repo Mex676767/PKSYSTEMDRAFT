@@ -56,6 +56,17 @@ async function tick(): Promise<void> {
   try {
     const now = new Date();
     const slot = slotKey(now);
+    if (lastRunSlot.get("voice-cleanup") !== slot) {
+      lastRunSlot.set("voice-cleanup", slot);
+      // Signals are ephemeral. Disconnected browsers cannot acknowledge them,
+      // so bound retention rather than allowing the queue to grow indefinitely.
+      await pool.query(`with expired_signals as (
+        delete from public.voice_signals where id in (
+          select id from public.voice_signals where created_at<now()-interval '5 minutes' limit 1000
+        )
+      ) delete from public.voice_presence where last_seen_at<now()-interval '5 minutes'`)
+        .catch((error) => logger.error({ err: error }, "Voice queue cleanup failed"));
+    }
     const due = jobs.filter((job) =>
       job.minute === now.getUTCMinutes() &&
       (job.hour === undefined || job.hour === now.getUTCHours()) &&

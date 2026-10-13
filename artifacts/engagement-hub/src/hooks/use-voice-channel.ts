@@ -3,6 +3,7 @@ import { apiRequest } from "@/lib/api";
 import { playVoiceCue } from "@/lib/voice-sfx";
 import { reserveScreenSender, clampVoiceVolume } from "@/lib/voice-media";
 import { getIceServers } from "@/lib/turn-credentials";
+import { createSignalInbox, startVoicePolling } from "@/lib/voice-signaling";
 
 type SignalPayload =
   | { type: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
@@ -71,6 +72,8 @@ export function useVoiceChannels(
     new Map(),
   );
   const joinLockRef = useRef(false);
+  const signalQueuesRef = useRef(new Map<string, Promise<void>>());
+  const presenceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const leaveRef = useRef<() => void>(() => {});
   const iceServersRef = useRef<RTCIceServer[]>([
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
@@ -92,20 +95,37 @@ export function useVoiceChannels(
   }, []);
 
   const publishPresence = useCallback((channelId: string, value: { muted: boolean; deafened: boolean; streaming: boolean }) => {
-    if (!username) return;
-    void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, {
-      method: "PUT",
-      body: JSON.stringify({ username, ...value }),
-    }).catch((err) => console.warn("Failed to refresh voice presence", err));
+    if (!username) return Promise.resolve();
+    const generation = callGenerationRef.current;
+    const update = presenceQueueRef.current.then(async () => {
+      if (generation !== callGenerationRef.current) return;
+      await apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, {
+        method: "PUT",
+        body: JSON.stringify({ username, ...value }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    });
+    presenceQueueRef.current = update.catch(() => {});
+    return update;
   }, [username]);
 
   const sendSignal = useCallback(
     (payload: SignalPayload) => {
       const channelId = activeChannel();
-      if (channelId) void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/signals`, {
-        method: "POST",
-        body: JSON.stringify({ to: payload.to, payload }),
+      if (!channelId) return;
+      const generation = callGenerationRef.current;
+      const queued = (signalQueuesRef.current.get(payload.to) ?? Promise.resolve()).then(async () => {
+        if (generation !== callGenerationRef.current || activeChannel() !== channelId) return;
+        await apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/signals`, {
+          method: "POST",
+          body: JSON.stringify({ to: payload.to, payload }),
+          signal: AbortSignal.timeout(10_000),
+        });
       }).catch((err) => console.warn("Failed to deliver voice signal", err));
+      signalQueuesRef.current.set(payload.to, queued);
+      void queued.finally(() => {
+        if (signalQueuesRef.current.get(payload.to) === queued) signalQueuesRef.current.delete(payload.to);
+      });
     },
     [activeChannel],
   );
@@ -225,11 +245,6 @@ export function useVoiceChannels(
       }
       pc.onicecandidate = (e) => {
         if (e.candidate && userId) {
-          console.log(
-            `[voice] local ICE candidate for ${peerId}:`,
-            e.candidate.type,
-            e.candidate.candidate,
-          );
           sendSignal({
             type: "candidate",
             from: userId,
@@ -356,6 +371,10 @@ export function useVoiceChannels(
       // original call re-offers, to avoid both sides racing a restart at once.
       const stuckTimer = setTimeout(() => {
         if (hasConnectedOnce || pc.connectionState === "closed") return;
+        const recoveryTimer = setTimeout(() => {
+          if (pcsRef.current.get(peerId) === pc && pc.connectionState !== "connected") cleanupPeer(peerId);
+        }, 12000);
+        stuckTimersRef.current.set(peerId, recoveryTimer);
         if (!userId || userId >= peerId) return;
         console.warn(
           `[voice] ${peerId} never connected after 12s, attempting ICE restart`,
@@ -383,18 +402,25 @@ export function useVoiceChannels(
   const initiateCall = useCallback(
     async (peerId: string) => {
       const pc = createPeerConnection(peerId, true);
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      if (userId)
-        sendSignal({ type: "offer", from: userId, to: peerId, sdp: offer });
+      const generation = callGenerationRef.current;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        if (userId && generation === callGenerationRef.current)
+          sendSignal({ type: "offer", from: userId, to: peerId, sdp: offer });
+      } catch (error) {
+        if (pcsRef.current.get(peerId) === pc) cleanupPeer(peerId);
+        throw error;
+      }
     },
-    [createPeerConnection, sendSignal, userId],
+    [createPeerConnection, sendSignal, userId, cleanupPeer],
   );
 
   const handleSignal = useCallback(
     async (payload: SignalPayload) => {
       if (!userId || payload.to !== userId || joinedIdRef.current === null)
         return;
+      const generation = callGenerationRef.current;
       if (payload.type === "offer") {
         const pc =
           pcsRef.current.get(payload.from) ??
@@ -415,6 +441,7 @@ export function useVoiceChannels(
         await flushPendingCandidates(payload.from, pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        if (generation !== callGenerationRef.current) return;
         sendSignal({
           type: "answer",
           from: userId,
@@ -450,11 +477,10 @@ export function useVoiceChannels(
   useEffect(() => {
     if (!userId) return;
     channelsRef.current = new Set(channelIds);
-    let stopped = false;
-    const refreshPresence = async () => {
-      try {
-        const rows = await apiRequest<(VoiceParticipant & { channel_id: string })[]>(`/voice/presence?channels=${encodeURIComponent(channelIds.join(","))}`);
-        if (stopped) return;
+    const refreshPresence = async (signal: AbortSignal) => {
+        const generation = callGenerationRef.current;
+        const rows = await apiRequest<(VoiceParticipant & { channel_id: string })[]>(`/voice/presence?channels=${encodeURIComponent(channelIds.join(","))}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
+        if (signal.aborted || generation !== callGenerationRef.current) return;
         const byChannel = new Map<string, VoiceParticipant[]>();
         for (const row of rows) {
           const list = byChannel.get(row.channel_id) ?? [];
@@ -478,37 +504,33 @@ export function useVoiceChannels(
             }
           }
         }
-      } catch (err) { if (!stopped) console.warn("Failed to refresh voice participants", err); }
     };
-    void refreshPresence();
-    const timer = window.setInterval(refreshPresence, 3000);
-    return () => { stopped = true; window.clearInterval(timer); channelsRef.current.clear(); };
+    const stop = startVoicePolling(refreshPresence, () => joinedIdRef.current ? 3000 : 10_000,
+      (err) => console.warn("Failed to refresh voice participants", err));
+    return () => { stop(); channelsRef.current.clear(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelIds.join("|"), userId]);
+  }, [channelIds.join("|"), userId, joinedId]);
 
   useEffect(() => {
     if (!joinedId) return;
-    let stopped = false;
-    const drain = async () => {
-      try {
-        const signals = await apiRequest<SignalPayload[]>(`/voice/${encodeURIComponent(joinedId)}/signals`);
-        for (const signal of signals) {
-          if (stopped || joinedIdRef.current !== joinedId) break;
-          await handleSignal(signal);
-        }
-      } catch (err) { if (!stopped) console.warn("[voice] signalling poll failed", err); }
-    };
-    void drain();
-    const timer = window.setInterval(() => { void drain(); }, 500);
-    return () => { stopped = true; window.clearInterval(timer); };
+    const drain = createSignalInbox<SignalPayload>(
+      (ack, signal) => apiRequest(`/voice/${encodeURIComponent(joinedId)}/signals/exchange`, {
+        method: "POST", body: JSON.stringify({ ack }),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+      }),
+      handleSignal,
+      (err) => console.warn("[voice] could not process signal", err),
+    );
+    return startVoicePolling(drain, () =>
+      [...pcsRef.current.values()].some((pc) => pc.connectionState !== "connected") ? 500 : 1500,
+    (err) => console.warn("[voice] signalling poll failed", err));
   }, [joinedId, handleSignal]);
 
   useEffect(() => {
     if (!joinedId || !username) return;
-    const heartbeat = () => publishPresence(joinedId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: isStreamingRef.current });
-    heartbeat();
-    const timer = window.setInterval(heartbeat, 5000);
-    return () => window.clearInterval(timer);
+    return startVoicePolling(async () => {
+      await publishPresence(joinedId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: isStreamingRef.current });
+    }, () => 5000, (err) => console.warn("Failed to refresh voice presence", err));
   }, [joinedId, username, publishPresence]);
 
   const join = useCallback(
@@ -532,6 +554,7 @@ export function useVoiceChannels(
         setError(null);
         setConnecting(true);
         try {
+          const iceServers = getIceServers();
           // Explicit, Discord-standard mic processing -- without this, simultaneous
           // speakers (especially anyone on speakers rather than headphones) can
           // produce feedback/howling that sounds like the call "breaking". Browsers
@@ -552,16 +575,23 @@ export function useVoiceChannels(
           }
           localStreamRef.current = stream;
           attachAnalyser(userId, stream);
-          iceServersRef.current = await getIceServers();
+          iceServersRef.current = await iceServers;
           if (generation !== callGenerationRef.current) return;
 
-          joinedIdRef.current = targetId;
           mutedRef.current = false;
           isStreamingRef.current = false;
-          publishPresence(targetId, { muted: false, deafened: false, streaming: false });
+          await publishPresence(targetId, { muted: false, deafened: false, streaming: false });
+          if (generation !== callGenerationRef.current) {
+            await apiRequest<void>(`/voice/${encodeURIComponent(targetId)}/presence`, { method: "DELETE", signal: AbortSignal.timeout(10_000) }).catch(() => {});
+            return;
+          }
+          joinedIdRef.current = targetId;
           setParticipants((occupants.get(targetId) ?? []).filter((p) => p.id !== userId).concat({ id: userId, username, muted: false, deafened: false, streaming: false }));
           setJoinedId(targetId);
-          void apiRequest<void>(`/voice/${encodeURIComponent(targetId)}/sessions/start`, { method: "POST" }).catch((err) => console.error("Failed to record voice session start", err));
+          presenceQueueRef.current = presenceQueueRef.current.then(async () => {
+            if (generation !== callGenerationRef.current) return;
+            await apiRequest<void>(`/voice/${encodeURIComponent(targetId)}/sessions/start`, { method: "POST", signal: AbortSignal.timeout(10_000) });
+          }).catch((err) => console.error("Failed to record voice session start", err));
           try {
             sessionStorage.setItem(LAST_CHANNEL_KEY, targetId);
           } catch {
@@ -569,6 +599,7 @@ export function useVoiceChannels(
           }
           playVoiceCue("join");
         } catch (err) {
+          leaveRef.current();
           setError(
             err instanceof Error
               ? err.message
@@ -589,17 +620,25 @@ export function useVoiceChannels(
 
   const leave = useCallback(() => {
     callGenerationRef.current += 1;
+    signalQueuesRef.current.clear();
     const wasConnected = joinedIdRef.current !== null;
     const channelId = joinedIdRef.current;
-    if (wasConnected) {
-      void apiRequest<void>("/voice/sessions/stop", { method: "POST" }).catch((err) => console.error("Failed to record voice session end", err));
-    }
     for (const peerId of Array.from(pcsRef.current.keys())) cleanupPeer(peerId);
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
-    if (channelId) void apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, { method: "DELETE" }).catch((err) => console.warn("Failed to leave voice channel", err));
+    if (channelId) {
+      // Complete any in-flight heartbeat before removing membership. A quick
+      // leave/rejoin also waits for this cleanup before publishing again.
+      presenceQueueRef.current = presenceQueueRef.current.then(async () => {
+        const results = await Promise.allSettled([
+          apiRequest<void>("/voice/sessions/stop", { method: "POST", signal: AbortSignal.timeout(10_000) }),
+          apiRequest<void>(`/voice/${encodeURIComponent(channelId)}/presence`, { method: "DELETE", signal: AbortSignal.timeout(10_000) }),
+        ]);
+        for (const result of results) if (result.status === "rejected") console.warn("Failed to leave voice channel", result.reason);
+      }).catch((err) => console.warn("Failed to leave voice channel", err));
+    }
     joinedIdRef.current = null;
     try {
       sessionStorage.removeItem(LAST_CHANNEL_KEY);
@@ -693,7 +732,7 @@ export function useVoiceChannels(
       setLocalScreenStream(capture);
       if (username) {
         const channelId = activeChannel();
-        if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: true });
+        if (channelId) void publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: true }).catch((err) => console.warn("Failed to refresh voice presence", err));
       }
     } catch (err) {
       capture?.getTracks().forEach((t) => t.stop());
@@ -724,7 +763,7 @@ export function useVoiceChannels(
     setLocalScreenStream(null);
     if (username) {
       const channelId = activeChannel();
-      if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: false });
+      if (channelId) void publishPresence(channelId, { muted: mutedRef.current, deafened: deafenedRef.current, streaming: false }).catch((err) => console.warn("Failed to refresh voice presence", err));
     }
   }, [activeChannel, username, publishPresence]);
 
@@ -741,7 +780,7 @@ export function useVoiceChannels(
       });
       if (username) {
         const channelId = activeChannel();
-        if (channelId) publishPresence(channelId, { muted: next, deafened: deafenedRef.current, streaming: isStreamingRef.current });
+        if (channelId) void publishPresence(channelId, { muted: next, deafened: deafenedRef.current, streaming: isStreamingRef.current }).catch((err) => console.warn("Failed to refresh voice presence", err));
       }
       playVoiceCue(next ? "mute" : "unmute");
       return next;
@@ -765,7 +804,7 @@ export function useVoiceChannels(
     }
     if (username) {
       const channelId = activeChannel();
-      if (channelId) publishPresence(channelId, { muted: mutedRef.current, deafened: next, streaming: isStreamingRef.current });
+      if (channelId) void publishPresence(channelId, { muted: mutedRef.current, deafened: next, streaming: isStreamingRef.current }).catch((err) => console.warn("Failed to refresh voice presence", err));
     }
   }, [activeChannel, username, publishPresence]);
 
@@ -863,9 +902,8 @@ export function useVoiceChannels(
   }, [joinedId, unlockAudio]);
 
   useEffect(() => {
-    return () => leave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => leaveRef.current();
+  }, [userId]);
 
   return {
     occupants,
